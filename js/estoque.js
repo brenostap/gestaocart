@@ -400,8 +400,6 @@ function renderEstoqueTabela(dados){
         campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
         campos.push(['Margem', l.d.margem == null ? '—' : money(l.d.margem)]);
       }
-      campos.push(['WhatsApp', UI.btn('Gerar texto', {sm:true,
-        onclick:`event.stopPropagation();abrirWaModalDireto(gerarTextoWhatsAppB('${escapeKey(l.d.modelo)}','${escapeKey(l.d.capacidade)}','${escapeKey(l.d.cor)}'),'${escapeKey(l.d.modelo)}')`})]);
 
       return `<tr class="est-detalhe"><td colspan="${COLUNAS_ESTOQUE}">
         <div class="est-det-campos">
@@ -456,23 +454,6 @@ function setEstoqueSearchV3(v){
 // WHATSAPP -- templates + modal
 // ===================================================================
 
-function gerarTextoWhatsAppB(modelo, cap, cor){
-  const tree = construirTreeEstoque(estoqueItens, '');
-  const dataCor = tree[modelo]?.caps[cap]?.cores[cor];
-  if(!dataCor) return;
-  const itemRef = dataCor.items[0];
-  const precoInfo = itemRef ? getPrecoVendaSync(itemRef) : null;
-  const precoTxt = precoInfo?.varejo ? `R$ ${precoInfo.varejo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : '—';
-  const corEmoji = bolinhaEmoji(cor);
-
-  let txt = `📱 *${modelo}*\n\n`;
-  txt += `*${cap} · ${precoTxt}*\n`;
-  txt += `${corEmoji} ${cor} — ${dataCor.items.length} un\n\n`;
-  txt += `_Pronta entrega · Garantia 90 dias_\n`;
-  txt += `_Phone Cart_`;
-
-  abrirWaModalDireto(txt, `${modelo} ${cap} ${cor}`);
-}
 
 function gerarTextoWhatsAppGeral(template, scope){
   const search = scope === 'visiveis' ? estoqueSearchV3 : '';
@@ -482,60 +463,51 @@ function gerarTextoWhatsAppGeral(template, scope){
   const hoje = new Date();
   const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const dataStr = `${hoje.getDate()}/${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
-  const ordCap = ['64GB','128GB','256GB','512GB','1TB','?'];
+
+  // Sem preco, sem emoji e sem rodape: a pedido do dono o texto virou uma lista
+  // operacional, unidade por unidade, com bateria e etiqueta.
+  const unidade = it => {
+    const bat = parseInt(it.bateria || 0);
+    const et  = it.serial ? ` #${it.serial}` : '';
+    return `${bat ? bat + '%' : 'bateria n/d'}${et}`;
+  };
+
+  // ordena igual a tela: 11, 12, 13... e normal, e, Plus, Pro, Pro Max
+  const modelosOrd = Object.entries(tree).sort((a,b) => {
+    const [ga,va] = ordemModelo(a[0]), [gb,vb] = ordemModelo(b[0]);
+    return ga - gb || va - vb || a[0].localeCompare(b[0]);
+  });
+  const capsOrd = caps => Object.entries(caps)
+    .sort((a,b) => capacidadeEmGB(a[0]) - capacidadeEmGB(b[0]));
+  const coresOrd = cores => Object.entries(cores)
+    .sort((a,b) => b[1].items.length - a[1].items.length);
 
   if(template === 'A'){
-    let txt = `📱 *ESTOQUE PHONE CART*\n_Atualizado ${dataStr}_\n\n━━━━━━━━━━━━━━━\n\n`;
-    const modelosOrd = Object.entries(tree).sort((a,b) => a[0].localeCompare(b[0]));
-    modelosOrd.forEach(([modelo, dataModelo]) => {
+    let txt = `*ESTOQUE PHONE CART*\n_Atualizado ${dataStr}_\n\n`;
+    modelosOrd.forEach(([modelo, dm]) => {
       txt += `*${modelo}*\n`;
-      const capsOrd = Object.entries(dataModelo.caps).sort((a,b) => {
-        const ia=ordCap.indexOf(a[0]); const ib=ordCap.indexOf(b[0]);
-        return (ia<0?99:ia)-(ib<0?99:ib);
-      });
-      capsOrd.forEach(([cap, dataCap]) => {
-        const itemRef = Object.values(dataCap.cores)[0]?.items[0];
-        const precoInfo = itemRef ? getPrecoVendaSync(itemRef) : null;
-        const precoTxt = precoInfo?.varejo ? ` · R$ ${precoInfo.varejo.toLocaleString('pt-BR')}` : '';
-        txt += `▸ ${cap}${precoTxt}\n`;
-        const coresOrd = Object.entries(dataCap.cores).sort((a,b) => b[1].items.length - a[1].items.length);
-        coresOrd.forEach(([cor, dataCor]) => {
-          const qtd = dataCor.items.length;
-          const critico = qtd <= 2 ? ' ⚠️' : '';
-          txt += `   • ${cor} — ${qtd} un${critico}\n`;
+      capsOrd(dm.caps).forEach(([cap, dc]) => {
+        txt += `${cap}\n`;
+        coresOrd(dc.cores).forEach(([cor, dcor]) => {
+          dcor.items.forEach(it => { txt += `  ${cor} · ${unidade(it)}\n`; });
         });
       });
       txt += `\n`;
     });
-    txt += `━━━━━━━━━━━━━━━\n_Phone Cart · Sala 309_\n_Pronta entrega · Garantia 90 dias_`;
-    return txt;
+    return txt.trimEnd();
   }
 
   if(template === 'C'){
-    let txt = `📱 *Phone Cart* · ${dataStr}\n\n`;
-    const modelosOrd = Object.entries(tree).sort((a,b) => a[0].localeCompare(b[0]));
-    modelosOrd.forEach(([modelo, dataModelo]) => {
-      const modeloShort = modelo.replace(/^iPhone\s+/, '');
-      txt += `*${modeloShort}*\n`;
-      const capsOrd = Object.entries(dataModelo.caps).sort((a,b) => {
-        const ia=ordCap.indexOf(a[0]); const ib=ordCap.indexOf(b[0]);
-        return (ia<0?99:ia)-(ib<0?99:ib);
+    let txt = `*Phone Cart* · ${dataStr}\n\n`;
+    modelosOrd.forEach(([modelo, dm]) => {
+      const curto = modelo.replace(/^iPhone\s+/, '');
+      capsOrd(dm.caps).forEach(([cap, dc]) => {
+        coresOrd(dc.cores).forEach(([cor, dcor]) => {
+          dcor.items.forEach(it => { txt += `${curto} ${cap} ${cor} · ${unidade(it)}\n`; });
+        });
       });
-      capsOrd.forEach(([cap, dataCap]) => {
-        const itemRef = Object.values(dataCap.cores)[0]?.items[0];
-        const precoInfo = itemRef ? getPrecoVendaSync(itemRef) : null;
-        const capShort = cap.replace('GB','').replace('TB','TB');
-        const precoTxt = precoInfo?.varejo ? ` — R$ ${precoInfo.varejo.toLocaleString('pt-BR')}` : '';
-        const coresStr = Object.entries(dataCap.cores)
-          .sort((a,b) => b[1].items.length - a[1].items.length)
-          .map(([cor, d]) => `${cor}(${d.items.length})`)
-          .join(' ');
-        txt += `${capShort}: ${coresStr}${precoTxt}\n`;
-      });
-      txt += `\n`;
     });
-    txt += `_Garantia 90 dias_`;
-    return txt;
+    return txt.trimEnd();
   }
   return '';
 }
