@@ -160,6 +160,7 @@ function dadosDoItem(item){
     item, titulo, modelo, capacidade, cor, condicao, custo, venda,
     margem: venda != null ? venda - custo : null,
     geracao: geracaoDe(modelo),
+    origem: origemDoItem(item),
     bateria: parseInt(item.bateria || 0),
     etiqueta: item.serial || '',
     imei: item.imei_1 || ''
@@ -167,6 +168,21 @@ function dadosDoItem(item){
 }
 
 function setEstoqueGeracao(g){ estoqueGeracao = g; if(currentTab==='estoque') renderContent(); }
+function setEstoqueOrigem(o){ estoqueOrigem = o; if(currentTab==='estoque') renderContent(); }
+function setEstoqueModelo(m){ estoqueModelo = m; if(currentTab==='estoque') renderContent(); }
+function setEstoqueCap(c){ estoqueCap = c; if(currentTab==='estoque') renderContent(); }
+function limparFiltrosEstoque(){
+  estoqueOrigem='todas'; estoqueModelo='todos'; estoqueCap='todas';
+  estoqueGeracao='todas'; estoqueSearchV3='';
+  if(currentTab==='estoque') renderContent();
+}
+
+// Aparelho sem fornecedor nunca passou por uma compra: e entrada de cliente
+// (upgrade). Confirmado nos dados — dos 39 sem fornecedor, zero em compras.
+function origemDoItem(item){
+  const f = getFornNome(item);
+  return (f && String(f).trim()) ? String(f).trim() : 'Entrada (cliente)';
+}
 
 function renderEstoque(){
   if(!_precosCache) carregarTabelaPrecos().then(() => renderContent());
@@ -183,8 +199,11 @@ function renderEstoque(){
   const geracoes = Object.keys(porGeracao).filter(g => g !== '?')
     .sort((a,b) => Number(b) - Number(a));
 
-  const visiveis = todos.filter(d => busca(d) &&
-    (estoqueGeracao === 'todas' || d.geracao === estoqueGeracao));
+  const visiveis = todos.filter(d => busca(d)
+    && (estoqueGeracao === 'todas' || d.geracao === estoqueGeracao)
+    && (estoqueOrigem  === 'todas' || d.origem   === estoqueOrigem)
+    && (estoqueModelo  === 'todos' || d.modelo   === estoqueModelo)
+    && (estoqueCap     === 'todas' || d.capacidade === estoqueCap));
   _estoqueVisivel = visiveis;                       // usado pelo painel de detalhe
   if(_fotos === null) carregarFotos().then(() => { if(currentTab==='estoque') renderContent(); });
 
@@ -192,16 +211,23 @@ function renderEstoque(){
   const capital = visiveis.reduce((a,d) => a + d.custo, 0);
   const comPreco = visiveis.filter(d => d.margem != null);
   const margemPot = comPreco.reduce((a,d) => a + d.margem, 0);
-  const modelos = new Set(visiveis.map(d => d.modelo + d.capacidade)).size;
 
-  const kpis = UI.kpis([
+  const entradas = visiveis.filter(d => d.origem === 'Entrada (cliente)');
+
+  // Vendedor/atendente nao ve custo nem valor de estoque (brief §2)
+  const listaKpis = [
     { rotulo:'Aparelhos', valor: visiveis.length,
       sub: estoqueGeracao==='todas' ? 'em estoque' : 'iPhone '+estoqueGeracao },
-    { rotulo:'Modelos', valor: modelos, sub:'combinações modelo + capacidade' },
-    { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
-    { rotulo:'Margem potencial', valor: money(margemPot), tom:'ok',
-      sub: comPreco.length + ' de ' + visiveis.length + ' com preço na tabela' },
-  ]);
+    { rotulo:'Entradas de cliente', valor: entradas.length,
+      sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' },
+  ];
+  if(podeVerDinheiro()){
+    listaKpis.push(
+      { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
+      { rotulo:'Margem potencial', valor: money(margemPot), tom:'ok',
+        sub: comPreco.length + ' de ' + visiveis.length + ' com preço na tabela' });
+  }
+  const kpis = UI.kpis(listaKpis);
 
   // -- Cabecalho da pagina ------------------------------------------------
   const cabecalho = `
@@ -218,9 +244,31 @@ function renderEstoque(){
     </div>`;
 
   // -- Barra de filtros ---------------------------------------------------
-  const chipsGeracao = [UI.chip('Todas', estoqueGeracao==='todas', "setEstoqueGeracao('todas')")]
-    .concat(geracoes.map(g => UI.chip(g + ' <span class="chip-cnt">' + porGeracao[g] + '</span>',
-                                      estoqueGeracao===g, `setEstoqueGeracao('${g}')`))).join('');
+  // opcoes calculadas sobre o estoque inteiro, nao sobre o filtrado,
+  // senao escolher um filtro apagaria as opcoes dos outros
+  const opcoes = (campo) => [...new Set(todos.map(d => d[campo]).filter(Boolean))];
+  const origens = opcoes('origem').sort((a,b) =>
+    a === 'Entrada (cliente)' ? -1 : b === 'Entrada (cliente)' ? 1 : a.localeCompare(b,'pt-BR'));
+  const modelos = opcoes('modelo').sort((a,b) => {
+    const [ga,va] = ordemModelo(a), [gb,vb] = ordemModelo(b);
+    return ga - gb || va - vb;
+  });
+  const caps = opcoes('capacidade').sort((a,b) => capacidadeEmGB(a) - capacidadeEmGB(b));
+
+  const sel = (id, valor, todasLabel, lista, fn, rotulo) => `
+    <label class="est-sel">
+      <span>${rotulo}</span>
+      <select onchange="${fn}(this.value)">
+        <option value="${todasLabel}"${valor===todasLabel?' selected':''}>Todos</option>
+        ${lista.map(o => `<option value="${escapeHtml(o)}"${valor===o?' selected':''}>${escapeHtml(String(o).replace(/^iPhone\s*/,''))}</option>`).join('')}
+      </select>
+    </label>`;
+
+  const chipsCap = [UI.chip('Todas', estoqueCap==='todas', "setEstoqueCap('todas')")]
+    .concat(caps.map(c => UI.chip(c, estoqueCap===c, `setEstoqueCap('${escapeKey(c)}')`))).join('');
+
+  const filtrosAtivos = (estoqueOrigem!=='todas') + (estoqueModelo!=='todos')
+                      + (estoqueCap!=='todas') + (estoqueGeracao!=='todas') + (!!estoqueSearchV3);
 
   const filtros = `
     <div class="est-barra">
@@ -229,9 +277,11 @@ function renderEstoque(){
         <input type="text" id="est-search-v3" placeholder="Buscar por modelo, IMEI, etiqueta ou fornecedor..."
                value="${escapeHtml(estoqueSearchV3)}" oninput="setEstoqueSearchV3(this.value)">
       </div>
-
+      ${sel('origem', estoqueOrigem, 'todas', origens, 'setEstoqueOrigem', 'Origem')}
+      ${sel('modelo', estoqueModelo, 'todos', modelos, 'setEstoqueModelo', 'Modelo')}
+      ${filtrosAtivos ? UI.btn('Limpar filtros', {onclick:'limparFiltrosEstoque()', variante:'sutil', sm:true}) : ''}
     </div>
-    <div class="est-chips">${chipsGeracao}</div>`;
+    <div class="est-chips"><span class="est-chips-rot">Capacidade</span>${chipsCap}</div>`;
 
   // -- Conteudo -----------------------------------------------------------
   let corpo;
@@ -313,6 +363,7 @@ function detalheOrigemHtml(d){
 
 // -- Vista Lista: a tabela rica -------------------------------------------
 function renderEstoqueTabela(dados){
+  const COLUNAS_ESTOQUE = podeVerDinheiro() ? 7 : 6;
   const bat = b => {
     if(!b) return '<span class="est-bat">—</span>';
     const t = b < 80 ? 'critico' : b < 85 ? 'alerta' : 'ok';
@@ -338,18 +389,23 @@ function renderEstoqueTabela(dados){
 
   const corpo = linhas.map(l => {
     if(l.tipo === 'detalhe'){
-      const foto = fotoDoItem(l.d);
-      return `<tr class="est-detalhe"><td colspan="7">
-        <div class="est-det-grid">
-          ${foto ? `<img class="est-det-foto" src="${foto}" alt="" decoding="async">` : '<div class="est-det-foto vazia">sem foto</div>'}
-          <div class="est-det-campos">
-            <div><i class="det-rot">Origem</i>${detalheOrigemHtml(l.d)}</div>
-            <div><i class="det-rot">Fornecedor</i>${escapeHtml(getFornNome(l.d.item) || '—')}</div>
-            <div><i class="det-rot">Entrada</i>${dataEntradaFmt(l.d.item) || '—'}</div>
-            <div><i class="det-rot">Condição</i>${UI.badge(l.d.condicao || 'Seminovo')}</div>
-            <div><i class="det-rot">Margem</i>${l.d.margem == null ? '—' : money(l.d.margem)}</div>
-            <div><i class="det-rot">WhatsApp</i>${UI.btn('Gerar texto', {sm:true, onclick:`event.stopPropagation();abrirWaModalDireto(gerarTextoWhatsAppB('${escapeKey(l.d.modelo)}','${escapeKey(l.d.capacidade)}','${escapeKey(l.d.cor)}'),'${escapeKey(l.d.modelo)}')`})}</div>
-          </div>
+      const campos = [
+        ['Origem', detalheOrigemHtml(l.d)],
+        ['Entrada', dataEntradaFmt(l.d.item) || '—'],
+        ['Condição', UI.badge(l.d.condicao || 'Seminovo')],
+        ['IMEI', `<span class="est-imei">${escapeHtml(l.d.imei || '—')}</span>`],
+      ];
+      // fornecedor e margem sao informacao de socio (brief §2)
+      if(podeVerDinheiro()){
+        campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
+        campos.push(['Margem', l.d.margem == null ? '—' : money(l.d.margem)]);
+      }
+      campos.push(['WhatsApp', UI.btn('Gerar texto', {sm:true,
+        onclick:`event.stopPropagation();abrirWaModalDireto(gerarTextoWhatsAppB('${escapeKey(l.d.modelo)}','${escapeKey(l.d.capacidade)}','${escapeKey(l.d.cor)}'),'${escapeKey(l.d.modelo)}')`})]);
+
+      return `<tr class="est-detalhe"><td colspan="${COLUNAS_ESTOQUE}">
+        <div class="est-det-campos">
+          ${campos.map(([r,v]) => `<div><i class="det-rot">${r}</i>${v}</div>`).join('')}
         </div></td></tr>`;
     }
     const d = l.d;
@@ -359,7 +415,7 @@ function renderEstoqueTabela(dados){
       <td>${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
       <td class="num">${bat(d.bateria)}</td>
       <td><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>
-      <td class="num">${money(d.custo)}</td>
+      ${podeVerDinheiro() ? `<td class="num">${money(d.custo)}</td>` : ''}
       <td class="num">${d.venda == null ? '<span class="est-sempreco">sem tabela</span>' : `<span class="est-venda">${money(d.venda)}</span>`}</td>
     </tr>`;
   }).join('');
@@ -369,7 +425,7 @@ function renderEstoqueTabela(dados){
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
       <thead><tr>
         <th>Etiqueta</th><th>Produto</th><th>Cor</th><th class="num">Bateria</th>
-        <th>IMEI</th><th class="num">Custo</th><th class="num">Venda</th>
+        <th>IMEI</th>${podeVerDinheiro() ? '<th class="num">Custo</th>' : ''}<th class="num">Venda</th>
       </tr></thead>
       <tbody>${corpo}</tbody></table></div>`
   });

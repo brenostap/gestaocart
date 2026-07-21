@@ -15,6 +15,9 @@ let currentStore='ambas',currentTab='dash',currentPeriod='mes';
 // Estado do Estoque v3
 let estoqueViewV3 = 'agrupado';       // 'agrupado' | 'lista'
 let estoqueGeracao = 'todas';         // filtro por geracao de iPhone (17, 16, 15...)
+let estoqueOrigem  = 'todas';         // 'Entrada (cliente)' ou nome do fornecedor
+let estoqueModelo  = 'todos';         // modelo completo: "iPhone 13 Pro Max"
+let estoqueCap     = 'todas';         // 128GB, 256GB...
 let estoqueSearchV3 = '';
 let estoqueColorOpen = null;          // 'modelo__cap__cor' atualmente expandida (vista Agrupada)
 let estoqueSkuOpen = new Set();       // SKUs expandidas na vista Lista (multi)
