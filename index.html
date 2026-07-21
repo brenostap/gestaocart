@@ -1841,6 +1841,18 @@ function enterApp(){
   if(ls) ls.style.display='none';
   if(app) app.style.display='block';
   updateHeaderLogo();
+  iniciarTokenKeepAlive();
+}
+
+// Mantem SB_TOKEN sempre valido para as chamadas que leem a variavel global
+// (escritas de custos, precos, equipe). Independe do polling de vendas.
+let _tokenKeepAlive=null;
+function iniciarTokenKeepAlive(){
+  if(_tokenKeepAlive) return;
+  _tokenKeepAlive=setInterval(sbAuthToken, 60*1000);
+}
+function pararTokenKeepAlive(){
+  if(_tokenKeepAlive){clearInterval(_tokenKeepAlive);_tokenKeepAlive=null;}
 }
 
 async function doLogin(){
@@ -1864,6 +1876,7 @@ async function doLogin(){
 
 async function doLogout(){
   if(_pollingInterval){clearInterval(_pollingInterval);_pollingInterval=null;}
+  pararTokenKeepAlive();
   try{ await sb.auth.signOut(); }catch(e){}
   SB_TOKEN=SB_KEY;allVendas=[];allMovs=[];estoqueItens=[];
   document.getElementById('app').style.display='none';
@@ -1880,9 +1893,38 @@ function setProgress(pct,txt){
 
 
 // -- SUPABASE HELPERS ------------------------------------------------------
+// Devolve um access_token valido. getSession() renova sozinho quando o token
+// expirou; nao da pra confiar so na variavel SB_TOKEN, que fica velha se a aba
+// ficar aberta/dormindo (era o que fazia o polling levar 401 em silencio).
+async function sbAuthToken(){
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session && session.access_token){ SB_TOKEN=session.access_token; return SB_TOKEN; }
+  }catch(e){}
+  SB_TOKEN=SB_KEY;
+  return SB_TOKEN;
+}
+
+// Sessao morreu de vez: para o polling e devolve o usuario pro login.
+function sessaoExpirou(){
+  if(_pollingInterval){clearInterval(_pollingInterval);_pollingInterval=null;}
+  pararTokenKeepAlive();
+  SB_TOKEN=SB_KEY;
+  const app=document.getElementById('app');
+  if(app) app.style.display='none';
+  const ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='flex';
+  const err=document.getElementById('login-error');
+  if(err) err.textContent='Sua sessão expirou. Entre novamente.';
+  const btn=document.getElementById('login-btn');
+  if(btn){ btn.disabled=false; btn.textContent='Entrar'; }
+}
+
 async function sbGet(table, params='', limit=2000){
+  const token=await sbAuthToken();
   const url=`${SB_URL}/rest/v1/${table}?${params}&limit=${limit}`;
-  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Accept':'application/json','Prefer':'count=exact'}});
+  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json','Prefer':'count=exact'}});
+  if(r.status===401){ sessaoExpirou(); throw new Error('Sessão expirada'); }
   if(!r.ok) throw new Error(`Supabase ${table}: ${r.status}`);
   return r.json();
 }
@@ -1959,7 +2001,7 @@ async function loadAllData(){
   await gerarSalariosDoMes();
   await loadCustosFromSB(); // recarregar com os novos salarios
   await loadEquipeFromSB();
-  const hd={'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Accept':'application/json'};
+  const hd={'apikey':SB_KEY,'Authorization':'Bearer '+(await sbAuthToken()),'Accept':'application/json'};
   try{
     // Tentar Supabase primeiro (muito mais rapido)
     if(USE_SUPABASE){
@@ -4225,11 +4267,15 @@ function iniciarPolling(){
 }
 
 async function verificarNovasVendas(){
-  if(SB_TOKEN===SB_KEY) return; // sem sessão autenticada
+  // Renova o token a cada ciclo (2 min), o que tambem mantem SB_TOKEN fresco
+  // para as demais chamadas enquanto o app estiver aberto.
+  const token=await sbAuthToken();
+  if(token===SB_KEY) return; // sem sessão autenticada
   try{
     const r = await fetch(BASE+'/vendas?sort=data_saida:desc&page=1&perPage=5&filters[status]=completed',{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Accept':'application/json'}
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'}
     });
+    if(r.status===401){ sessaoExpirou(); return; }
     const d = await r.json();
     const novas = (d.data||[]).filter(v => v.id > _lastVendaId);
     if(novas.length === 0) return;
@@ -4237,7 +4283,7 @@ async function verificarNovasVendas(){
     // Buscar detalhes das vendas novas
     for(const venda of novas.reverse()){
       const det = await fetch(BASE+'/vendas/'+venda.id,{
-        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Accept':'application/json'}
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'}
       }).then(r=>r.json()).catch(()=>null);
       const detail = det?.data || det || venda;
       _notifQueue.push(detail);
