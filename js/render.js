@@ -663,134 +663,150 @@ function renderVendas(){
   const totalAcess=rows.reduce((a,r)=>a+r.acessBruto,0);
   const totalPrincipais=rows.reduce((a,r)=>a+r.nPrincipais,0);
 
-  const lojaDot=l=>{
-    if(l==='cart') return '<div class="loja-dot-cart"></div>';
-    if(l==='urban') return '<div class="loja-dot-urban"></div>';
-    return '<div class="loja-dot-none"></div>';
-  };
-  const lojaTag=l=>{
-    if(l==='cart')return'<span class="vloja-cart">Cart</span>';
-    if(l==='urban')return'<span class="vloja-urban">Urban</span>';
-    return'';
-  };
+  const shortNome = n => { if(!n||n==='—') return '—';
+    const p = n.trim().split(/\s+/); return p.length<=2 ? n : p[0]+' '+p[p.length-1]; };
+  const shortProd = p => { if(!p||p==='—') return '—';
+    return p.replace(/^iphone\s+/i,'').replace(/^ipad\s+/i,'iPad ').replace(/^macbook\s+/i,'Mac ')
+            .replace(/\s*seminovo\s*$/i,' SN').replace(/\s*lacrado\s*$/i,' LAC').trim(); };
+  const capNome = n => n && n!=='—' ? n.charAt(0).toUpperCase()+n.slice(1) : '—';
+  const lojaTag = l => l==='cart' ? UI.badge('Cart','processo')
+                     : l==='urban' ? UI.badge('Urban','alerta') : '';
 
-  // Loja e periodo agora vivem na sidebar (contexto persistente, brief §7.2)
-  const filtersHTML='';
-
-  const sumsHTML=`
-    <div class="vsum">
-      <div class="vsumcard"><div class="vsumcard-label">Pedidos</div><div class="vsumcard-val">${rows.length}</div></div>
-      <div class="vsumcard"><div class="vsumcard-label">Produtos vendidos</div><div class="vsumcard-val" style="color:var(--cart)">${totalPrincipais}</div></div>
-      <div class="vsumcard"><div class="vsumcard-label">Total bruto</div><div class="vsumcard-val">${brl(totalBruto)}</div></div>
-      <div class="vsumcard"><div class="vsumcard-label">Lucro total</div><div class="vsumcard-val" style="color:var(--green)">${brl(totalLucro)}</div></div>
+  // -- Cabecalho ----------------------------------------------------------
+  const cabecalho = `
+    <div class="pg-head">
+      <div>
+        <div class="pg-kicker">Operações</div>
+        <h1 class="pg-title">Vendas</h1>
+        <div class="pg-desc">Pedidos do período, com os aparelhos e acessórios de cada venda.</div>
+      </div>
+      <div class="pg-acoes">${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}</div>
     </div>`;
 
-  const vendaFiltersHTML=`
-    <div class="venda-filters">
-      <input class="venda-search" type="text" placeholder="Buscar cliente, produto, vendedor, etiqueta..." value="${vendasSearch}" oninput="filterVendas('search',this.value)">
-      <select class="period-select" onchange="filterVendas('loja',this.value)">
-        <option value="todas"${vendasLoja==='todas'?' selected':''}>Todas lojas</option>
-        <option value="cart"${vendasLoja==='cart'?' selected':''}>Cart</option>
-        <option value="urban"${vendasLoja==='urban'?' selected':''}>Urban</option>
-      </select>
-      <select class="period-select" onchange="filterVendas('vendedor',this.value)">
-        <option value="todos">Todos vendedores</option>
-        ${vends.map(vd=>'<option value="'+vd+'"'+(vendasVendedor===vd?' selected':'')+'>'+vd.charAt(0).toUpperCase()+vd.slice(1)+'</option>').join('')}
-      </select>
-      <select class="period-select" onchange="filterVendas('atendente',this.value)">
-        <option value="todos">Todos atendentes</option>
-        ${atends.map(at=>'<option value="'+at+'"'+(vendasAtendente===at?' selected':'')+'>'+at.charAt(0).toUpperCase()+at.slice(1)+'</option>').join('')}
-      </select>
-      <input class="venda-search" type="text" placeholder="Filtrar modelo..." value="${vendasProduto}" oninput="filterVendas('produto',this.value)" style="max-width:160px">
-      <span style="font-size:12px;color:var(--text3);white-space:nowrap">${rows.length} vendas</span>
-    </div>`;
+  // -- KPIs (dinheiro so para quem pode ver) ------------------------------
+  const listaKpis = [
+    { rotulo:'Pedidos', valor: rows.length, sub: mostrarPendentes ? 'pendentes' : 'no período' },
+    { rotulo:'Produtos vendidos', valor: totalPrincipais, sub:'aparelhos, sem acessórios' },
+  ];
+  if(podeVerDinheiro()){
+    listaKpis.push(
+      { rotulo:'Bruto', valor: money(totalBruto), sub:'receita do período' },
+      { rotulo:'Lucro', valor: money(totalLucro), tom:'ok',
+        sub: totalBruto ? 'margem ' + Math.round(totalLucro/totalBruto*100) + '%' : '—' });
+  }
+  const kpis = UI.kpis(listaKpis);
 
-  // Helpers de formatacao
-  const shortNome=n=>{if(!n||n==='—')return'—';const p=n.trim().split(/\s+/);return p.length<=2?n:p[0]+' '+p[p.length-1];};
-  const shortProd=p=>{if(!p||p==='—')return'—';return p.replace(/^iphone\s+/i,'').replace(/^ipad\s+/i,'iPad ').replace(/^macbook\s+/i,'Mac ').replace(/\s*seminovo\s*$/i,' SN').replace(/\s*lacrado\s*$/i,' LAC').trim();};
-  const capNome=n=>n&&n!=='—'?n.charAt(0).toUpperCase()+n.slice(1):'—';
-
-  // Alerta de vendas sem vendedor identificado
-  const semVend=v.filter(x=>{const {vendedor}=getVendaInfo(x);return !vendedor;});
-  // Alerta de pendentes na aba vendas
+  // -- Alertas ------------------------------------------------------------
+  const semVend = v.filter(x => !getVendaInfo(x).vendedor);
   const pendentesVend = getPendentes();
-  const alertaPendentesVendHTML = mostrarPendentes
-    ? '<div style="background:rgba(255,212,10,.08);border:1px solid rgba(255,212,10,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;display:flex;align-items:center;gap:8px">'
-      + '<span style="font-size:14px">⏳</span>'
-      + '<span style="color:var(--yellow);font-weight:600">Mostrando ' + pendentesVend.length + ' venda' + (pendentesVend.length>1?'s':'') + ' pendente' + (pendentesVend.length>1?'s':'') + ' — não contabilizadas nos totais</span>'
-      + '<button onclick="window._showPendentes=false;renderContent()" style="margin-left:auto;padding:3px 10px;background:transparent;border:1px solid rgba(255,212,10,.3);border-radius:6px;color:var(--yellow);font-size:11px;cursor:pointer">Ver todas</button>'
-      + '</div>'
-    : pendentesVend.length>0
-    ? '<div style="background:rgba(255,212,10,.05);border:1px solid rgba(255,212,10,.2);border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:12px;display:flex;align-items:center;gap:8px">'
-      + '<span>⏳</span>'
-      + '<span style="color:var(--yellow)">' + pendentesVend.length + ' venda' + (pendentesVend.length>1?'s':'') + ' pendente' + (pendentesVend.length>1?'s':'') + ' no período — não contabilizadas</span>'
-      + '<button onclick="verPendentes()" style="margin-left:auto;padding:3px 10px;background:transparent;border:1px solid rgba(255,212,10,.3);border-radius:6px;color:var(--yellow);font-size:11px;cursor:pointer">Ver</button>'
-      + '</div>'
-    : '';
-
-  const alertaHTML=semVend.length>0?`<div class="vendas-alerta"><span>⚠ ${semVend.length} vendas sem vendedor identificado no obs — podem faltar na contagem</span><button onclick="window._showSemVend=!window._showSemVend;document.getElementById('content').innerHTML=renderVendas()" style="padding:3px 10px;background:transparent;border:1px solid rgba(251,191,36,.4);border-radius:6px;color:var(--yellow);font-size:11px;cursor:pointer">${window._showSemVend?'Ocultar':'Ver estas vendas'}</button></div>`:'';
-
-  // Se flag ativa, mostrar so as sem vendedor
-  let displayRows=rows;
-  if(window._showSemVend){
-    displayRows=semVend.map(venda=>{
-      const {loja,vendedor,atendente}=getVendaInfo(venda);
-      const movs=movsMap[venda.id]||[];
-      const principais=movs.filter(m=>!isAcess(m));
-      const acesss=movs.filter(m=>isAcess(m));
-      const acessBruto=acesss.reduce((a,m)=>a+parseFloat(m.preco||0),0);
-      const principal=principais[0];
-      return{id:venda.id,data:venda.data_saida?.slice(0,10),cliente:venda.cliente?.nome||'—',produto:principais[0]?.titulo||principais[0]?.produto?.titulo||'—',etiqueta:principais[0]?.serial||principais[0]?.apple?.serial||'—',produtosLista:principais.map(p=>({titulo:p.titulo||p.produto?.titulo||'—',etiqueta:p.serial||p.apple?.serial||'—'})),loja:loja||'—',vendedor:vendedor||'SEM VENDEDOR',atendente:atendente||'—',valor:parseFloat(venda.valor_total||0),acessBruto,acessLucro:acesss.reduce((a,m)=>a+parseFloat(m.preco||0)-parseFloat(m.valor_estoque||0),0),acessResumo:acesss.map(m=>({titulo:m.titulo||'Acessório',preco:parseFloat(m.preco||0)})),lucro:parseFloat(venda.lucro||0),nPrincipais:principais.length,nAcess:acesss.length,obs:venda.observacoes||''};
-    });
+  let alertas = '';
+  if(mostrarPendentes){
+    alertas += `<div class="v-alerta" data-tom="alerta">
+      <span>Mostrando ${pendentesVend.length} venda(s) pendente(s) — não entram nos totais</span>
+      ${UI.btn('Ver todas', {onclick:'window._showPendentes=false;renderContent()', sm:true})}
+    </div>`;
+  } else if(pendentesVend.length){
+    alertas += `<div class="v-alerta" data-tom="alerta">
+      <span>${pendentesVend.length} venda(s) pendente(s) fora dos totais</span>
+      ${UI.btn('Ver', {onclick:'verPendentes()', sm:true})}
+    </div>`;
+  }
+  if(semVend.length){
+    alertas += `<div class="v-alerta" data-tom="critico">
+      <span>${semVend.length} venda(s) sem vendedor identificado — ficam fora da comissão</span>
+    </div>`;
   }
 
-  const tableRows=displayRows.slice(0,300).map(r=>{
-    const acessTip=r.acessResumo.length>0
-      ?r.acessResumo.map(a=>`${a.titulo.replace(/^/i,'').substring(0,25)}: ${brl(a.preco)}`).join(' · ')
-      :'';
-    const acessCell=r.acessBruto>0
-      ?`<div class="vrow-acess" title="${acessTip}" style="cursor:default">
-          ${brl(r.acessBruto)}
-          ${r.nAcess>0?`<div style="font-size:10px;color:var(--text4)">${r.nAcess} item${r.nAcess>1?'s':''} · ${brl(r.acessLucro)} lucro</div>`:''}
-        </div>`
-      :'<div class="vrow-acess">—</div>';
-    // Data formatada DD/MM e cor por margem
-    const dataFmt2 = r.data ? r.data.slice(5).replace('-','/') : '—';
-    const mgRow = r.valor>0 ? Math.round((r.lucro/r.valor)*100) : 0;
-    const mgColor = mgRow<0?'var(--red)':mgRow<10?'var(--yellow)':mgRow<15?'var(--orange)':'var(--green)';
-    return '<div class="vrow">'
-      + '<div style="display:flex;align-items:center;justify-content:center">'+lojaDot(r.loja)+'</div>'
-      + '<div class="vrow-data">'+dataFmt2+' <span style="font-size:10px;color:var(--text4)">#'+r.id+'</span></div>'
-      + '<div class="vrow-cliente" title="'+r.cliente+'">'+shortNome(r.cliente)+'</div>'
-      + '<div class="vrow-produto">'
-        + r.produtosLista.map(function(p,i){ return '<div style="'+(i>0?'margin-top:2px;border-top:1px solid var(--border);padding-top:2px':'')+'">'+(p.titulo||'—').replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').trim()+'</div>'; }).join('')
-      + '</div>'
-      + '<div style="font-size:11px">'
-        + (r.vendedor ? '<span style="color:'+(r.isSocio?'var(--gold)':'var(--text2)')+';font-weight:'+(r.isSocio?'700':'500')+'">'+capNome(r.vendedor)+'</span>'+(r.isSocio?' <span style="font-size:9px;color:var(--gold);background:rgba(245,200,66,.1);padding:1px 5px;border-radius:4px">sócio</span>':'') : '')
-        + (r.atendente ? '<span style="color:var(--text3)"> · '+capNome(r.atendente)+'</span>' : '')
-      + '</div>'
-      + acessCell
-      + '<div class="vrow-total">'+brl(r.valor)+'</div>'
-      + '<div class="vrow-lucro" style="color:'+mgColor+'">'+brl(r.lucro)+'</div>'
-      + '</div>';
+  // -- Filtros ------------------------------------------------------------
+  const opt = (val, atual, texto) =>
+    `<option value="${escapeHtml(val)}"${atual===val?' selected':''}>${escapeHtml(texto)}</option>`;
+  const ativos = (vendasSearch?1:0)+(vendasLoja!=='todas')+(vendasVendedor!=='todos')
+               +(vendasAtendente!=='todos')+(vendasProduto?1:0);
+
+  const filtros = `
+    <div class="est-barra">
+      <div class="est-busca">
+        <span class="est-busca-ico">⌕</span>
+        <input type="text" placeholder="Buscar cliente, produto, vendedor ou etiqueta..."
+               value="${escapeHtml(vendasSearch)}" oninput="filterVendas('search',this.value)">
+      </div>
+      <label class="est-sel"><span>Loja</span>
+        <select onchange="filterVendas('loja',this.value)">
+          ${opt('todas',vendasLoja,'Todas')}${opt('cart',vendasLoja,'Phone Cart')}${opt('urban',vendasLoja,'Urban')}
+        </select></label>
+      <label class="est-sel"><span>Vendedor</span>
+        <select onchange="filterVendas('vendedor',this.value)">
+          ${opt('todos',vendasVendedor,'Todos')}${vends.map(x=>opt(x,vendasVendedor,capNome(x))).join('')}
+        </select></label>
+      <label class="est-sel"><span>Atendente</span>
+        <select onchange="filterVendas('atendente',this.value)">
+          ${opt('todos',vendasAtendente,'Todos')}${atends.map(x=>opt(x,vendasAtendente,capNome(x))).join('')}
+        </select></label>
+      ${ativos ? UI.btn('Limpar filtros', {onclick:"filterVendas('limpar')", variante:'sutil', sm:true}) : ''}
+    </div>`;
+
+  // -- Tabela com expansao ------------------------------------------------
+  _vendasVisiveis = rows;
+  const COLS = podeVerDinheiro() ? 8 : 6;
+
+  const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
+  const th = (col, texto, num) =>
+    `<th class="${num?'num ':''}ord" onclick="sortVendas('${col}')">${texto}${seta(col)}</th>`;
+
+  const corpo = rows.map(r => {
+    const aberto = vendasAbertas.has(r.id);
+    let linha = `<tr class="est-linha${aberto?' aberta':''}" onclick="alternarLinhaVenda(${r.id})">
+      <td><span class="est-seta">${aberto?'▾':'▸'}</span><span class="est-imei">${r.data ? r.data.split('-').reverse().slice(0,2).join('/') : '—'}</span></td>
+      <td><span class="est-tag">#${r.id}</span></td>
+      <td class="forte">${escapeHtml(shortNome(r.cliente))}</td>
+      <td>${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
+      <td>${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
+      <td>${escapeHtml(capNome(r.atendente))}</td>
+      ${podeVerDinheiro() ? `<td class="num forte">${money(r.valor)}</td>
+      <td class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
+    </tr>`;
+
+    if(aberto){
+      const prods = r.produtosLista.length
+        ? r.produtosLista.map(p => `<div class="v-item"><span class="est-tag">${escapeHtml(p.etiqueta)}</span> ${escapeHtml(shortProd(p.titulo))}</div>`).join('')
+        : '<div class="v-item est-sempreco">nenhum aparelho nesta venda</div>';
+      const acess = r.acessResumo.length
+        ? r.acessResumo.map(a => `<div class="v-item">${escapeHtml(a.titulo)}${podeVerDinheiro()?` · ${money(a.preco)}`:''}</div>`).join('')
+        : '<div class="v-item est-sempreco">sem acessórios</div>';
+
+      linha += `<tr class="est-detalhe"><td colspan="${COLS}">
+        <div class="est-det-campos">
+          <div><i class="det-rot">Aparelhos (${r.nPrincipais})</i>${prods}</div>
+          <div><i class="det-rot">Acessórios (${r.nAcess})</i>${acess}</div>
+          ${podeVerDinheiro() ? `<div><i class="det-rot">Acessórios · bruto</i>${money(r.acessBruto)}</div>
+          <div><i class="det-rot">Acessórios · lucro</i>${money(r.acessLucro)}</div>` : ''}
+          <div><i class="det-rot">Cliente</i>${escapeHtml(r.cliente)}</div>
+        </div></td></tr>`;
+    }
+    return linha;
   }).join('');
 
-  return`${filtersHTML}${alertaPendentesVendHTML}${alertaHTML}${sumsHTML}${vendaFiltersHTML}
-    <div class="vtable">
-      <div class="vtable-header">
-        ${['','Data / ID','Cliente','Produto','Vendedor · Atendente','Acess.','Bruto','Lucro'].map((h,i)=>{
-          const col=['id','data','cliente','produto','etiqueta','vendedor','atendente','acessBruto','valor','lucro'][i];
-          const sortable=['data','cliente','produto','vendedor','atendente','valor','lucro'].includes(col);
-          const active=vendasSortCol===col;
-          const icon=active?(vendasSortDir===1?'↑':'↓'):'';
-          return sortable
-            ?`<div class="vth" style="cursor:pointer;user-select:none;${active?'color:var(--text2)':''}" onclick="sortVendas('${col}')">${h} ${icon}</div>`
-            :`<div class="vth">${h}</div>`;
-        }).join('')}
-      </div>
-      ${tableRows||'<div style="padding:20px;text-align:center;color:var(--text4)">Nenhuma venda encontrada</div>'}
-    </div>
-    ${displayRows.length>300?`<div style="margin-top:10px;font-size:12px;color:var(--text3);text-align:center">Mostrando 300 de ${displayRows.length} vendas</div>`:''}`;
+  const tabela = rows.length
+    ? UI.card({ titulo:'Pedidos', sub: rows.length + (rows.length===1?' venda':' vendas'), flush:true,
+        corpo:`<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
+          <thead><tr>
+            ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
+            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}
+            ${podeVerDinheiro() ? th('valor','Valor',true) + th('lucro','Lucro',true) : ''}
+          </tr></thead><tbody>${corpo}</tbody></table></div>` })
+    : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',
+        texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
+                      : 'Assim que uma venda for concluída na FoneNinja, ela aparece aqui em até 2 minutos.' }) });
+
+  return cabecalho + kpis + alertas + filtros + tabela;
+}
+
+let _vendasVisiveis = [];
+let vendasAbertas = new Set();
+
+function alternarLinhaVenda(id){
+  if(vendasAbertas.has(id)) vendasAbertas.delete(id); else vendasAbertas.add(id);
+  if(currentTab==='vendas') renderContent();
 }
 
 function sortVendas(col){
@@ -799,6 +815,11 @@ function sortVendas(col){
   document.getElementById('content').innerHTML=renderVendas();
 }
 function filterVendas(tipo,val){
+  if(tipo==='limpar'){
+    vendasSearch=''; vendasLoja='todas'; vendasVendedor='todos';
+    vendasAtendente='todos'; vendasProduto='';
+    renderContent(); return;
+  }
   if(tipo==='search')vendasSearch=val;
   else if(tipo==='loja')vendasLoja=val;
   else if(tipo==='vendedor')vendasVendedor=val;

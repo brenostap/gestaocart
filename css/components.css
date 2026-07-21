@@ -265,3 +265,19 @@
 .est-chips-rot{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase;
                 letter-spacing:.08em; color:var(--text4); align-self:center; margin-right:4px; }
 .est-chips{ align-items:center; }
+
+/* vendas */
+.v-alerta{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:9px 13px; margin-bottom:10px; border-radius:var(--radius-sm);
+  font-size:12.5px; border:1px solid var(--border);
+  background:var(--bg3); color:var(--text2);
+}
+.v-alerta[data-tom="alerta"] { background:var(--warning-bg); border-color:transparent; color:var(--warning); }
+.v-alerta[data-tom="critico"]{ background:var(--danger-bg);  border-color:transparent; color:var(--danger); }
+.v-alerta > span{ flex:1; min-width:0; }
+.v-mais{ font-family:var(--font-mono); font-size:10px; color:var(--text4);
+         background:var(--bg4); padding:1px 5px; border-radius:4px; }
+.v-item{ font-size:12.5px; color:var(--text2); padding:2px 0; }
+.c-tabela th.ord{ cursor:pointer; user-select:none; }
+.c-tabela th.ord:hover{ color:var(--text2); }
