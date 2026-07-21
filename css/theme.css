@@ -28,7 +28,7 @@
   --fs-body:13.5px;   --lh-body:1.5;
   --fs-caption:11.5px;--lh-caption:1.4;
 
-  --font-sans:'Geist','Geist Fallback',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
+  --font-sans:'Sora',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
   --font-mono:'Geist Mono','SF Mono',ui-monospace,Menlo,monospace;
 
   /* -- Forma ------------------------------------------------------------ */
