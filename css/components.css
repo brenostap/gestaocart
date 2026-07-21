@@ -229,3 +229,25 @@
 }
 .det-foto img{ max-height:190px; max-width:100%; object-fit:contain; }
 .det-foto-vazia{ color:var(--text4); font-size:12px; font-style:italic; }
+
+/* linhas do estoque: expansao inline no lugar do painel */
+.est-tabela .est-linha{ cursor:pointer; transition:background .13s, box-shadow .13s; }
+.est-tabela .est-linha:hover td{ background:var(--bg3); }
+.est-tabela .est-linha:hover .est-prod{ color:var(--cart); }
+.est-tabela .est-linha.aberta td{ background:var(--bg4); }
+.est-seta{ display:inline-block; width:12px; color:var(--text4); font-size:9px; margin-right:5px; transition:transform .13s; }
+.est-linha.aberta .est-seta{ color:var(--cart); }
+
+.est-detalhe td{ background:var(--bg3); padding:14px 16px !important; }
+.est-det-grid{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.est-det-foto{ width:96px; height:96px; object-fit:contain; border-radius:var(--radius-sm);
+               background:var(--bg2); border:1px solid var(--border); padding:6px; flex:0 0 auto; }
+.est-det-foto.vazia{ display:flex; align-items:center; justify-content:center;
+                     font-size:10px; color:var(--text4); font-style:italic; text-align:center; }
+.est-det-campos{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px 20px; flex:1; min-width:0; }
+.est-det-campos > div{ font-size:12.5px; color:var(--text2); }
+.est-det-campos .det-rot{ display:block; font-family:var(--font-mono); font-size:9.5px; font-style:normal;
+                      text-transform:uppercase; letter-spacing:.08em; color:var(--text4); margin-bottom:2px; }
+.est-link{ background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+           font-size:12.5px; font-weight:650; color:var(--cart); text-decoration:underline; }
+.est-link:hover{ filter:brightness(1.15); }
