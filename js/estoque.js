@@ -142,52 +142,156 @@ function construirTreeEstoque(items, search){
   return tree;
 }
 
+// Geracao a partir do modelo: "iPhone 15 Pro Max" -> "15". Serve para o filtro
+// e para o agrupamento que o brief pede (15 / 14 / 13 / 12 e anteriores).
+function geracaoDe(modelo){
+  const m = String(modelo||'').match(/iPhone\s+(\d+)/i);
+  return m ? m[1] : '?';
+}
+
+// Enriquece o item com tudo que a linha da tabela precisa, num lugar so.
+function dadosDoItem(item){
+  const titulo = item.produto?.titulo || item.titulo || '';
+  const { modelo, capacidade, cor, condicao } = parseTitulo(titulo);
+  const custo = parseFloat(item.valor_estoque || 0);
+  const preco = getPrecoVendaSync(item);
+  const venda = preco && preco.varejo != null ? preco.varejo : null;
+  return {
+    item, titulo, modelo, capacidade, cor, condicao, custo, venda,
+    margem: venda != null ? venda - custo : null,
+    geracao: geracaoDe(modelo),
+    bateria: parseInt(item.bateria || 0),
+    etiqueta: item.serial || '',
+    imei: item.imei_1 || ''
+  };
+}
+
+function setEstoqueGeracao(g){ estoqueGeracao = g; if(currentTab==='estoque') renderContent(); }
+
 function renderEstoque(){
-  const disponiveis = estoqueItens;
   if(!_precosCache) carregarTabelaPrecos().then(() => renderContent());
 
-  const custoTotal = disponiveis.reduce((a,i) => a + parseFloat(i.valor_estoque||0), 0);
-  const modelosUnicos = new Set(disponiveis.map(i => parseTitulo(i.produto?.titulo || i.titulo || '').modelo)).size;
+  const todos = (estoqueItens || []).map(dadosDoItem);
 
-  const kpisHTML = `
-    <div class="est-kpi-strip">
-      <div class="kpi-mini">
-        <div class="kpi-mini-label">Em estoque</div>
-        <div class="kpi-mini-value">${disponiveis.length}<span class="unit"> un</span></div>
+  // busca
+  const q = (estoqueSearchV3||'').toLowerCase().trim();
+  const busca = d => !q || d.titulo.toLowerCase().includes(q) || d.imei.toLowerCase().includes(q)
+                  || d.etiqueta.toLowerCase().includes(q) || (getFornNome(d.item)||'').toLowerCase().includes(q);
+
+  const porGeracao = {};
+  todos.forEach(d => { porGeracao[d.geracao] = (porGeracao[d.geracao]||0) + 1; });
+  const geracoes = Object.keys(porGeracao).filter(g => g !== '?')
+    .sort((a,b) => Number(b) - Number(a));
+
+  const visiveis = todos.filter(d => busca(d) &&
+    (estoqueGeracao === 'todas' || d.geracao === estoqueGeracao));
+  _estoqueVisivel = visiveis;                       // usado pelo painel de detalhe
+  if(_fotos === null) carregarFotos().then(() => { if(currentTab==='estoque') renderContent(); });
+
+  // -- KPIs ---------------------------------------------------------------
+  const capital = visiveis.reduce((a,d) => a + d.custo, 0);
+  const comPreco = visiveis.filter(d => d.margem != null);
+  const margemPot = comPreco.reduce((a,d) => a + d.margem, 0);
+  const modelos = new Set(visiveis.map(d => d.modelo + d.capacidade)).size;
+
+  const kpis = UI.kpis([
+    { rotulo:'Aparelhos', valor: visiveis.length,
+      sub: estoqueGeracao==='todas' ? 'em estoque' : 'iPhone '+estoqueGeracao },
+    { rotulo:'Modelos', valor: modelos, sub:'combinações modelo + capacidade' },
+    { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
+    { rotulo:'Margem potencial', valor: money(margemPot), tom:'ok',
+      sub: comPreco.length + ' de ' + visiveis.length + ' com preço na tabela' },
+  ]);
+
+  // -- Cabecalho da pagina ------------------------------------------------
+  const cabecalho = `
+    <div class="pg-head">
+      <div>
+        <div class="pg-kicker">Operações</div>
+        <h1 class="pg-title">Estoque</h1>
+        <div class="pg-desc">Aparelhos disponíveis, com custo, preço de tabela e margem por unidade.</div>
       </div>
-      <div class="kpi-mini">
-        <div class="kpi-mini-label">Custo total parado</div>
-        <div class="kpi-mini-value">${brl(custoTotal)}</div>
-      </div>
-      <div class="kpi-mini">
-        <div class="kpi-mini-label">Modelos diferentes</div>
-        <div class="kpi-mini-value">${modelosUnicos}</div>
+      <div class="pg-acoes">
+        ${UI.btn('💬 Exportar WhatsApp', {onclick:'abrirWaModal()'})}
+        ${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}
       </div>
     </div>`;
 
-  const headerHTML = `
-    <div class="est-header">
-      <div class="est-view-toggle">
-        <button class="${estoqueViewV3==='agrupado'?'active':''}" onclick="setEstoqueViewV3('agrupado')">Agrupado</button>
-        <button class="${estoqueViewV3==='lista'?'active':''}" onclick="setEstoqueViewV3('lista')">Lista</button>
-      </div>
-      <div class="est-search-wrap">
-        <span class="est-search-icon">⌕</span>
-        <input type="text" class="est-search-input" id="est-search-v3" placeholder="Buscar por modelo, IMEI, etiqueta, fornecedor..."
+  // -- Barra de filtros ---------------------------------------------------
+  const chipsGeracao = [UI.chip('Todas', estoqueGeracao==='todas', "setEstoqueGeracao('todas')")]
+    .concat(geracoes.map(g => UI.chip(g + ' <span class="chip-cnt">' + porGeracao[g] + '</span>',
+                                      estoqueGeracao===g, `setEstoqueGeracao('${g}')`))).join('');
+
+  const filtros = `
+    <div class="est-barra">
+      <div class="est-busca">
+        <span class="est-busca-ico">⌕</span>
+        <input type="text" id="est-search-v3" placeholder="Buscar por modelo, IMEI, etiqueta ou fornecedor..."
                value="${escapeHtml(estoqueSearchV3)}" oninput="setEstoqueSearchV3(this.value)">
       </div>
-      <button class="est-wa-btn" onclick="abrirWaModal()">
-        <span class="wa-icon">💬</span> Exportar WhatsApp
-      </button>
-    </div>`;
+      <div class="est-vista">
+        <button class="${estoqueViewV3==='agrupado'?'ativo':''}" onclick="setEstoqueViewV3('agrupado')">Agrupado</button>
+        <button class="${estoqueViewV3==='lista'?'ativo':''}" onclick="setEstoqueViewV3('lista')">Lista</button>
+      </div>
+    </div>
+    <div class="est-chips">${chipsGeracao}</div>`;
 
-  const tree = construirTreeEstoque(disponiveis, estoqueSearchV3);
-
-  if(estoqueViewV3 === 'agrupado'){
-    return kpisHTML + headerHTML + renderEstoqueAgrupado(tree);
+  // -- Conteudo -----------------------------------------------------------
+  let corpo;
+  if(!visiveis.length){
+    corpo = UI.card({corpo: UI.vazio({
+      ico:'📦',
+      titulo: q || estoqueGeracao!=='todas' ? 'Nada com esses filtros' : 'Estoque vazio',
+      texto: q || estoqueGeracao!=='todas'
+        ? 'Tente limpar a busca ou escolher outra geração.'
+        : 'Assim que um aparelho entrar na FoneNinja, ele aparece aqui na próxima sincronização.'
+    })});
+  } else if(estoqueViewV3 === 'lista'){
+    corpo = renderEstoqueTabela(visiveis);
   } else {
-    return kpisHTML + headerHTML + renderEstoqueLista(tree);
+    corpo = renderEstoqueAgrupado(construirTreeEstoque(visiveis.map(d=>d.item), ''));
   }
+
+  return cabecalho + kpis + filtros + corpo;
+}
+
+// -- Vista Lista: a tabela rica -------------------------------------------
+function renderEstoqueTabela(dados){
+  const bat = b => {
+    if(!b) return '<span class="est-bat">—</span>';
+    const t = b < 80 ? 'critico' : b < 85 ? 'alerta' : 'ok';
+    return `<span class="est-bat" data-tom="${t}">▮ ${b}%</span>`;
+  };
+
+  // reordena _estoqueVisivel junto, para o indice da linha casar com o painel
+  dados.sort((a,b) => (b.margem ?? -1) - (a.margem ?? -1));
+  _estoqueVisivel = dados;
+  const linhas = dados
+    .map(d => [
+      { v:`<span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>` },
+      { v:`<span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>`, classe:'forte' },
+      { v: escapeHtml(d.cor === '?' ? '—' : d.cor) },
+      { v: bat(d.bateria), num:true },
+      { v:`<span class="est-imei">${escapeHtml(d.imei || '—')}</span>` },
+      { v: money(d.custo), num:true },
+      { v: d.venda == null
+            ? '<span class="est-sempreco">sem tabela</span>'
+            : `<div class="est-venda">${money(d.venda)}</div>
+               <div class="est-margem" data-tom="${d.margem > 0 ? 'ok':'critico'}">${d.margem > 0 ? '+' : ''}${money(d.margem)}</div>`,
+        num:true },
+    ]);
+
+  return UI.card({
+    titulo:'Aparelhos', sub: dados.length + ' unidades · maior margem primeiro', flush:true,
+    corpo: UI.tabela({
+      colunas:[
+        {titulo:'Etiqueta'},{titulo:'Produto'},{titulo:'Cor'},{titulo:'Bateria',num:true},
+        {titulo:'IMEI'},{titulo:'Custo',num:true},{titulo:'Venda',num:true}
+      ],
+      linhas,
+      onLinha: i => `abrirDetalheAparelho(${i})`
+    })
+  });
 }
 
 function renderEstoqueAgrupado(tree){
@@ -613,3 +717,69 @@ function renderWaModalHTML(){
 // renderEquipe is defined above in the FUNC module
 
 
+
+// ── FOTOS DOS MODELOS ────────────────────────────────────────────────────
+// A tabela fotos_modelos tem 104 imagens indexadas por "modelo_cor"
+// (ex.: 12_verde, 12_mini_branco). Nunca foram usadas ate agora.
+let _fotos = null;
+
+async function carregarFotos(){
+  if(_fotos) return _fotos;
+  try {
+    const linhas = await sbGet('fotos_modelos', 'select=modelo_cor_key,url', 500);
+    _fotos = {};
+    (linhas||[]).forEach(f => { _fotos[f.modelo_cor_key] = f.url; });
+    console.log('[fotos] '+Object.keys(_fotos).length+' modelos com foto');
+  } catch(e){ console.warn('[fotos] falhou:', e); _fotos = {}; }
+  return _fotos;
+}
+
+function chaveFoto(modelo, cor){
+  const m = _normPreco(String(modelo||'').replace(/^iPhone\s*/i,''));
+  const c = _normPreco(cor||'');
+  if(!m || !c || c === '?') return null;
+  return (m + '_' + c).replace(/\s+/g,'_');
+}
+
+function fotoDoItem(d){
+  if(!_fotos) return null;
+  const k = chaveFoto(d.modelo, d.cor);
+  return k ? (_fotos[k] || null) : null;
+}
+
+// ── PAINEL DE DETALHE ────────────────────────────────────────────────────
+let _estoqueVisivel = [];
+
+function abrirDetalheAparelho(indice){
+  const d = _estoqueVisivel[indice];
+  if(!d) return;
+  const foto = fotoDoItem(d);
+  const forn = getFornNome(d.item);
+
+  const imagem = foto
+    ? `<div class="det-foto"><img src="${foto}" alt="${escapeHtml(d.modelo)}" decoding="async"></div>`
+    : `<div class="det-foto det-foto-vazia">sem foto para ${escapeHtml(d.cor === '?' ? 'esta cor' : d.cor)}</div>`;
+
+  const margemHtml = d.margem == null
+    ? '<span class="est-sempreco">sem preço na tabela</span>'
+    : `<span class="est-margem" data-tom="${d.margem > 0 ? 'ok' : 'critico'}">${d.margem > 0 ? '+' : ''}${money(d.margem)}</span>`;
+
+  UI.abrirPainel({
+    titulo: escapeHtml(d.modelo + ' ' + d.capacidade),
+    corpo: imagem
+      + UI.kv('Etiqueta', `<span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>`)
+      + UI.kv('IMEI', `<span class="est-imei">${escapeHtml(d.imei || '—')}</span>`)
+      + UI.kv('Cor', escapeHtml(d.cor === '?' ? '—' : d.cor))
+      + UI.kv('Bateria', d.bateria ? d.bateria + '%' : '—')
+      + UI.kv('Condição', UI.badge(d.condicao || 'Seminovo'))
+      + UI.kv('Custo', money(d.custo))
+      + UI.kv('Venda (tabela)', d.venda == null ? '—' : money(d.venda))
+      + UI.kv('Margem', margemHtml)
+      // fornecedor e informacao de socio (brief §2)
+      + (podeVerDinheiro() ? UI.kv('Fornecedor', escapeHtml(forn || '—')) : '')
+      + UI.kv('Entrada', dataEntradaFmt(d.item) || '—')
+      + `<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+           ${UI.btn('💬 Texto WhatsApp', {onclick:`abrirWaModalDireto(gerarTextoWhatsAppB('${escapeKey(d.modelo)}','${escapeKey(d.capacidade)}','${escapeKey(d.cor)}'),'${escapeKey(d.modelo)}')`, sm:true})}
+         </div>`
+  });
+}

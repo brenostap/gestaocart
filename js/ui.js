@@ -58,13 +58,14 @@ const UI = {
   // -- Tabela -------------------------------------------------------------
   // colunas: [{titulo, num, largura}]
   // linhas:  [[celula, ...]]  — celula pode ser string ou {v, num, classe}
-  tabela({colunas = [], linhas = [], vazio} = {}){
+  // onLinha: recebe o indice e devolve o codigo do onclick da <tr>
+  tabela({colunas = [], linhas = [], vazio, onLinha} = {}){
     if(!linhas.length){
       return vazio || this.vazio({titulo:'Nada por aqui', texto:'Não há registros para este filtro.'});
     }
     const th = colunas.map(c =>
       `<th class="${c.num ? 'num' : ''}"${c.largura ? ` style="width:${c.largura}"` : ''}>${c.titulo || ''}</th>`).join('');
-    const tr = linhas.map(l => `<tr>${l.map((cel, i) => {
+    const tr = linhas.map((l, li) => `<tr${onLinha ? ` class="clicavel" onclick="${onLinha(li)}"` : ''}>${l.map((cel, i) => {
       const o = (cel && typeof cel === 'object') ? cel : {v: cel};
       const num = o.num !== undefined ? o.num : (colunas[i] && colunas[i].num);
       return `<td class="${num ? 'num ' : ''}${o.classe || ''}">${o.v == null ? '—' : o.v}</td>`;
