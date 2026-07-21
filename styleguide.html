@@ -35,7 +35,7 @@
   <div class="sg-top">
     <div>
       <div style="font-size:22px;font-weight:750;letter-spacing:-.02em">Cart System · Style Guide</div>
-      <div class="sg-sec-d">Fonte da verdade visual. Tudo que você vê aqui é o código real do app.</div>
+      <div class="sg-sec-d">Fonte da verdade visual. Componentes reais do app — <b>números são fictícios</b>, só para demonstração.</div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px">
       <button class="c-btn" onclick="alternar()">☾ / ☀ Tema</button>
@@ -91,7 +91,7 @@ document.getElementById('sg').innerHTML = [
 
   sec('Tipografia', 'Geist · números sempre com tabular-nums', `
     <div class="c-card"><div class="c-card-body">
-      <div class="t-display">${brl(301543)}</div>
+      <div class="t-display">${brl(48200)}</div>
       <div class="t-title" style="margin-top:6px">Título de seção</div>
       <div class="t-headline" style="margin-top:6px">Headline / título de card</div>
       <div class="t-body" style="margin-top:6px;color:var(--text3)">Corpo — texto de apoio, 13–14px, para explicar sem competir com o número.</div>
@@ -99,9 +99,9 @@ document.getElementById('sg').innerHTML = [
     </div></div>`),
 
   sec('KPI', 'o tom carrega o significado', UI.kpis([
-      {rotulo:'Receita bruta', valor:brl(1386867), sub:'419 dispositivos · ticket '+brl(3310)},
-      {rotulo:'Lucro bruto',   valor:brl(301543),  sub:'margem 21,7%', tom:'ok'},
-      {rotulo:'Custos',        valor:brl(72100),   sub:'rateio 75/25',  tom:'alerta'},
+      {rotulo:'Receita bruta', valor:brl(215400), sub:'74 dispositivos · ticket '+brl(2890)},
+      {rotulo:'Lucro bruto',   valor:brl(48200),  sub:'margem 22,4%', tom:'ok'},
+      {rotulo:'Custos',        valor:brl(11900),   sub:'rateio 75/25',  tom:'alerta'},
       {rotulo:'Estoque parado',valor:'12 un',      sub:'há mais de 60 dias', tom:'critico'},
     ])),
 
@@ -136,10 +136,10 @@ document.getElementById('sg').innerHTML = [
 
   sec('Metas', '', UI.card({titulo:'Meta de dispositivos', corpo:`
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
-        <span class="c-kpi-value">313</span><span class="c-kpi-sub">/ próx: 350 un</span>
+        <span class="c-kpi-value">58</span><span class="c-kpi-sub">/ próx: 70 un</span>
       </div>
-      ${UI.barra(89,'ok')}
-      <div class="sg-row" style="margin-top:10px">${UI.badge('300 ✓','ok')} ${UI.badge('350')} ${UI.badge('400')}</div>`})),
+      ${UI.barra(83,'ok')}
+      <div class="sg-row" style="margin-top:10px">${UI.badge('50 ✓','ok')} ${UI.badge('70')} ${UI.badge('90')}</div>`})),
 
   sec('Chave / valor', 'para painéis de detalhe', UI.card({titulo:'Detalhe da unidade', corpo:
       UI.kv('Modelo','iPhone 15 Pro Max') + UI.kv('Capacidade','256GB') +
