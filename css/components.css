@@ -1,0 +1,159 @@
+/* ============================================================================
+   COMPONENTES — o vocabulario visual do Cart System
+   Toda tela deve pedir estes componentes em vez de escrever estilo inline.
+   Regras do brief: conteudo opaco, cor = significado, numero com tabular-nums,
+   hierarquia por peso e espaco (nao por borda em tudo).
+   ========================================================================= */
+
+/* -- CARD ----------------------------------------------------------------- */
+.c-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.c-card + .c-card{ margin-top:12px; }
+.c-card-head{
+  display:flex; align-items:center; gap:10px;
+  padding:13px 16px; border-bottom:1px solid var(--border);
+}
+.c-card-title{ font-size:14px; font-weight:650; color:var(--text); flex:1; min-width:0; }
+.c-card-sub{ font-size:11.5px; color:var(--text4); font-weight:400; }
+.c-card-action{ margin-left:auto; display:flex; gap:6px; align-items:center; }
+.c-card-body{ padding:16px; }
+.c-card-body.flush{ padding:0; }
+
+/* -- KPI ------------------------------------------------------------------ */
+.c-kpi-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); }
+.c-kpi{
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--radius-card); padding:14px 16px; box-shadow:var(--shadow-sm);
+  display:flex; flex-direction:column; gap:3px; min-width:0;
+}
+.c-kpi-label{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--text4); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.c-kpi-value{
+  font-size:26px; line-height:1.1; font-weight:750; letter-spacing:-.02em;
+  color:var(--text); font-variant-numeric:tabular-nums;
+}
+.c-kpi-sub{ font-size:11.5px; color:var(--text3); }
+/* tom = significado, nunca decoracao */
+.c-kpi[data-tom="ok"]       .c-kpi-value{ color:var(--success); }
+.c-kpi[data-tom="alerta"]   .c-kpi-value{ color:var(--warning); }
+.c-kpi[data-tom="critico"]  .c-kpi-value{ color:var(--danger); }
+.c-kpi[data-tom="processo"] .c-kpi-value{ color:var(--process); }
+.c-kpi[data-tom="marca"]    .c-kpi-value{ color:var(--cart); }
+
+/* -- BADGE ---------------------------------------------------------------- */
+.c-badge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:2px 8px; border-radius:var(--radius-pill);
+  font-size:11px; font-weight:650; line-height:1.6;
+  background:var(--bg4); color:var(--text3); white-space:nowrap;
+}
+.c-badge[data-tom="ok"]       { background:var(--success-bg); color:var(--success); }
+.c-badge[data-tom="alerta"]   { background:var(--warning-bg); color:var(--warning); }
+.c-badge[data-tom="critico"]  { background:var(--danger-bg);  color:var(--danger); }
+.c-badge[data-tom="processo"] { background:var(--process-bg); color:var(--process); }
+.c-badge-mono{ font-family:var(--font-mono); font-weight:500; letter-spacing:0; }
+
+/* -- TABELA --------------------------------------------------------------- */
+.c-tabela-wrap{ overflow-x:auto; }
+.c-tabela{ width:100%; border-collapse:collapse; font-size:13px; }
+.c-tabela th{
+  position:sticky; top:0; z-index:1;
+  padding:9px 14px; text-align:left; background:var(--bg3);
+  font-family:var(--font-mono); font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.07em; color:var(--text4);
+  border-bottom:1px solid var(--border); white-space:nowrap;
+}
+.c-tabela td{
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  color:var(--text2); vertical-align:middle;
+}
+.c-tabela tbody tr:last-child td{ border-bottom:none; }
+.c-tabela tbody tr:hover td{ background:var(--bg3); }
+.c-tabela .num, .c-tabela [data-num]{ text-align:right; font-variant-numeric:tabular-nums; }
+.c-tabela th.num{ text-align:right; }
+.c-tabela .forte{ color:var(--text); font-weight:600; }
+.c-tabela .mono{ font-family:var(--font-mono); font-size:11.5px; color:var(--text3); }
+
+/* -- ESTADO VAZIO (brief §7.5: sempre diz o proximo passo) ---------------- */
+.c-vazio{ text-align:center; padding:44px 24px; }
+.c-vazio-ico{ font-size:26px; opacity:.5; margin-bottom:10px; }
+.c-vazio-titulo{ font-size:15px; font-weight:650; color:var(--text); margin-bottom:5px; }
+.c-vazio-texto{ font-size:13px; color:var(--text3); max-width:400px; margin:0 auto 14px; line-height:1.5; }
+
+/* -- BOTOES --------------------------------------------------------------- */
+.c-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 13px; border-radius:var(--radius-sm);
+  border:1px solid var(--border2); background:var(--bg2); color:var(--text2);
+  font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+  transition:background .12s, border-color .12s;
+}
+.c-btn:hover{ background:var(--bg4); color:var(--text); }
+/* tint so na acao primaria (brief §6, Apple HIG) */
+.c-btn.primario{ background:var(--cart); border-color:var(--cart); color:#fff; }
+.c-btn.primario:hover{ filter:brightness(1.08); }
+.c-btn.sutil{ border-color:transparent; background:transparent; }
+.c-btn.sutil:hover{ background:var(--bg4); }
+.c-btn:disabled{ opacity:.5; cursor:not-allowed; }
+.c-btn-sm{ padding:5px 10px; font-size:11.5px; }
+
+/* -- TOOLBAR / FILTROS ---------------------------------------------------- */
+.c-toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+.c-toolbar .c-sep{ width:1px; height:20px; background:var(--border); }
+.c-chip{
+  padding:6px 12px; border-radius:var(--radius-pill);
+  border:1px solid var(--border2); background:var(--bg2); color:var(--text3);
+  font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
+}
+.c-chip:hover{ background:var(--bg4); color:var(--text); }
+.c-chip.ativo{ background:var(--cart); border-color:var(--cart); color:#fff; }
+
+/* -- BARRA DE PROGRESSO (metas) ------------------------------------------- */
+.c-barra{ height:6px; border-radius:var(--radius-pill); background:var(--bg4); overflow:hidden; }
+.c-barra-fill{ height:100%; border-radius:var(--radius-pill); background:var(--cart); transition:width .3s; }
+.c-barra-fill[data-tom="ok"]     { background:var(--success); }
+.c-barra-fill[data-tom="alerta"] { background:var(--warning); }
+.c-barra-fill[data-tom="critico"]{ background:var(--danger); }
+
+/* -- PAINEL LATERAL (brief §7.3: detalhe sem perder a lista) -------------- */
+.c-painel-overlay{
+  position:fixed; inset:0; z-index:60; background:rgba(10,14,24,.42);
+  backdrop-filter:blur(2px); display:flex; justify-content:flex-end;
+}
+.c-painel{
+  width:min(460px,100%); height:100%; background:var(--bg2);
+  border-left:1px solid var(--border); box-shadow:var(--shadow-xl);
+  display:flex; flex-direction:column; animation:painel-entra .18s ease-out;
+}
+@keyframes painel-entra{ from{ transform:translateX(24px); opacity:.6 } to{ transform:none; opacity:1 } }
+.c-painel-head{
+  display:flex; align-items:center; gap:10px;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+}
+.c-painel-body{ padding:16px; overflow-y:auto; flex:1; }
+@media (max-width:640px){
+  /* no celular vira sheet que sobe (brief §7.6) */
+  .c-painel-overlay{ align-items:flex-end; justify-content:center; }
+  .c-painel{ width:100%; height:auto; max-height:88vh;
+             border-left:none; border-top:1px solid var(--border);
+             border-radius:16px 16px 0 0; animation:sheet-sobe .2s ease-out; }
+  @keyframes sheet-sobe{ from{ transform:translateY(28px) } to{ transform:none } }
+}
+
+/* -- LINHA CHAVE/VALOR ---------------------------------------------------- */
+.c-kv{ display:flex; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+.c-kv:last-child{ border-bottom:none; }
+.c-kv-k{ font-size:12.5px; color:var(--text4); flex:0 0 42%; }
+.c-kv-v{ font-size:13px; color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }
+
+/* -- GRID utilitario ------------------------------------------------------ */
+.c-grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start; }
+@media (max-width:900px){ .c-grid-2{ grid-template-columns:1fr; } }

@@ -385,14 +385,8 @@ function renderCustos(){
     </div>`;
 
   // Filtros da tabela
-  const filtersHTML=`
-    <div class="filters-bar" style="margin-bottom:10px">
-      <button class="pill${currentStore==='ambas'?' active':''}" onclick="setStore('ambas',this)">Ambas</button>
-      <button class="pill${currentStore==='cart'?' active':''}" onclick="setStore('cart',this)">Phone Cart</button>
-      <button class="pill${currentStore==='urban'?' active':''}" onclick="setStore('urban',this)">Urban</button>
-      <div class="filters-sep"></div>
-      <select class="period-select" id="psel" onchange="setPeriod()" style="border-radius:20px">${gerarOpcoesMeses()}</select>
-    </div>`;
+  // Loja e periodo agora vivem na sidebar (contexto persistente, brief §7.2)
+  const filtersHTML='';
 
   // Filtrar por loja selecionada
   let filtrados=custos;

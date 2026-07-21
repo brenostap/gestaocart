@@ -3,8 +3,8 @@ function enterApp(){
   const ls=document.getElementById('login-screen');
   const app=document.getElementById('app');
   if(ls) ls.style.display='none';
-  if(app) app.style.display='block';
-  updateHeaderLogo();
+  if(app) app.style.display='grid';
+  renderShell();
   iniciarTokenKeepAlive();
 }
 

@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cart System v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/components.css">
+<script>/* aplica o tema salvo antes da primeira pintura, evitando flash */
+(function(){try{var t=localStorage.getItem('pc_tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -46,30 +54,12 @@
 </div>
 
 <div id="app">
-  <div class="header">
-    <div class="logo-wrap">
-      <img class="logo-icon" id="header-logo" src="img/phonecart-icon.png" alt="">
-      <div class="logo-text">
-        <span class="logo-name" id="header-logo-name">Phone Cart</span>
-        <span class="logo-sub" id="header-logo-sub">Dashboard</span>
-      </div>
-    </div>
-    <div class="header-right">
-      <button class="refresh-btn" onclick="reloadData()">↻ Atualizar</button>
-      <button class="logout-btn" onclick="doLogout()">Sair</button>
-    </div>
-  </div>
-  <div class="tabs">
-    <div class="tab active" onclick="setTab('dash',this)">Dashboard</div>
-    <div class="tab" onclick="setTab('vendas',this)">Vendas</div>
-    <div class="tab" onclick="setTab('estoque',this)">Estoque</div>
-    <div class="tab" onclick="setTab('custos',this)">Custos</div>
-    <div class="tab" onclick="setTab('equipe',this)">Equipe</div>
-    <div class="tab" onclick="setTab('movs',this)">Movimentações</div>
-    <div class="tab" onclick="setTab('tabela',this)">Tabela</div>
-  </div>
-  <div class="status-bar" id="status-bar">Pronto</div>
-  <div class="content" id="content"></div>
+  <aside class="sidebar" id="sidebar"><!-- renderizado por shell.js --></aside>
+  <main class="main">
+    <div class="topbar"><div class="status-bar" id="status-bar">Pronto</div></div>
+    <div class="content" id="content"></div>
+  </main>
+  <nav class="bottom-tabs" id="bottom-tabs"><!-- renderizado por shell.js --></nav>
 </div>
 
 
@@ -85,6 +75,8 @@
 <script src="js/movimentacoes.js"></script>
 <script src="js/tabela.js"></script>
 <script src="js/vendas-extra.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/shell.js"></script>
 <script src="js/boot.js"></script>
 </body>
 </html>

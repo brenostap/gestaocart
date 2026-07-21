@@ -118,6 +118,7 @@ function renderContent(){
   else if(currentTab==='equipe')c.innerHTML=renderEquipe();
   else if(currentTab==='movs')c.innerHTML=renderMovs();
   else if(currentTab==='tabela')c.innerHTML=renderTabela();
+  else if(currentTab==='fechamento')c.innerHTML=renderFechamento();
 
   // Modal de WhatsApp do Estoque (renderiza por cima quando aberto)
   // Remove qualquer instância anterior do modal "geral" (sem id), preserva o modal direto (id=wa-modal-direto)
@@ -156,15 +157,8 @@ function renderDash(){
 
   // Filtros
   const storeBtn=(s,label,cor)=>`<button class="pill${currentStore===s?' active':''}" onclick="setStore('${s}',this)" style="${currentStore===s&&cor?'background:'+cor+';border-color:'+cor:''}">${label}</button>`;
-  const filtersHTML=`
-    <div class="filters-bar">
-      ${storeBtn('ambas','Ambas')}
-      ${storeBtn('cart','Phone Cart')}
-      ${storeBtn('urban','Urban','var(--urban)')}
-      <div class="filters-sep"></div>
-      <select class="period-select" id="psel" onchange="setPeriod()" style="border-radius:20px">${gerarOpcoesMeses()}</select>
-      ${gerarDatePickers()}
-    </div>`;
+  // Loja e periodo agora vivem na sidebar (contexto persistente, brief §7.2)
+  const filtersHTML='';
 
   // -- Alerta de vendas pendentes ------------------------------
   const pendentes=getPendentes();
@@ -680,14 +674,8 @@ function renderVendas(){
     return'';
   };
 
-  const filtersHTML=`
-    <div class="filters-bar">
-      <button class="pill${currentStore==='ambas'?' active':''}" onclick="setStore('ambas',this)">Ambas</button>
-      <button class="pill${currentStore==='cart'?' active':''}" onclick="setStore('cart',this)">Phone Cart</button>
-      <button class="pill${currentStore==='urban'?' active':''}" onclick="setStore('urban',this)">Urban</button>
-      <div class="filters-sep"></div>
-      <select class="period-select" id="psel" onchange="setPeriod()" style="border-radius:20px">${gerarOpcoesMeses()}</select>
-    </div>`;
+  // Loja e periodo agora vivem na sidebar (contexto persistente, brief §7.2)
+  const filtersHTML='';
 
   const sumsHTML=`
     <div class="vsum">

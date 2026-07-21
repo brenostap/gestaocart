@@ -1,0 +1,159 @@
+/* ============================================================================
+   SHELL — layout com sidebar (desktop) e bottom-tabs (mobile)
+   Brief §5 (sidebar hibrida) e §7 (contexto persistente, mobile-first).
+   ========================================================================= */
+
+/* padding-top:96px vinha do styles.css para o header fixo antigo, que nao existe mais */
+#app{ display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; padding-top:0; }
+
+/* -- SIDEBAR -------------------------------------------------------------- */
+.sidebar{
+  position:sticky; top:0; height:100vh;
+  display:flex; flex-direction:column;
+  background:var(--glass);
+  backdrop-filter:blur(20px) saturate(1.6);
+  -webkit-backdrop-filter:blur(20px) saturate(1.6);
+  border-right:1px solid var(--border);
+  z-index:20;
+}
+
+.sb-brand{ display:flex; align-items:center; gap:10px; padding:16px 16px 14px; }
+.sb-logo{ height:30px; width:auto; }
+.sb-brand-txt{ display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+.sb-brand-name{ font-size:14px; font-weight:700; color:var(--text); }
+.sb-brand-sub{ font-size:11px; color:var(--text4); }
+
+/* contexto persistente: loja + periodo */
+.sb-context{ padding:0 14px 14px; border-bottom:1px solid var(--border); }
+.sb-stores{ display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+.sb-store{
+  text-align:left; padding:7px 10px; border-radius:var(--radius-sm);
+  border:1px solid transparent; background:transparent; cursor:pointer;
+  font-size:12.5px; font-weight:600; color:var(--text3);
+  font-family:inherit; transition:background .12s, color .12s;
+}
+.sb-store:hover{ background:var(--bg4); color:var(--text2); }
+.sb-store.active{ background:var(--cart); border-color:var(--cart); color:#fff; }
+.sb-store[data-store="urban"].active{ background:var(--urban); border-color:var(--urban); color:#1a1206; }
+
+.sb-period{
+  width:100%; margin-top:6px; padding:7px 10px;
+  border:1px solid var(--border2); border-radius:var(--radius-sm);
+  background:var(--bg2); color:var(--text); font-size:12.5px; font-family:inherit;
+  cursor:pointer; outline:none;
+}
+.sb-period:focus{ border-color:var(--cart); }
+#sb-dates:not(:empty){ margin-top:8px; }
+
+/* navegacao agrupada por dominio */
+.sb-nav{ flex:1; overflow-y:auto; padding:12px 10px; }
+.sb-group{ margin-bottom:14px; }
+.sb-group-title{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:.09em; color:var(--text4); padding:0 8px 6px;
+}
+.sb-item{
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:8px 9px; margin-bottom:2px; border:none; border-radius:var(--radius-sm);
+  background:transparent; cursor:pointer; text-align:left;
+  font-size:13px; font-weight:500; color:var(--text3);
+  font-family:inherit; transition:background .12s, color .12s;
+}
+.sb-item:hover{ background:var(--bg4); color:var(--text); }
+.sb-item.active{ background:var(--bg4); color:var(--text); font-weight:650; }
+.sb-item.active .sb-ico svg{ stroke:var(--cart); }
+.sb-item.active::before{
+  content:''; position:absolute; left:0; width:3px; height:20px;
+  border-radius:0 3px 3px 0; background:var(--cart);
+}
+.sb-item{ position:relative; }
+.sb-item-label{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sb-ico{ display:flex; flex:0 0 18px; }
+.sb-ico svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7;
+             stroke-linecap:round; stroke-linejoin:round; }
+.sb-soon{
+  font-family:var(--font-mono); font-size:9px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--text4);
+  background:var(--bg4); padding:2px 5px; border-radius:var(--radius-pill);
+}
+
+.sb-foot{ display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--border); }
+.sb-fbtn{
+  padding:7px 10px; border:1px solid var(--border2); border-radius:var(--radius-sm);
+  background:var(--bg2); color:var(--text3); font-size:12px; font-weight:600;
+  cursor:pointer; font-family:inherit; transition:background .12s;
+}
+.sb-fbtn:hover{ background:var(--bg4); color:var(--text); }
+.sb-sair{ margin-left:auto; }
+
+/* -- AREA PRINCIPAL ------------------------------------------------------- */
+.main{ min-width:0; display:flex; flex-direction:column; }
+.main .content{ padding:18px 22px 40px; flex:1; }
+.topbar{
+  position:sticky; top:0; z-index:10;
+  display:flex; align-items:center; gap:12px;
+  padding:10px 22px; border-bottom:1px solid var(--border);
+  background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+}
+
+/* a status-bar vinha estilizada como caixa flutuante do layout antigo */
+.topbar .status-bar{
+  position:static; background:transparent; border:none; box-shadow:none;
+  padding:0; margin:0; width:auto; border-radius:0;
+  font-family:var(--font-mono); font-size:11.5px; color:var(--text3);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* -- BOTTOM TABS (mobile) ------------------------------------------------- */
+.bottom-tabs{ display:none; }
+
+/* -- RESPONSIVO ----------------------------------------------------------- */
+@media (max-width: 900px){
+  /* rows explicitas: sem isso o grid distribui a sobra do min-height:100vh
+     entre as linhas e a barra do topo estica (bug do vao em branco) */
+  #app{ grid-template-columns:1fr; grid-template-rows:auto 1fr; align-content:start; }
+
+  .sidebar{
+    position:sticky; top:0; height:auto; flex-direction:row; align-items:center;
+    gap:10px; padding:8px 12px; border-right:none; border-bottom:1px solid var(--border);
+    overflow-x:auto;
+  }
+  .sb-brand{ padding:0; flex:0 0 auto; }
+  .sb-brand-sub{ display:none; }
+  .sb-context{ display:flex; align-items:center; gap:8px; padding:0; border:none; flex:1; }
+  .sb-context .label-mono{ display:none; }
+  .sb-stores{ flex-direction:row; margin:0; }
+  .sb-store{ padding:6px 10px; white-space:nowrap; }
+  .sb-period{ width:auto; margin:0; }
+  .sb-nav{ display:none; }                  /* vira bottom-tab */
+  .sb-foot{ border:none; padding:0; }
+  .sb-fbtn{ padding:6px 9px; }
+
+  .main .content{ padding:14px 14px calc(var(--bottomtab-h) + 24px); }
+  .topbar{ padding:8px 14px; }
+
+  .bottom-tabs{
+    display:grid; grid-auto-flow:column; grid-auto-columns:1fr;
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    height:var(--bottomtab-h);
+    padding-bottom:env(safe-area-inset-bottom);
+    background:var(--glass);
+    backdrop-filter:blur(20px) saturate(1.6); -webkit-backdrop-filter:blur(20px) saturate(1.6);
+    border-top:1px solid var(--border);
+  }
+  .bt-item{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    border:none; background:transparent; cursor:pointer; color:var(--text4);
+    font-family:inherit; min-height:44px;              /* alvo >= 44px, brief §7.6 */
+  }
+  .bt-ico svg{ width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.7;
+               stroke-linecap:round; stroke-linejoin:round; }
+  .bt-label{ font-size:10px; font-weight:600; }
+  .bt-item.active{ color:var(--cart); }
+}
+
+/* fundo atmosferico atrapalha a leitura no escuro */
+:root[data-theme="dark"] body::before{ opacity:.45; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) body::before{ opacity:.45; }
+}

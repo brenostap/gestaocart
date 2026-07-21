@@ -1,0 +1,183 @@
+/* ============================================================================
+   THEME — tokens canonicos do Design Brief (v1, jul/2026)
+   Carregado DEPOIS de styles.css de proposito: redefine os custom properties
+   sem precisar reescrever o CSS antigo. Os nomes legados (--cart, --text3...)
+   continuam existindo e agora apontam para os valores do brief.
+   ========================================================================= */
+
+:root{
+  /* -- Marca ------------------------------------------------------------ */
+  --cart-blue:#3b6fd6;        --cart-blue-light:#5b8bf5;
+  --urban-orange:#F39200;     --urban-orange-dk:#c47600;
+
+  /* -- Base ------------------------------------------------------------- */
+  --ink:#1a1f36;
+  --text-secondary:#5b6475;
+  --text-muted:#9aa3b2;
+
+  /* -- Semanticas (cor = significado, nunca decoracao) ------------------ */
+  --success:#0a7c3e;  --success-bg:#d4f7e0;
+  --warning:#b54708;  --warning-bg:#fef0c7;
+  --danger:#b42318;   --danger-bg:#fee4e2;
+  --process:#5b53e8;  --process-bg:#ecebfd;
+
+  /* -- Escala tipografica (HIG) ----------------------------------------- */
+  --fs-display:46px;  --lh-display:1.05;
+  --fs-title:28px;    --lh-title:1.15;
+  --fs-headline:16px; --lh-headline:1.3;
+  --fs-body:13.5px;   --lh-body:1.5;
+  --fs-caption:11.5px;--lh-caption:1.4;
+
+  --font-sans:'Geist','Geist Fallback',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
+  --font-mono:'Geist Mono','SF Mono',ui-monospace,Menlo,monospace;
+
+  /* -- Forma ------------------------------------------------------------ */
+  --radius-card:14px;
+  --radius-sm:8px;
+  --radius-pill:999px;
+
+  /* -- Layout do shell -------------------------------------------------- */
+  --sidebar-w:236px;
+  --bottomtab-h:60px;
+
+  /* == Aliases legados -> valores do brief ============================== */
+  --bg:#f6f9fc;
+  --bg2:#ffffff;
+  --bg3:#f6f9fc;
+  --bg4:#eef2f7;
+  --card:#ffffff;
+  --glass:rgba(255,255,255,.72);
+  --border:#e2e6ec;            /* brief: #e2e6ec (antes era #e6e8eb) */
+  --border2:#d5dbe4;
+  --border3:#c1c9d2;
+
+  --text:#1a1f36;
+  --text2:#424770;
+  --text3:#5b6475;
+  --text4:#9aa3b2;
+
+  --cart:#3b6fd6;              /* brief: azul da marca e o #3b6fd6 */
+  --cart2:#2b57ad;
+  --urban:#F39200;
+  --urban2:#c47600;
+
+  --green:#0a7c3e;  --green2:#0d9647;  --green-bg:#d4f7e0;
+  --red:#b42318;    --red-bg:#fee4e2;
+  --yellow:#b54708; --yellow-bg:#fef0c7;
+  --purple:#5b53e8;
+  --blue:#3b6fd6;
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 2px 6px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.08);
+  --shadow-xl:0 12px 32px rgba(0,0,0,.10);
+}
+
+/* ============================================================================
+   DARK MODE
+   O brief exige dark mode de primeira classe mas nao especifica os valores —
+   esta paleta foi derivada da familia da tinta (#1a1f36), mantendo o
+   significado das cores semanticas e subindo a luminosidade para contraste AA.
+   ========================================================================= */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1420;
+    --bg2:#161c2b;
+    --bg3:#1b2233;
+    --bg4:#222b3f;
+    --card:#161c2b;
+    --glass:rgba(22,28,43,.72);
+    --border:#2a3349;
+    --border2:#38425c;
+    --border3:#4a5570;
+
+    --ink:#e8ecf4;
+    --text:#e8ecf4;
+    --text2:#c3ccdd;
+    --text3:#94a0b8;
+    --text-secondary:#94a0b8;
+    --text4:#6d7893;
+    --text-muted:#6d7893;
+
+    --cart:#5b8bf5;            /* no escuro usamos a variante clara */
+    --cart2:#3b6fd6;
+    --cart-blue:#5b8bf5;
+    --urban:#f5a423;
+    --urban2:#F39200;
+
+    --success:#3ddc84;  --success-bg:#0c3323;
+    --warning:#f5a623;  --warning-bg:#3a2a10;
+    --danger:#f87171;   --danger-bg:#3d1a1a;
+    --process:#a5b4fc;  --process-bg:#231f4d;
+
+    --green:#3ddc84;  --green2:#4ade80;  --green-bg:#0c3323;
+    --red:#f87171;    --red-bg:#3d1a1a;
+    --yellow:#f5a623; --yellow-bg:#3a2a10;
+    --purple:#a5b4fc;
+    --blue:#5b8bf5;
+
+    --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+    --shadow-md:0 2px 8px rgba(0,0,0,.42);
+    --shadow-lg:0 6px 18px rgba(0,0,0,.5);
+    --shadow-xl:0 14px 40px rgba(0,0,0,.55);
+  }
+}
+
+/* Alternancia manual: data-theme="dark" no <html> vence o sistema */
+:root[data-theme="dark"]{
+  --bg:#0f1420;  --bg2:#161c2b;  --bg3:#1b2233;  --bg4:#222b3f;
+  --card:#161c2b; --glass:rgba(22,28,43,.72);
+  --border:#2a3349; --border2:#38425c; --border3:#4a5570;
+  --ink:#e8ecf4; --text:#e8ecf4; --text2:#c3ccdd;
+  --text3:#94a0b8; --text-secondary:#94a0b8; --text4:#6d7893; --text-muted:#6d7893;
+  --cart:#5b8bf5; --cart2:#3b6fd6; --cart-blue:#5b8bf5;
+  --urban:#f5a423; --urban2:#F39200;
+  --success:#3ddc84; --success-bg:#0c3323;
+  --warning:#f5a623; --warning-bg:#3a2a10;
+  --danger:#f87171;  --danger-bg:#3d1a1a;
+  --process:#a5b4fc; --process-bg:#231f4d;
+  --green:#3ddc84; --green2:#4ade80; --green-bg:#0c3323;
+  --red:#f87171;   --red-bg:#3d1a1a;
+  --yellow:#f5a623;--yellow-bg:#3a2a10;
+  --purple:#a5b4fc; --blue:#5b8bf5;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.35);
+  --shadow-md:0 2px 8px rgba(0,0,0,.42);
+  --shadow-lg:0 6px 18px rgba(0,0,0,.5);
+  --shadow-xl:0 14px 40px rgba(0,0,0,.55);
+}
+
+/* ============================================================================
+   TIPOGRAFIA
+   ========================================================================= */
+html{ font-family:var(--font-sans); font-size:var(--fs-body); }
+body{ font-family:var(--font-sans); }
+
+/* Todo numero financeiro alinha por coluna (brief §4) */
+.num, .metric-value, .kpi-value, td[data-num], .money,
+table td, table th { font-variant-numeric:tabular-nums; font-feature-settings:'tnum' 1; }
+
+.t-display{ font-size:var(--fs-display); line-height:var(--lh-display); font-weight:800; letter-spacing:-.02em; }
+.t-title  { font-size:var(--fs-title);   line-height:var(--lh-title);   font-weight:700; letter-spacing:-.01em; }
+.t-headline{font-size:var(--fs-headline);line-height:var(--lh-headline);font-weight:600; }
+.t-body   { font-size:var(--fs-body);    line-height:var(--lh-body); }
+.t-caption{ font-size:var(--fs-caption); line-height:var(--lh-caption); color:var(--text4); }
+.t-mono   { font-family:var(--font-mono); font-size:var(--fs-caption); letter-spacing:0; }
+
+/* Rotulos, ids, seriais e % em mono (brief §4) */
+.label-mono{ font-family:var(--font-mono); font-size:11px; text-transform:uppercase;
+             letter-spacing:.06em; color:var(--text4); }
+
+/* ============================================================================
+   ACESSIBILIDADE — o brief exige suporte nativo (§7.7)
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation-duration:.001ms !important; animation-iteration-count:1 !important;
+                        transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
+@media (prefers-reduced-transparency: reduce){
+  :root{ --glass:var(--bg2); }
+  .glass, .sidebar, .bottom-tabs{ backdrop-filter:none !important; }
+}
+@media (prefers-contrast: more){
+  :root{ --border:#9aa3b2; --border2:#6d7893; --text3:#3d4657; --text4:#5b6475; }
+}

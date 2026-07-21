@@ -154,21 +154,21 @@ async function loadAllData(){
 
 async function reloadData(){await loadAllData();}
 
+// btn e ignorado: o estado ativo vem de currentTab, entao a navegacao funciona
+// tanto da sidebar quanto do bottom-tab ou de um link dentro de uma tela.
 function setTab(t,btn){
   currentTab=t;
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  marcarAtivoShell();
   renderContent();
   updateStatusBar();
+  document.querySelector('.main')?.scrollTo({top:0});
 }
 
 function setStore(s,btn){
   currentStore=s;
-  document.querySelectorAll('.pill').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  marcarAtivoShell();
   updateHeaderLogo();
   renderContent();
-
   updateStatusBar();
 }
 

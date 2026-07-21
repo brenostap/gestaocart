@@ -155,17 +155,12 @@ function verPendentes(){
   vendasProduto='';
   // Usar flag especial para mostrar pendentes
   window._showPendentes=true;
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(b=>{ if(b.textContent.trim().startsWith('Vendas')) b.classList.add('active'); });
-  renderContent();
+  setTab('vendas');
 }
 
 function irParaVenda(id){
   vendasSearch=String(id);
-  currentTab='vendas';
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(b=>{ if(b.textContent.includes('Vendas')) b.classList.add('active'); });
-  renderContent();
+  setTab('vendas');
 }
 
 

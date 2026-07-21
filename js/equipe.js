@@ -161,9 +161,8 @@ function renderEquipe(){
   online.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].units||0)-(metricas[a.id]&&metricas[a.id].units||0);});
   presencial.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});
 
-  let html = '<div style="display:flex;gap:8px;margin-bottom:18px;align-items:center;flex-wrap:wrap">'
-    + '<select class="period-select" id="psel" onchange="setPeriod()" style="border-radius:20px">'+gerarOpcoesMeses()+'</select>'
-    + '</div>';
+  // O seletor de periodo agora vive na sidebar (contexto persistente, brief §7.2)
+  let html = '';
 
   // -- Socios ------------------------------------------------
   const sociosParaMostrar = socios.slice();
@@ -306,7 +305,8 @@ function renderEquipe(){
 
   // -- Tabela de fechamento do mes -----------------------------------------------
   const m2=calc();
-  const custosMesFech=filterCustoPeriod(_custosCache).reduce((a,c)=>a+parseFloat(c.valor||0),0);
+  // getCustos() em vez de _custosCache: o cache e null enquanto nao carregou
+  const custosMesFech=filterCustoPeriod(getCustos()).reduce((a,c)=>a+parseFloat(c.valor||0),0);
   const sal={pietra:4500,anne:2250,denilson:2250,davi:2250,mel:1500,isa:1500,david:1500,vitinho:2250,leo:2250,luana:2250,maria:3000};
   function calcCommVoF(k){const u=m2.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
   function calcCommAtF(k){return Math.round((m2.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m2.lAcess*0.05):0);}

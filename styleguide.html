@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cart System — Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/components.css">
+<script>(function(){try{var t=localStorage.getItem('sg_tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<style>
+  body{ background:var(--bg); color:var(--text); font-family:var(--font-sans); }
+  .sg-wrap{ max-width:1100px; margin:0 auto; padding:28px 24px 80px; }
+  .sg-top{ display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+  .sg-sec{ margin-top:38px; }
+  .sg-sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:14px;
+             padding-bottom:8px; border-bottom:1px solid var(--border); }
+  .sg-sec-t{ font-size:17px; font-weight:700; }
+  .sg-sec-d{ font-size:12px; color:var(--text4); }
+  .sg-row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+  .sg-swatches{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .sg-sw{ border:1px solid var(--border); border-radius:var(--radius-card); overflow:hidden; background:var(--bg2); }
+  .sg-sw-c{ height:56px; }
+  .sg-sw-t{ padding:8px 10px; }
+  .sg-sw-n{ font-size:12px; font-weight:650; }
+  .sg-sw-v{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); }
+  .sg-note{ font-size:12px; color:var(--text4); margin-top:8px; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="sg-wrap">
+
+  <div class="sg-top">
+    <div>
+      <div style="font-size:22px;font-weight:750;letter-spacing:-.02em">Cart System · Style Guide</div>
+      <div class="sg-sec-d">Fonte da verdade visual. Tudo que você vê aqui é o código real do app.</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="c-btn" onclick="alternar()">☾ / ☀ Tema</button>
+    </div>
+  </div>
+
+  <div id="sg"></div>
+</div>
+
+<script src="js/ui.js"></script>
+<script>
+function alternar(){
+  const a = document.documentElement.getAttribute('data-theme');
+  const escuroSist = matchMedia('(prefers-color-scheme: dark)').matches;
+  const novo = a ? (a==='dark'?'light':'dark') : (escuroSist?'light':'dark');
+  document.documentElement.setAttribute('data-theme', novo);
+  try{ localStorage.setItem('sg_tema', novo); }catch(e){}
+}
+
+const sec = (titulo, desc, corpo) => `
+  <div class="sg-sec">
+    <div class="sg-sec-h"><span class="sg-sec-t">${titulo}</span><span class="sg-sec-d">${desc||''}</span></div>
+    ${corpo}
+  </div>`;
+
+const swatch = (nome, varname) => `
+  <div class="sg-sw">
+    <div class="sg-sw-c" style="background:var(${varname})"></div>
+    <div class="sg-sw-t"><div class="sg-sw-n">${nome}</div><div class="sg-sw-v">${varname}</div></div>
+  </div>`;
+
+const brl = n => 'R$ ' + Number(n||0).toLocaleString('pt-BR');
+
+document.getElementById('sg').innerHTML = [
+
+  sec('Cores · marca', 'tint por loja — usado só na ação primária e no estado ativo', `
+    <div class="sg-swatches">
+      ${swatch('Cart azul','--cart')}${swatch('Cart claro','--cart-blue-light')}
+      ${swatch('Urban laranja','--urban')}${swatch('Urban escuro','--urban2')}
+    </div>`),
+
+  sec('Cores · base', '', `
+    <div class="sg-swatches">
+      ${swatch('Fundo','--bg')}${swatch('Superfície','--bg2')}
+      ${swatch('Tinta','--text')}${swatch('Borda','--border')}
+    </div>`),
+
+  sec('Cores · semânticas', 'cor = significado, nunca decoração', `
+    <div class="sg-swatches">
+      ${swatch('Lucro / ok','--success')}${swatch('Atenção','--warning')}
+      ${swatch('Crítico','--danger')}${swatch('Processo','--process')}
+    </div>`),
+
+  sec('Tipografia', 'Geist · números sempre com tabular-nums', `
+    <div class="c-card"><div class="c-card-body">
+      <div class="t-display">${brl(301543)}</div>
+      <div class="t-title" style="margin-top:6px">Título de seção</div>
+      <div class="t-headline" style="margin-top:6px">Headline / título de card</div>
+      <div class="t-body" style="margin-top:6px;color:var(--text3)">Corpo — texto de apoio, 13–14px, para explicar sem competir com o número.</div>
+      <div class="label-mono" style="margin-top:10px">MONO · rótulos, ids, seriais, %</div>
+    </div></div>`),
+
+  sec('KPI', 'o tom carrega o significado', UI.kpis([
+      {rotulo:'Receita bruta', valor:brl(1386867), sub:'419 dispositivos · ticket '+brl(3310)},
+      {rotulo:'Lucro bruto',   valor:brl(301543),  sub:'margem 21,7%', tom:'ok'},
+      {rotulo:'Custos',        valor:brl(72100),   sub:'rateio 75/25',  tom:'alerta'},
+      {rotulo:'Estoque parado',valor:'12 un',      sub:'há mais de 60 dias', tom:'critico'},
+    ])),
+
+  sec('Badges', '', `<div class="sg-row">
+      ${UI.badge('Disponível','ok')} ${UI.badge('Reservado','processo')}
+      ${UI.badge('Em trânsito','alerta')} ${UI.badge('Sem estoque','critico')}
+      ${UI.badge('Lacrado')} ${UI.badge('IMEI 356789104','',true)}
+    </div>`),
+
+  sec('Botões', 'tint só na ação primária (Apple HIG)', `<div class="sg-row">
+      ${UI.btn('Ação primária',{variante:'primario'})}
+      ${UI.btn('Secundária')}
+      ${UI.btn('Sutil',{variante:'sutil'})}
+      ${UI.btn('Pequena',{sm:true})}
+      ${UI.btn('Desabilitada',{disabled:true})}
+    </div>`),
+
+  sec('Filtros', '', UI.toolbar(
+      UI.chip('iPhone', true, ''), UI.chip('MacBook', false, ''), UI.chip('iPad', false, ''),
+      UI.sep(), UI.chip('Seminovo', true, ''), UI.chip('Lacrado', false, ''))),
+
+  sec('Tabela', 'números à direita, alinhados por coluna', UI.card({
+      titulo:'Estoque × Tabela', sub:'3 itens', flush:true,
+      acao: UI.btn('Exportar',{sm:true}),
+      corpo: UI.tabela({
+        colunas:[{titulo:'Serial'},{titulo:'Produto'},{titulo:'Custo',num:true},{titulo:'Venda',num:true},{titulo:'Margem',num:true},{titulo:'Status'}],
+        linhas:[
+          [{v:'F2LX93',classe:'mono'}, {v:'15 Pro Max 256GB',classe:'forte'}, brl(3800), brl(4290), {v:'11,4%'}, UI.badge('Disponível','ok')],
+          [{v:'H7KQ21',classe:'mono'}, {v:'14 Pro 128GB',classe:'forte'},     brl(2650), brl(2950), {v:'10,2%'}, UI.badge('Reservado','processo')],
+          [{v:'M4PZ08',classe:'mono'}, {v:'13 128GB',classe:'forte'},         brl(1720), brl(1850), {v:'7,0%'},  UI.badge('Parado','critico')],
+        ]})})),
+
+  sec('Metas', '', UI.card({titulo:'Meta de dispositivos', corpo:`
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px">
+        <span class="c-kpi-value">313</span><span class="c-kpi-sub">/ próx: 350 un</span>
+      </div>
+      ${UI.barra(89,'ok')}
+      <div class="sg-row" style="margin-top:10px">${UI.badge('300 ✓','ok')} ${UI.badge('350')} ${UI.badge('400')}</div>`})),
+
+  sec('Chave / valor', 'para painéis de detalhe', UI.card({titulo:'Detalhe da unidade', corpo:
+      UI.kv('Modelo','iPhone 15 Pro Max') + UI.kv('Capacidade','256GB') +
+      UI.kv('Cor','Titânio Natural') + UI.kv('Bateria','92%') +
+      UI.kv('Condição', UI.badge('Seminovo')) + UI.kv('Custo', brl(3800))})),
+
+  sec('Estado vazio', 'sempre diz o próximo passo (§7.5)', UI.card({corpo:
+      UI.vazio({ico:'📦', titulo:'Nenhuma venda neste mês',
+                texto:'Quando a primeira venda for registrada no FoneNinja, ela aparece aqui em até 2 minutos.',
+                acao: UI.btn('Atualizar agora',{variante:'primario', sm:true})})})),
+
+  sec('Painel lateral', 'clicar numa linha abre à direita sem perder a lista — no celular vira sheet', `
+    <div class="sg-row">${UI.btn('Abrir painel de exemplo',{onclick:"exemploPainel()",variante:'primario'})}</div>
+    <div class="sg-note">Brief §7.3 — detalhe em painel, nunca troca de página.</div>`),
+
+].join('');
+
+function exemploPainel(){
+  UI.abrirPainel({titulo:'iPhone 15 Pro Max · 256GB', corpo:
+    UI.kv('Serial','F2LX93') + UI.kv('Cor','Titânio Natural') + UI.kv('Bateria','92%') +
+    UI.kv('Condição', UI.badge('Seminovo')) + UI.kv('Status', UI.badge('Disponível','ok')) +
+    UI.kv('Custo', brl(3800)) + UI.kv('Venda tabela', brl(4290)) +
+    `<div style="margin-top:16px">${UI.btn('Ver histórico',{variante:'primario',sm:true})} ${UI.btn('Exportar WhatsApp',{sm:true})}</div>`});
+}
+</script>
+</body>
+</html>
