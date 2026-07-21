@@ -122,3 +122,83 @@
   [data-dir="glass"] .fundo::before,
   [data-dir="glass"] .fundo::after{ animation:none; }
 }
+
+/* =========================== D · NEON GLASS =============================
+   Liquid glass + acento neon, no espirito das referencias: fundo quase preto,
+   borda em gradiente, brilho externo e numeros com leve halo.
+   Tres tecnicas:
+     1) borda em gradiente  -> dois backgrounds (padding-box + border-box)
+     2) brilho externo      -> pseudo-elemento com o mesmo gradiente + blur
+     3) halo no numero      -> text-shadow colorido, bem sutil
+   ======================================================================= */
+[data-dir="neon"]{
+  --radius-card:18px;
+  --bg:#070912; --bg2:rgba(20,24,42,.62); --bg3:rgba(28,33,56,.5); --bg4:rgba(40,46,78,.6);
+  --border:rgba(255,255,255,.10); --border2:rgba(255,255,255,.18);
+  /* subtitulos mais claros: o cinza apagado era parte do incomodo */
+  --text:#f2f4fb; --text2:#cfd5ea; --text3:#a3abc9; --text4:#8089ab;
+  --cart:#8b5cf6;
+  --success:#34d399; --success-bg:rgba(52,211,153,.14);
+  --warning:#fbbf24; --warning-bg:rgba(251,191,36,.14);
+  --danger:#fb7185;  --danger-bg:rgba(251,113,133,.14);
+  --process:#22d3ee; --process-bg:rgba(34,211,238,.14);
+  --neon:linear-gradient(135deg,#a855f7 0%,#6366f1 35%,#22d3ee 70%,#34d399 100%);
+  --shadow-sm:0 6px 26px rgba(0,0,0,.5);
+  --fundo-trat:none;
+}
+
+[data-dir="neon"] .fundo{
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 0%,  rgba(139,92,246,.22), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 15%, rgba(34,211,238,.16), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 60% 100%,rgba(52,211,153,.12), transparent 60%);
+}
+
+/* superficie de vidro */
+[data-dir="neon"] .c-card,
+[data-dir="neon"] .c-kpi{
+  backdrop-filter:blur(26px) saturate(1.7); -webkit-backdrop-filter:blur(26px) saturate(1.7);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+/* 1+2) borda em gradiente e brilho externo — no card principal e na acao primaria */
+[data-dir="neon"] .c-card.destaque{
+  position:relative; border:1px solid transparent; border-radius:var(--radius-card);
+  background:
+    linear-gradient(rgba(17,21,38,.96), rgba(17,21,38,.96)) padding-box,
+    var(--neon) border-box;
+}
+/* brilho via box-shadow: o backdrop-filter cria contexto de empilhamento e um
+   pseudo-elemento com z-index:-1 acabaria pintando POR CIMA do fundo do card */
+[data-dir="neon"] .c-card.destaque{
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.04),
+    0 0 26px rgba(139,92,246,.34),
+    0 0 60px rgba(34,211,238,.16),
+    var(--shadow-sm);
+}
+
+[data-dir="neon"] .c-btn.primario{
+  position:relative; border:1px solid transparent; color:#fff; background:
+    linear-gradient(rgba(24,28,48,.97), rgba(24,28,48,.97)) padding-box,
+    var(--neon) border-box;
+}
+[data-dir="neon"] .c-btn.primario{
+  box-shadow:0 0 16px rgba(139,92,246,.5), 0 0 34px rgba(34,211,238,.2);
+}
+[data-dir="neon"] .c-btn.primario:hover{
+  box-shadow:0 0 22px rgba(139,92,246,.75), 0 0 46px rgba(34,211,238,.3);
+}
+
+/* 3) halo sutil no numero — so no KPI, nunca em texto corrido */
+[data-dir="neon"] .c-kpi-value{ text-shadow:0 0 22px rgba(139,92,246,.45); }
+[data-dir="neon"] .c-kpi[data-tom="ok"]      .c-kpi-value{ text-shadow:0 0 22px rgba(52,211,153,.5); }
+[data-dir="neon"] .c-kpi[data-tom="critico"] .c-kpi-value{ text-shadow:0 0 22px rgba(251,113,133,.5); }
+[data-dir="neon"] .c-kpi[data-tom="alerta"]  .c-kpi-value{ text-shadow:0 0 22px rgba(251,191,36,.45); }
+
+[data-dir="neon"] .c-badge{ border:1px solid rgba(255,255,255,.10); }
+[data-dir="neon"] .c-tabela th{ background:rgba(255,255,255,.045); }
+[data-dir="neon"] .c-tabela tbody tr:hover td{ background:rgba(255,255,255,.05); }
+[data-dir="neon"] .c-barra{ background:rgba(255,255,255,.09); }
+[data-dir="neon"] .c-barra-fill{ background:var(--neon); box-shadow:0 0 14px rgba(99,102,241,.6); }

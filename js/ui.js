@@ -29,13 +29,13 @@ const UI = {
   _tom(t){ return t ? ` data-tom="${t}"` : ''; },
 
   // -- Card ---------------------------------------------------------------
-  card({titulo, sub, acao, corpo, flush} = {}){
+  card({titulo, sub, acao, corpo, flush, classe} = {}){
     const cabecalho = (titulo || acao) ? `
       <div class="c-card-head">
         ${titulo ? `<div class="c-card-title">${titulo}${sub ? ` <span class="c-card-sub">${sub}</span>` : ''}</div>` : ''}
         ${acao ? `<div class="c-card-action">${acao}</div>` : ''}
       </div>` : '';
-    return `<div class="c-card">${cabecalho}
+    return `<div class="c-card${classe ? " "+classe : ""}">${cabecalho}
       <div class="c-card-body${flush ? ' flush' : ''}">${corpo || ''}</div>
     </div>`;
   },

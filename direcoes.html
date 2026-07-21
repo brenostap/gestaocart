@@ -6,7 +6,7 @@
 <title>Cart System — Direções visuais</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="css/theme.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/direcoes.css">
@@ -42,6 +42,7 @@
       <button class="c-chip ativo" data-d="calmo" onclick="setDir('calmo')">A · Calmo</button>
       <button class="c-chip" data-d="glass" onclick="setDir('glass')">B · Liquid Glass</button>
       <button class="c-chip" data-d="tech"  onclick="setDir('tech')">C · Tech</button>
+      <button class="c-chip" data-d="neon"  onclick="setDir('neon')">D · Neon Glass</button>
     </div>
     <div class="grupo" style="margin-left:auto">
       <button class="c-btn c-btn-sm" onclick="setTema('light')">☀ Claro</button>
@@ -49,6 +50,15 @@
     </div>
   </div>
 
+  <div class="grupo" style="margin:0 0 4px;flex-wrap:wrap">
+    <span style="font-size:11px;color:var(--text4);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;align-self:center;margin-right:4px">Fonte</span>
+    <button class="c-chip ativo" data-f="Geist" onclick="setFonte('Geist')">Geist</button>
+    <button class="c-chip" data-f="Manrope" onclick="setFonte('Manrope')">Manrope</button>
+    <button class="c-chip" data-f="Plus Jakarta Sans" onclick="setFonte('Plus Jakarta Sans')">Plus Jakarta</button>
+    <button class="c-chip" data-f="Outfit" onclick="setFonte('Outfit')">Outfit</button>
+    <button class="c-chip" data-f="Sora" onclick="setFonte('Sora')">Sora</button>
+    <button class="c-chip" data-f="Space Grotesk" onclick="setFonte('Space Grotesk')">Space Grotesk</button>
+  </div>
   <div class="nota" id="nota"></div>
   <div id="paleta"></div>
   <div id="demo"></div>
@@ -67,6 +77,12 @@ const NOTAS = {
     só na navegação. <b>Custo real:</b> número pequeno sobre vidro perde contraste, o fundo animado
     disputa atenção com o dado, e em tela cheia de tabela cansa. Funciona melhor se o vidro ficar
     só na sidebar e nos KPIs, com a tabela opaca.`,
+  neon: `<b>D · Neon Glass</b> — vidro sobre fundo quase preto, com borda em gradiente,
+    brilho externo e halo nos números. É o mais próximo das suas referências.
+    <b>Como o neon é feito:</b> (1) borda em gradiente = dois backgrounds, um em <code>padding-box</code>
+    e outro em <code>border-box</code>; (2) brilho = pseudo-elemento atrás com o mesmo gradiente e
+    <code>blur</code>; (3) halo = <code>text-shadow</code> colorido, só no número, nunca em texto corrido.
+    Também clareei os cinzas dos subtítulos — o cinza apagado era parte do incômodo.`,
   tech: `<b>C · Tech</b> — superfície sólida, grade fina ao fundo, cantos menores, densidade maior,
     mono mais presente e acento violeta elétrico. Nasceu para o escuro. É o mais "produto de engenharia"
     dos três e cabe mais informação por tela. <b>Risco:</b> a grade pode cansar em sessões longas —
@@ -94,7 +110,7 @@ function pintar(){
       {rotulo:'Estoque parado',valor:'12 un',     sub:'há mais de 60 dias', tom:'critico'},
     ])}
     <div style="height:12px"></div>
-    ${UI.card({titulo:'Estoque × Tabela', sub:'5 itens', flush:true,
+    ${UI.card({titulo:'Estoque × Tabela', sub:'5 itens', flush:true, classe:'destaque',
       acao: UI.btn('Exportar',{sm:true}) + UI.btn('Nova entrada',{variante:'primario',sm:true}),
       corpo: UI.tabela({
         colunas:[{titulo:'Serial'},{titulo:'Produto'},{titulo:'Bateria',num:true},{titulo:'Custo',num:true},{titulo:'Venda',num:true},{titulo:'Margem',num:true},{titulo:'Status'}],
@@ -122,8 +138,12 @@ function pintar(){
 function setDir(d){
   document.documentElement.dataset.dir = d;
   document.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('ativo', b.dataset.d===d));
-  if(d==='tech' && !document.documentElement.getAttribute('data-theme')) setTema('dark');
+  if(d==='tech' || d==='neon') setTema('dark');
   pintar();
+}
+function setFonte(f){
+  document.documentElement.style.setProperty('--font-sans', `'${f}', system-ui, sans-serif`);
+  document.querySelectorAll('[data-f]').forEach(b => b.classList.toggle('ativo', b.dataset.f===f));
 }
 function setTema(t){ document.documentElement.setAttribute('data-theme', t); pintar(); }
 
