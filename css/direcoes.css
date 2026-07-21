@@ -1,0 +1,124 @@
+/* ============================================================================
+   DIRECOES VISUAIS — 3 tratamentos sobre os MESMOS componentes.
+   Serve para escolher com os olhos. Nenhuma afeta o app ate ser promovida.
+   ========================================================================= */
+
+/* =========================== A · CALMO ==================================
+   O que esta no ar hoje. Stripe + Apple HIG: conteudo opaco, borda de 1px,
+   sombra de papel. Densidade calma, hierarquia por peso e espaco.
+   ======================================================================= */
+[data-dir="calmo"]{
+  --radius-card:14px;
+  --fundo-trat:
+    radial-gradient(ellipse 60% 40% at 20% 20%, rgba(59,111,214,.05) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 80% 80%, rgba(243,146,0,.03) 0%, transparent 60%);
+}
+
+/* =========================== B · LIQUID GLASS ===========================
+   Apple Liquid Glass levado ao conteudo. Superficies translucidas sobre um
+   fundo colorido em movimento. Bonito, porem: texto pequeno sobre vidro perde
+   contraste e a tabela densa fica mais dificil de varrer.
+   ======================================================================= */
+[data-dir="glass"]{
+  --radius-card:20px;
+  --bg:#eef2fb;
+  --bg2:rgba(255,255,255,.55);
+  --bg3:rgba(255,255,255,.35);
+  --bg4:rgba(255,255,255,.65);
+  --border:rgba(255,255,255,.75);
+  --border2:rgba(255,255,255,.9);
+  --shadow-sm:0 4px 20px rgba(31,50,110,.10);
+  --shadow-md:0 8px 32px rgba(31,50,110,.14);
+  /* semanticas mais saturadas para sobreviver ao vidro */
+  --success:#047857; --warning:#c2410c; --danger:#be123c; --process:#4f46e5;
+  --cart:#3b6fd6;
+}
+[data-dir="glass"] .c-card,
+[data-dir="glass"] .c-kpi{
+  backdrop-filter:blur(22px) saturate(1.8);
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.7);
+}
+[data-dir="glass"] .c-tabela th{ background:rgba(255,255,255,.45); backdrop-filter:blur(8px); }
+[data-dir="glass"] .c-tabela tbody tr:hover td{ background:rgba(255,255,255,.45); }
+
+/* blobs coloridos que se movem devagar atras do vidro */
+[data-dir="glass"] .fundo::before,
+[data-dir="glass"] .fundo::after{
+  content:''; position:fixed; border-radius:50%; filter:blur(70px); z-index:-1; pointer-events:none;
+}
+[data-dir="glass"] .fundo::before{
+  width:52vw; height:52vw; left:-8vw; top:-12vw;
+  background:radial-gradient(circle, rgba(91,139,245,.55), transparent 65%);
+  animation:flutua1 22s ease-in-out infinite alternate;
+}
+[data-dir="glass"] .fundo::after{
+  width:46vw; height:46vw; right:-10vw; bottom:-14vw;
+  background:radial-gradient(circle, rgba(243,146,0,.42), transparent 65%);
+  animation:flutua2 26s ease-in-out infinite alternate;
+}
+@keyframes flutua1{ to{ transform:translate(14vw,10vh) scale(1.15) } }
+@keyframes flutua2{ to{ transform:translate(-12vw,-8vh) scale(1.1) } }
+
+[data-dir="glass"][data-theme="dark"]{
+  --bg:#0a0f1c;
+  --bg2:rgba(30,40,64,.55); --bg3:rgba(30,40,64,.35); --bg4:rgba(46,58,86,.6);
+  --border:rgba(255,255,255,.12); --border2:rgba(255,255,255,.2);
+  --shadow-sm:0 4px 22px rgba(0,0,0,.45);
+  --success:#34d399; --warning:#fbbf24; --danger:#fb7185; --process:#a78bfa;
+}
+[data-dir="glass"][data-theme="dark"] .c-card,
+[data-dir="glass"][data-theme="dark"] .c-kpi{
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+/* =========================== C · TECH ===================================
+   Linear/terminal: superficie solida, grade fina ao fundo, raio menor,
+   densidade maior, mono mais presente e acento eletrico. Nasce no escuro.
+   ======================================================================= */
+[data-dir="tech"]{
+  --radius-card:10px; --radius-sm:6px;
+  --bg:#fbfbfd; --bg2:#ffffff; --bg3:#f4f5f8; --bg4:#eceef3;
+  --border:#e3e5ec; --border2:#cfd3de;
+  --text:#0e1116; --text2:#3d4351; --text3:#646b7d; --text4:#8b93a6;
+  --cart:#4f46e5;
+  --success:#059669; --success-bg:#d1fae5;
+  --warning:#d97706; --warning-bg:#fef3c7;
+  --danger:#e11d48;  --danger-bg:#ffe4e6;
+  --process:#7c3aed; --process-bg:#ede9fe;
+  --shadow-sm:0 1px 2px rgba(14,17,22,.05);
+  --fundo-trat:
+    linear-gradient(to right, rgba(14,17,22,.028) 1px, transparent 1px) 0 0/34px 34px,
+    linear-gradient(to bottom, rgba(14,17,22,.028) 1px, transparent 1px) 0 0/34px 34px;
+}
+[data-dir="tech"] .c-card-head{ background:var(--bg3); }
+[data-dir="tech"] .c-kpi-label,
+[data-dir="tech"] .c-tabela th{ letter-spacing:.1em; }
+[data-dir="tech"] .c-kpi{ padding:12px 14px; }
+[data-dir="tech"] .c-kpi-value{ font-size:24px; letter-spacing:-.03em; }
+[data-dir="tech"] .c-tabela td{ padding:8px 14px; font-size:12.5px; }
+[data-dir="tech"] .c-badge{ border-radius:5px; font-family:var(--font-mono); font-size:10.5px; }
+[data-dir="tech"] .c-btn{ border-radius:6px; }
+
+[data-dir="tech"][data-theme="dark"]{
+  --bg:#08090c; --bg2:#101218; --bg3:#15181f; --bg4:#1d212b;
+  --border:#22262f; --border2:#313743;
+  --text:#e9ecf2; --text2:#b4bbc9; --text3:#8b93a6; --text4:#666e80;
+  --cart:#8b7cff;
+  --success:#10d488; --success-bg:#062b1e;
+  --warning:#f5a524; --warning-bg:#2e2008;
+  --danger:#ff5c7a;  --danger-bg:#2e0d16;
+  --process:#a78bfa; --process-bg:#1e1638;
+  --fundo-trat:
+    linear-gradient(to right, rgba(255,255,255,.030) 1px, transparent 1px) 0 0/34px 34px,
+    linear-gradient(to bottom, rgba(255,255,255,.030) 1px, transparent 1px) 0 0/34px 34px;
+}
+
+/* fundo aplicado por direcao */
+.fundo{ position:fixed; inset:0; z-index:-2; pointer-events:none; background:var(--fundo-trat); }
+
+@media (prefers-reduced-motion: reduce){
+  [data-dir="glass"] .fundo::before,
+  [data-dir="glass"] .fundo::after{ animation:none; }
+}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-dir="calmo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cart System — Direções visuais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/direcoes.css">
+<style>
+  body{ background:var(--bg); color:var(--text); font-family:var(--font-sans); transition:background .25s; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:22px 22px 70px; }
+  .barra{ position:sticky; top:0; z-index:40; margin:-22px -22px 20px; padding:12px 22px;
+          background:var(--glass); backdrop-filter:blur(18px); border-bottom:1px solid var(--border);
+          display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .tit{ font-size:15px; font-weight:750; letter-spacing:-.02em; }
+  .grupo{ display:flex; gap:5px; }
+  .nota{ font-size:12px; color:var(--text3); line-height:1.55; margin:14px 0 18px;
+         padding:11px 13px; border-left:2px solid var(--border2); background:var(--bg3);
+         border-radius:0 var(--radius-sm) var(--radius-sm) 0; }
+  .nota b{ color:var(--text); }
+  .sub{ font-size:11px; color:var(--text4); margin:22px 0 8px; font-family:var(--font-mono);
+        text-transform:uppercase; letter-spacing:.09em; }
+  .paleta{ display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:8px; }
+  .sw{ border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; background:var(--bg2); }
+  .sw-c{ height:44px; }
+  .sw-t{ padding:6px 8px; font-size:10.5px; }
+  .sw-n{ font-weight:650; }
+  .sw-v{ font-family:var(--font-mono); color:var(--text4); font-size:9.5px; }
+</style>
+</head>
+<body>
+<div class="fundo"></div>
+<div class="wrap">
+
+  <div class="barra">
+    <span class="tit">Direções visuais</span>
+    <div class="grupo">
+      <button class="c-chip ativo" data-d="calmo" onclick="setDir('calmo')">A · Calmo</button>
+      <button class="c-chip" data-d="glass" onclick="setDir('glass')">B · Liquid Glass</button>
+      <button class="c-chip" data-d="tech"  onclick="setDir('tech')">C · Tech</button>
+    </div>
+    <div class="grupo" style="margin-left:auto">
+      <button class="c-btn c-btn-sm" onclick="setTema('light')">☀ Claro</button>
+      <button class="c-btn c-btn-sm" onclick="setTema('dark')">☾ Escuro</button>
+    </div>
+  </div>
+
+  <div class="nota" id="nota"></div>
+  <div id="paleta"></div>
+  <div id="demo"></div>
+</div>
+
+<script src="js/ui.js"></script>
+<script>
+const brl = n => 'R$ ' + Number(n||0).toLocaleString('pt-BR');
+
+const NOTAS = {
+  calmo: `<b>A · Calmo</b> — o que está no ar. Conteúdo opaco, borda de 1px, sombra de papel.
+    É o que o brief pede (§4) e o que melhor serve tabela densa de números: nada compete com o dado.
+    <b>Risco:</b> pode parecer conservador demais.`,
+  glass: `<b>B · Liquid Glass</b> — superfícies translúcidas sobre fundo colorido em movimento.
+    É o mais impressionante de primeira. <b>Contraria o brief</b>, que manda usar material translúcido
+    só na navegação. <b>Custo real:</b> número pequeno sobre vidro perde contraste, o fundo animado
+    disputa atenção com o dado, e em tela cheia de tabela cansa. Funciona melhor se o vidro ficar
+    só na sidebar e nos KPIs, com a tabela opaca.`,
+  tech: `<b>C · Tech</b> — superfície sólida, grade fina ao fundo, cantos menores, densidade maior,
+    mono mais presente e acento violeta elétrico. Nasceu para o escuro. É o mais "produto de engenharia"
+    dos três e cabe mais informação por tela. <b>Risco:</b> a grade pode cansar em sessões longas —
+    dá para deixá-la mais fraca ou desligá-la.`,
+};
+
+const swatch = (n,v) => `<div class="sw"><div class="sw-c" style="background:var(${v})"></div>
+  <div class="sw-t"><div class="sw-n">${n}</div><div class="sw-v">${v}</div></div></div>`;
+
+function pintar(){
+  document.getElementById('nota').innerHTML = NOTAS[document.documentElement.dataset.dir];
+
+  document.getElementById('paleta').innerHTML = `
+    <div class="sub">Base</div>
+    <div class="paleta">${swatch('Fundo','--bg')}${swatch('Superfície','--bg2')}${swatch('Tinta','--text')}${swatch('Borda','--border')}${swatch('Acento','--cart')}</div>
+    <div class="sub">Semânticas — cor = significado</div>
+    <div class="paleta">${swatch('Lucro / ok','--success')}${swatch('Atenção','--warning')}${swatch('Crítico','--danger')}${swatch('Processo','--process')}</div>`;
+
+  document.getElementById('demo').innerHTML = `
+    <div class="sub">Os mesmos componentes, sob a direção escolhida</div>
+    ${UI.kpis([
+      {rotulo:'Receita bruta', valor:brl(215400), sub:'74 dispositivos · ticket '+brl(2890)},
+      {rotulo:'Lucro bruto',   valor:brl(48200),  sub:'margem 22,4%', tom:'ok'},
+      {rotulo:'Custos',        valor:brl(11900),  sub:'rateio 75/25', tom:'alerta'},
+      {rotulo:'Estoque parado',valor:'12 un',     sub:'há mais de 60 dias', tom:'critico'},
+    ])}
+    <div style="height:12px"></div>
+    ${UI.card({titulo:'Estoque × Tabela', sub:'5 itens', flush:true,
+      acao: UI.btn('Exportar',{sm:true}) + UI.btn('Nova entrada',{variante:'primario',sm:true}),
+      corpo: UI.tabela({
+        colunas:[{titulo:'Serial'},{titulo:'Produto'},{titulo:'Bateria',num:true},{titulo:'Custo',num:true},{titulo:'Venda',num:true},{titulo:'Margem',num:true},{titulo:'Status'}],
+        linhas:[
+          [{v:'F2LX93',classe:'mono'},{v:'15 Pro Max 256GB',classe:'forte'},'92%',brl(3800),brl(4290),'11,4%',UI.badge('Disponível','ok')],
+          [{v:'H7KQ21',classe:'mono'},{v:'14 Pro 128GB',classe:'forte'},'88%',brl(2650),brl(2950),'10,2%',UI.badge('Reservado','processo')],
+          [{v:'M4PZ08',classe:'mono'},{v:'13 128GB',classe:'forte'},'79%',brl(1720),brl(1850),'7,0%',UI.badge('Parado','critico')],
+          [{v:'K9TR55',classe:'mono'},{v:'16 Pro 256GB',classe:'forte'},'100%',brl(4100),brl(4650),'11,8%',UI.badge('Lacrado')],
+          [{v:'B3WQ12',classe:'mono'},{v:'12 64GB',classe:'forte'},'71%',brl(980),brl(1290),'24,0%',UI.badge('Em trânsito','alerta')],
+        ]})})}
+    <div style="height:12px"></div>
+    <div class="c-grid-2">
+      ${UI.card({titulo:'Meta de dispositivos', corpo:`
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:9px">
+          <span class="c-kpi-value">58</span><span class="c-kpi-sub">/ próx: 70 un</span></div>
+        ${UI.barra(83,'ok')}
+        <div style="display:flex;gap:6px;margin-top:11px">${UI.badge('50 ✓','ok')}${UI.badge('70')}${UI.badge('90')}</div>`})}
+      ${UI.card({titulo:'Detalhe da unidade', corpo:
+        UI.kv('Modelo','iPhone 15 Pro Max') + UI.kv('Cor','Titânio Natural') +
+        UI.kv('Bateria','92%') + UI.kv('Condição', UI.badge('Seminovo')) +
+        UI.kv('Custo', brl(3800))})}
+    </div>`;
+}
+
+function setDir(d){
+  document.documentElement.dataset.dir = d;
+  document.querySelectorAll('[data-d]').forEach(b => b.classList.toggle('ativo', b.dataset.d===d));
+  if(d==='tech' && !document.documentElement.getAttribute('data-theme')) setTema('dark');
+  pintar();
+}
+function setTema(t){ document.documentElement.setAttribute('data-theme', t); pintar(); }
+
+setTema('light');
+pintar();
+</script>
+</body>
+</html>
