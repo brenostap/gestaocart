@@ -105,25 +105,12 @@ function parseTitulo(t){
 let _precosCache = null;
 let _precosCachePromise = null;
 
+// Carregador unico — delega para loadTabelaFromSB(), que normaliza as linhas
+// e alimenta tanto _precos (aba Tabela) quanto _precosCache (preco de venda).
 async function carregarTabelaPrecos(){
-  if(_precosCache) return _precosCache;
+  if(_precosCache && _precosCache.length) return _precosCache;
   if(_precosCachePromise) return _precosCachePromise;
-  _precosCachePromise = (async () => {
-    try {
-      const r = await fetch(SB_URL + '/rest/v1/tabela_precos?select=*&ativo=eq.true', {
-        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_TOKEN }
-      });
-      if(!r.ok) throw new Error('Falha ao carregar tabela_precos: ' + r.status);
-      const data = await r.json();
-      _precosCache = data;
-      console.log('✅ Tabela de preços carregada: ' + data.length + ' linhas');
-      return data;
-    } catch(e) {
-      console.warn('⚠️ Erro carregando tabela_precos:', e);
-      _precosCache = [];
-      return [];
-    }
-  })();
+  _precosCachePromise = loadTabelaFromSB().finally(() => { _precosCachePromise = null; });
   return _precosCachePromise;
 }
 

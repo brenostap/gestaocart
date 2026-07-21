@@ -228,147 +228,95 @@ function setCustomDate(){
 }
 
 // CALC
-const TABELA_PRECOS = [{"modelo": "iPhone 12", "cap": "64GB", "preco": 1450}, {"modelo": "iPhone 12", "cap": "128GB", "preco": 1650}, {"modelo": "iPhone 12", "cap": "256GB", "preco": 1750}, {"modelo": "iPhone 12 Pro", "cap": "128GB", "preco": 1950}, {"modelo": "iPhone 12 Pro", "cap": "256GB", "preco": 2150}, {"modelo": "iPhone 12 Pro Max", "cap": "128GB", "preco": 2150}, {"modelo": "iPhone 12 Pro Max", "cap": "256GB", "preco": 2290}, {"modelo": "iPhone 13", "cap": "128GB", "preco": 1950}, {"modelo": "iPhone 13", "cap": "256GB", "preco": 2050}, {"modelo": "iPhone 13 Pro", "cap": "128GB", "preco": 2390}, {"modelo": "iPhone 13 Pro", "cap": "256GB", "preco": 2690}, {"modelo": "iPhone 13 Pro Max", "cap": "128GB", "preco": 2850}, {"modelo": "iPhone 13 Pro Max", "cap": "256GB", "preco": 3050}, {"modelo": "iPhone 14", "cap": "128GB", "preco": 2190}, {"modelo": "iPhone 14", "cap": "256GB", "preco": 2290}, {"modelo": "iPhone 14 Plus", "cap": "128GB", "preco": 2390}, {"modelo": "iPhone 14 Plus", "cap": "256GB", "preco": 2550}, {"modelo": "iPhone 14 Pro", "cap": "128GB", "preco": 2890}, {"modelo": "iPhone 14 Pro", "cap": "256GB", "preco": 3090}, {"modelo": "iPhone 14 Pro Max", "cap": "128GB", "preco": 3390}, {"modelo": "iPhone 14 Pro Max", "cap": "256GB", "preco": 3590}, {"modelo": "iPhone 14 Pro Max", "cap": "512GB", "preco": 3650}, {"modelo": "iPhone 15", "cap": "128GB", "preco": 2850}, {"modelo": "iPhone 15", "cap": "256GB", "preco": 2950}, {"modelo": "iPhone 15 Plus", "cap": "128GB", "preco": 3090}, {"modelo": "iPhone 15 Plus", "cap": "256GB", "preco": 3290}, {"modelo": "iPhone 15 Pro", "cap": "128GB", "preco": 3650}, {"modelo": "iPhone 15 Pro", "cap": "256GB", "preco": 3850}, {"modelo": "iPhone 15 Pro", "cap": "512GB", "preco": 3990}, {"modelo": "iPhone 15 Pro Max", "cap": "256GB", "preco": 4350}, {"modelo": "iPhone 15 Pro Max", "cap": "512GB", "preco": 4590}, {"modelo": "iPhone 16", "cap": "128GB", "preco": 3850}, {"modelo": "iPhone 16", "cap": "256GB", "preco": 3990}, {"modelo": "iPhone 16e", "cap": "128GB", "preco": 2790}, {"modelo": "iPhone 16 Plus", "cap": "128GB", "preco": 4190}, {"modelo": "iPhone 16 Plus", "cap": "256GB", "preco": 4390}, {"modelo": "iPhone 16 Pro", "cap": "128GB", "preco": 4750}, {"modelo": "iPhone 16 Pro", "cap": "256GB", "preco": 5050}, {"modelo": "iPhone 16 Pro Max", "cap": "256GB", "preco": 5550}, {"modelo": "iPhone 16 Pro Max", "cap": "512GB", "preco": 5850}];
+// -- TABELA DE PRECOS ------------------------------------------------------
+// Fonte unica: public.tabela_precos no Supabase (espelha a planilha oficial).
+// Cada linha: {id, categoria, modelo, capacidade, cores, cor, condicao,
+//              preco_upgrade, preco_varejo, sujeito_disponibilidade, ativo}
+// `cores` e a lista informativa; `cor` so vem preenchida quando o preco
+// depende da cor (ex.: 17 Pro Lacrado). Antes havia 3 fontes concorrentes
+// (array fixo no codigo, cache local e a tabela) — agora e so esta.
+let _precos = [];
 
-// Cache editavel da tabela (comeca com os valores padrao, sobrescreve com Supabase)
-let _tabelaCache = JSON.parse(JSON.stringify(TABELA_PRECOS));
+function getTabelaPrecos(){ return _precos; }
 
-function getTabelaPrecos(){ return _tabelaCache || TABELA_PRECOS; }
+// Nome completo p/ casar com o titulo do estoque ("iPhone 13 Pro").
+function precoNomeCompleto(p){
+  const cat = (p.categoria||'').trim(), mod = (p.modelo||'').trim();
+  return _normPreco(mod).startsWith(_normPreco(cat)) ? mod : (cat+' '+mod).trim();
+}
 
 async function loadTabelaFromSB(){
   try {
-    const r = await fetch(SB_URL+'/rest/v1/tabela_precos?order=modelo.asc&limit=500', {
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN}
-    });
-    const data = await r.json();
-    if(Array.isArray(data) && data.length > 0){
-      // Garantir que o cache esta inicializado
-      if(!_tabelaCache) _tabelaCache = JSON.parse(JSON.stringify(TABELA_PRECOS));
-      // Sobrescrever o cache com os valores do banco
-      data.forEach(row => {
-        const idx = _tabelaCache.findIndex(p => p.modelo===row.modelo && p.cap===row.cap);
-        if(idx >= 0) _tabelaCache[idx].preco = row.preco;
-        else _tabelaCache.push({ modelo: row.modelo, cap: row.cap, preco: row.preco });
+    const rows = await sbGet('tabela_precos', 'ativo=is.true&order=categoria.asc,modelo.asc', 1000);
+    _precos = (rows||[]).map(p => {
+      const nome = precoNomeCompleto(p);
+      return Object.assign({}, p, {
+        preco_upgrade: p.preco_upgrade==null ? null : parseFloat(p.preco_upgrade),
+        preco_varejo:  p.preco_varejo ==null ? null : parseFloat(p.preco_varejo),
+        nome_completo: nome,
+        modelo_norm: _normPreco(nome),
+        cor_norm: p.cor ? _normPreco(p.cor) : null
       });
-      console.log('[tabela] Carregada do Supabase:', data.length, 'preços');
-    }
-  } catch(e){ console.error('[tabela] Erro ao carregar:', e); }
-}
-
-async function savePrecoTabela(modelo, cap, preco){
-  // Atualizar cache local
-  const idx = _tabelaCache.findIndex(p => p.modelo===modelo && p.cap===cap);
-  if(idx >= 0) _tabelaCache[idx].preco = preco;
-
-  // Salvar no Supabase
-  try {
-    const res = await fetch(SB_URL+'/rest/v1/tabela_precos', {
-      method: 'POST',
-      headers:{
-        'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,
-        'Content-Type':'application/json',
-        'Prefer':'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ modelo, cap, preco, updated_at: new Date().toISOString() })
     });
-    if(res.ok){
-      console.log('[tabela] Salvo:', modelo, cap, '→ R$'+preco);
-      // Re-renderizar a tabela
-      if(currentTab==='tabela') renderContent();
-    }
-  } catch(e){ console.error('[tabela] Erro ao salvar:', e); }
-}
-
-function editarPrecoTabela(modelo, cap, precoAtual, el){
-  // Criar input inline
-  const input = document.createElement('input');
-  input.type = 'number';
-  input.value = precoAtual;
-  input.style.cssText = 'width:80px;background:rgba(91,139,245,.15);border:1px solid var(--cart);border-radius:6px;color:var(--text);font-size:13px;font-weight:700;padding:4px 6px;text-align:center;outline:none';
-  
-  const parent = el.parentNode;
-  parent.replaceChild(input, el);
-  input.focus();
-  input.select();
-
-  function confirmar(){
-    const novo = parseInt(input.value);
-    if(novo > 0 && novo !== precoAtual){
-      savePrecoTabela(modelo, cap, novo);
-    } else {
-      if(currentTab==='tabela') renderContent();
-    }
+    _precosCache = _precos;              // usado por getPrecoVendaSync()
+    await carregarUltimaSync();
+    console.log('[tabela] '+_precos.length+' preços carregados');
+  } catch(e){
+    console.error('[tabela] erro ao carregar:', e);
+    _precos = []; _precosCache = [];
   }
-
-  input.addEventListener('blur', confirmar);
-  input.addEventListener('keydown', e => {
-    if(e.key === 'Enter') { input.blur(); }
-    if(e.key === 'Escape') { 
-      input.removeEventListener('blur', confirmar);
-      if(currentTab==='tabela') renderContent();
-    }
-  });
+  return _precos;
 }
 
-// Cache da tabela de precos (pode ser sobrescrito pelo Supabase)
+// A planilha do Google e a fonte oficial dos precos: o app so le, nunca edita.
+let _ultimaSyncPrecos = null;
 
-
-
-
-
-async function savePrecoBD(modelo, capacidade, preco_sn){
-  const id = (modelo + '_' + capacidade).toLowerCase().replace(/\s+/g,'_');
+async function carregarUltimaSync(){
   try {
-    const r = await fetch(SB_URL+'/rest/v1/tabela_precos', {
-      method: 'POST',
-      headers: {
-        'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_TOKEN,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({ id, modelo, capacidade, preco_sn, updated_at: new Date().toISOString() })
-    });
-    if(r.ok){
-      // Atualizar cache local
-      if(!_tabelaCache) _tabelaCache = [...TABELA_PRECOS];
-      const idx = _tabelaCache.findIndex(p => p.modelo === modelo && p.cap === capacidade);
-      if(idx >= 0) _tabelaCache[idx].preco = preco_sn;
-      console.log('[tabela] salvo:', modelo, capacidade, preco_sn);
-      return true;
-    }
-  } catch(e){ console.error('[tabela] erro save:', e); }
-  return false;
+    const r = await sbGet('sync_log', 'tabela=eq.tabela_precos', 1);
+    _ultimaSyncPrecos = (r && r[0]) || null;
+  } catch(e){ _ultimaSyncPrecos = null; }
+  return _ultimaSyncPrecos;
 }
 
-// Lookup de preco de tabela por titulo do produto
-function getPrecoTabela(titulo) {
-  if(!titulo) return null;
-  const t = titulo.toLowerCase().replace(/seminovo|lacrado|sn|lac/gi,'').trim();
-  
-  // Extrair capacidade
-  const capMatch = t.match(/(\d+)\s*gb/i);
-  if(!capMatch) return null;
-  const cap = capMatch[1] + 'GB';
-  
-  // Extrair modelo -- normalizar titulo
-  let modelo = titulo
-    .replace(/\s*\d+GB.*$/i,'')    // remover capacidade em diante
-    .replace(/Seminovo|Lacrado|SN|LAC/gi,'')
-    .replace(/\s+/g,' ').trim();
-  
-  // Normalizar variacoes de escrita
-  modelo = modelo.replace(/Iphone/i,'iPhone');
-  if(!/^iPhone/i.test(modelo)) modelo = 'iPhone ' + modelo;
-  
-  // Buscar na tabela
-  const entry = getTabelaPrecos().find(p => {
-    const pCap = p.cap.toLowerCase();
-    const pMod = p.modelo.toLowerCase();
-    const mLow = modelo.toLowerCase();
-    const capLow = cap.toLowerCase();
-    return pMod === mLow && pCap === capLow;
-  });
-  return entry ? entry.preco : null;
+function textoUltimaSync(){
+  if(!_ultimaSyncPrecos || !_ultimaSyncPrecos.last_sync) return 'nunca sincronizado';
+  const d = new Date(_ultimaSyncPrecos.last_sync);
+  const txt = d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  return _ultimaSyncPrecos.status==='erro'
+    ? 'falhou em '+txt
+    : 'atualizado em '+txt;
+}
+
+// Dispara a Edge Function que le a planilha oficial e aplica sobre a tabela.
+async function sincronizarPrecos(){
+  const btn = document.getElementById('btn-sync-precos');
+  if(btn){ btn.disabled = true; btn.textContent = 'Atualizando…'; }
+  try {
+    const token = await sbAuthToken();
+    const r = await fetch(SB_URL+'/functions/v1/sync-precos', {
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'}
+    });
+    const out = await r.json().catch(()=>({}));
+    if(r.status===401){ sessaoExpirou(); return; }
+    if(!r.ok || out.ok===false) throw new Error(out.error || ('HTTP '+r.status));
+    _precosCache = null;
+    await loadTabelaFromSB();
+    await carregarUltimaSync();
+    if(currentTab==='tabela') renderContent();
+    alert(`Preços atualizados da planilha.\n\n${out.total} linhas · ${out.novos} nova(s) · ${out.desativados} removida(s)`);
+  } catch(e){
+    alert('Não foi possível atualizar da planilha:\n\n'+e.message);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '↻ Atualizar da planilha'; }
+  }
+}
+
+// Preco de varejo a partir do titulo do item de estoque (usado no cruzamento).
+function getPrecoTabela(titulo){
+  const r = getPrecoVenda({ titulo }, _precos);
+  return r && r.varejo != null ? r.varejo : null;
 }
 
 function getPeriodoLabel(){
