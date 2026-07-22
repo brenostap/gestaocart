@@ -208,59 +208,40 @@ function renderDash(){
     </div>` : '';
 
   // -- KPIs linha 1 -----------------------------------------
-  const kpi1=`
-    <div class="metric-grid" style="margin-bottom:10px">
-      <div class="metric">
-        <div class="metric-label">Produtos vendidos</div>
-        <div class="metric-value" style="color:var(--cart);font-size:30px">${m.unPrincipal.toLocaleString('pt-BR')}</div>
-        <div class="metric-sub">${m.cnt} pedidos · ticket ${brl(ticket)}</div>
+  // Cabecalho da pagina
+  const cabecalho = `
+    <div class="pg-head">
+      <div>
+        <div class="pg-kicker">Visão geral</div>
+        <h1 class="pg-title">Dashboard</h1>
+        <div class="pg-desc">Resultado do período, metas da equipe e comparativo entre as lojas.</div>
       </div>
-      <div class="metric">
-        <div class="metric-label">Venda bruta</div>
-        <div class="metric-value">${brl(m.bruto)}</div>
-        <div class="metric-sub">${mg}% margem bruta</div>
-      </div>
-      <div class="metric">
-        <div class="metric-label">Lucro bruto</div>
-        <div class="metric-value" style="color:var(--green)">${brl(m.lucro)}</div>
-        <div class="metric-sub">após custo mercadoria</div>
-      </div>
-      <div class="metric" style="border:1px solid ${liqReal>0?'rgba(48,209,88,.2)':'rgba(255,69,58,.2)'}">
-        <div class="metric-label">Lucro líquido</div>
-        <div class="metric-value" style="color:${liqReal>0?'var(--green)':'var(--red)'}">${brl(liqReal)}</div>
-        <div class="metric-sub" style="display:flex;justify-content:space-between">
-          <span>após comissões${custosMes>0?' + custos':''}</span>
-          ${custosMes>0?`<span style="color:var(--red);font-size:10px">custo: ${brl(custosMes)}</span>`:''}
-        </div>
-      </div>
+      <div class="pg-acoes">${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}</div>
     </div>`;
+
+  const listaKpi = [
+    { rotulo:'Produtos vendidos', valor: m.unPrincipal.toLocaleString('pt-BR'), tom:'marca',
+      sub: `${m.cnt} pedidos · ticket ${money(ticket)}` },
+  ];
+  if(podeVerDinheiro()){
+    listaKpi.push(
+      { rotulo:'Venda bruta', valor: money(m.bruto), sub: mg + '% margem bruta' },
+      { rotulo:'Lucro bruto', valor: money(m.lucro), tom:'ok', sub:'após custo da mercadoria' },
+      { rotulo:'Lucro líquido', valor: money(liqReal), tom: liqReal > 0 ? 'ok' : 'critico',
+        sub: 'após comissões' + (custosMes > 0 ? ' e custos de ' + money(custosMes) : '') });
+  }
+  const kpi1 = UI.kpis(listaKpi);
 
   // -- Acessorios -- area destacada --------------------------
   const mgAcess=m.vendaAcess>0?Math.round(m.lAcess/m.vendaAcess*100):0;
-  const kpi2=`
-    <div style="background:rgba(91,139,245,.04);border:1px solid rgba(91,139,245,.15);border-radius:14px;padding:14px 18px;margin-bottom:14px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cart),transparent)"></div>
-      <div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">🎧 Acessórios</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Venda bruta</div>
-          <div style="font-size:22px;font-weight:700">${brl(m.vendaAcess)}</div>
-          <div style="font-size:11px;color:var(--text3)">${m.acCnt} itens vendidos</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Lucro</div>
-          <div style="font-size:22px;font-weight:700;color:var(--green)">${brl(m.lAcess)}</div>
-          <div style="font-size:11px;color:var(--text3)">${mgAcess}% margem · base comissão</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Custo lançado</div>
-          <div style="font-size:22px;font-weight:700;color:${custosMes>0?'var(--red)':'var(--text4)'}">${custosMes>0?'− '+brl(custosMes):'—'}</div>
-          <div style="font-size:11px;color:var(--text3)">${custosMes>0?'ver aba Custos':'nenhum custo lançado'}</div>
-        </div>
-      </div>
-    </div>`;
+  const kpi2 = UI.card({ titulo:'Acessórios', corpo: `
+    <div class="dash-mini">
+      <div><i class="det-rot">Venda bruta</i><b>${money(m.vendaAcess)}</b><span>${m.acCnt} itens vendidos</span></div>
+      <div><i class="det-rot">Lucro</i><b class="ok">${money(m.lAcess)}</b><span>${mgAcess}% margem · base da comissão</span></div>
+      <div><i class="det-rot">Custo lançado</i><b>${custosMes > 0 ? money(custosMes) : '—'}</b><span>${custosMes > 0 ? 'no período' : 'nenhum custo lançado'}</span></div>
+    </div>` });
 
-  // -- Metas coletivas --------------------------------------
+  // -- Metas: os limites e o progresso ate a proxima faixa -------------------
   const totalProdutos=m.unPrincipal;
   const metasProdutos=[{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}];
   const metasAcess=[{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}];
@@ -565,7 +546,7 @@ function renderDash(){
       }).join('')}
     </div>`:''
 
-  return filtersHTML+pendentesHTML+incompletasHTML+semDeviceHTML+kpi1+kpi2+metasHTML+vendedoresHTML+resultHTML+lojaHTML+alertasHTML+ultimasHTML+movsHTML;
+  return cabecalho+pendentesHTML+incompletasHTML+semDeviceHTML+kpi1+kpi2+metasHTML+vendedoresHTML+resultHTML+lojaHTML+alertasHTML+ultimasHTML+movsHTML;
 }
 
 function renderVendas(){
