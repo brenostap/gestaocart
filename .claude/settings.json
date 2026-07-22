@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Browser__navigate",
+      "mcp__Claude_Browser__javascript_tool",
+      "mcp__Claude_Browser__computer",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__resize_window",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__Claude_Browser__tabs_select",
+      "mcp__Claude_Browser__tabs_create",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__form_input",
+      "mcp__Claude_Browser__preview_start",
+      "mcp__Claude_Browser__preview_stop",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__Claude_Browser__preview_list",
+
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_projects",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_tables",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_extensions",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_migrations",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_edge_functions",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_edge_function",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_logs",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_advisors",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_project",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_project_url",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__get_organization",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__list_organizations",
+      "mcp__de85c549-973e-4726-92c0-3920984dee12__search_docs",
+
+      "mcp__800de47f-9f8d-4276-a4d8-b055699fd376__netlify-project-services-reader",
+      "mcp__800de47f-9f8d-4276-a4d8-b055699fd376__netlify-deploy-services-reader",
+      "mcp__800de47f-9f8d-4276-a4d8-b055699fd376__netlify-user-services-reader",
+      "mcp__800de47f-9f8d-4276-a4d8-b055699fd376__netlify-extension-services-reader",
+      "mcp__800de47f-9f8d-4276-a4d8-b055699fd376__netlify-team-services-reader",
+
+      "Bash(python3 -m http.server *)",
+      "Bash(pkill -f http.server*)",
+      "Bash(curl -sI *)",
+      "Bash(curl -s -o /dev/null *)"
+    ]
+  }
+}

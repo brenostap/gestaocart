@@ -600,6 +600,9 @@ function renderVendas(){
       atendente:atendente||'—',
       isSocio:vendedor?['gustavo','marcella'].includes(vendedor.toLowerCase()):false,
       valor:parseFloat(venda.valor_total||0),
+      custo:parseFloat(venda.custo_total ?? (parseFloat(venda.valor_total||0)-parseFloat(venda.lucro||0))),
+      qtd:principais.length+acesss.length,
+      telefone:venda.cliente?.telefone||venda.cliente_tel||'',
       acessBruto,
       acessLucro,
       acessResumo,
@@ -661,7 +664,10 @@ function renderVendas(){
         <h1 class="pg-title">Vendas</h1>
         <div class="pg-desc">Pedidos do período, com os aparelhos e acessórios de cada venda.</div>
       </div>
-      <div class="pg-acoes">${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}</div>
+      <div class="pg-acoes">
+        ${UI.btn('Resumo do dia', {onclick:'resumoDoDia()'})}
+        ${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}
+      </div>
     </div>`;
 
   // -- KPIs (dinheiro so para quem pode ver) ------------------------------
@@ -728,7 +734,7 @@ function renderVendas(){
 
   // -- Tabela com expansao ------------------------------------------------
   _vendasVisiveis = rows;
-  const COLS = podeVerDinheiro() ? 8 : 6;
+  const COLS = podeVerDinheiro() ? 10 : 7;
 
   const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
   const th = (col, texto, num) =>
@@ -743,7 +749,9 @@ function renderVendas(){
       <td>${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
       <td>${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
       <td>${escapeHtml(capNome(r.atendente))}</td>
-      ${podeVerDinheiro() ? `<td class="num forte">${money(r.valor)}</td>
+      <td class="num"><span class="est-imei">${r.qtd}</span></td>
+      ${podeVerDinheiro() ? `<td class="num">${money(r.custo)}</td>
+      <td class="num forte">${money(r.valor)}</td>
       <td class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
     </tr>`;
 
@@ -762,6 +770,11 @@ function renderVendas(){
           ${podeVerDinheiro() ? `<div><i class="det-rot">Acessórios · bruto</i>${money(r.acessBruto)}</div>
           <div><i class="det-rot">Acessórios · lucro</i>${money(r.acessLucro)}</div>` : ''}
           <div><i class="det-rot">Cliente</i>${escapeHtml(r.cliente)}</div>
+          ${r.telefone ? `<div><i class="det-rot">Telefone</i>
+            <a class="est-link" href="https://wa.me/55${String(r.telefone).replace(/\D/g,'')}" target="_blank" rel="noopener"
+               onclick="event.stopPropagation()">${escapeHtml(r.telefone)} →</a></div>` : ''}
+          <div><i class="det-rot">Compartilhar</i>${UI.btn('Resumo da venda', {sm:true,
+            onclick:`event.stopPropagation();compartilharVenda(${r.id})`})}</div>
         </div></td></tr>`;
     }
     return linha;
@@ -772,8 +785,8 @@ function renderVendas(){
         corpo:`<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
           <thead><tr>
             ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
-            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}
-            ${podeVerDinheiro() ? th('valor','Valor',true) + th('lucro','Lucro',true) : ''}
+            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}${th('qtd','Qtd',true)}
+            ${podeVerDinheiro() ? th('custo','Custo',true) + th('valor','Valor',true) + th('lucro','Lucro',true) : ''}
           </tr></thead><tbody>${corpo}</tbody></table></div>` })
     : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
@@ -810,3 +823,78 @@ function filterVendas(tipo,val){
 }
 
 
+
+// ── TEXTOS COMPARTILHAVEIS DAS VENDAS ────────────────────────────────────
+const brlTxt = n => 'R$ ' + Number(n||0).toLocaleString('pt-BR');
+const dataTxt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+
+// Resumo de UMA venda — pensado para mandar ao cliente, entao nao leva
+// custo nem lucro, mesmo quando quem gera e socio.
+function compartilharVenda(id){
+  const r = _vendasVisiveis.find(x => x.id === id);
+  if(!r) return;
+
+  let txt = `*Venda #${r.id}* · ${dataTxt(r.data)}\n\n`;
+  txt += `Cliente: ${r.cliente}\n`;
+  if(r.telefone) txt += `Telefone: ${r.telefone}\n`;
+
+  if(r.produtosLista.length){
+    txt += `\n*Aparelhos*\n`;
+    r.produtosLista.forEach(p => { txt += `${p.titulo}${p.etiqueta && p.etiqueta!=='—' ? ` · ${p.etiqueta}` : ''}\n`; });
+  }
+  if(r.acessResumo.length){
+    txt += `\n*Acessórios*\n`;
+    r.acessResumo.forEach(a => { txt += `${a.titulo} · ${brlTxt(a.preco)}\n`; });
+  }
+  txt += `\n*Total: ${brlTxt(r.valor)}*\n`;
+  const quem = [r.vendedor, r.atendente].filter(x => x && x !== '—');
+  if(quem.length) txt += `\nAtendimento: ${quem.join(' · ')}`;
+
+  abrirWaModalDireto(txt, `Venda #${r.id}`);
+}
+
+// Resumo do dia — uso interno da equipe, entao leva lucro quando o papel permite.
+function resumoDoDia(){
+  const hoje = brtNow();
+  const doDia = allVendas.filter(v =>
+    v.status === 'completed' && v.data_saida && brtSameDay(toBRT(v.data_saida), hoje));
+
+  if(!doDia.length){ abrirWaModalDireto('_Nenhuma venda registrada hoje._', 'Resumo do dia'); return; }
+
+  let aparelhos = 0, acessorios = 0, bruto = 0, lucro = 0;
+  const porVendedor = {}, porAtendente = {};
+
+  doDia.forEach(v => {
+    const { vendedor, atendente } = getVendaInfo(v);
+    const itens = v._produtos || [];
+    const princ = itens.filter(isPrincipal).length;
+    const acess = itens.filter(p => !isPrincipal(p));
+    aparelhos += princ;
+    acessorios += acess.length;
+    bruto += parseFloat(v.valor_total || 0);
+    lucro += parseFloat(v.lucro || 0);
+    if(vendedor) porVendedor[vendedor] = (porVendedor[vendedor] || 0) + princ;
+    if(atendente) porAtendente[atendente] = (porAtendente[atendente] || 0)
+      + acess.reduce((a,p) => a + parseFloat(p.preco || 0), 0);
+  });
+
+  const cap = n => n.charAt(0).toUpperCase() + n.slice(1);
+  let txt = `*Resumo do dia* · ${hoje.toLocaleDateString('pt-BR')}\n\n`;
+  txt += `${doDia.length} venda${doDia.length>1?'s':''} · ${aparelhos} aparelho${aparelhos!==1?'s':''} · ${acessorios} acessório${acessorios!==1?'s':''}\n`;
+  if(podeVerDinheiro()){
+    txt += `Bruto: ${brlTxt(bruto)}\n`;
+    txt += `Lucro: ${brlTxt(lucro)}${bruto ? ` (margem ${Math.round(lucro/bruto*100)}%)` : ''}\n`;
+  }
+
+  const vend = Object.entries(porVendedor).sort((a,b) => b[1]-a[1]);
+  if(vend.length){
+    txt += `\n*Vendedores*\n`;
+    vend.forEach(([n,q]) => { txt += `${cap(n)} · ${q} aparelho${q!==1?'s':''}\n`; });
+  }
+  const aten = Object.entries(porAtendente).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  if(aten.length){
+    txt += `\n*Atendentes* (acessórios)\n`;
+    aten.forEach(([n,v]) => { txt += `${cap(n)} · ${brlTxt(v)}\n`; });
+  }
+  abrirWaModalDireto(txt, 'Resumo do dia');
+}
