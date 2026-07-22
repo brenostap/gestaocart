@@ -588,8 +588,9 @@ function renderVendas(){
     const detalharItem = p => {
       const valor = parseFloat(p.preco||0), custo = parseFloat(p.valor_estoque||0);
       return { titulo:p.titulo||p.produto?.titulo||'—',
-               etiqueta:p.serial||p.apple?.serial||'—',
-               imei:p.imei_1||'', valor, custo, lucro: valor - custo };
+               etiqueta:p.serial||p.apple?.serial||'',
+               imei:p.imei_1||'', appleId:p.apple_id||null,
+               valor, custo, lucro: valor - custo };
     };
     const produtosLista=principais.map(detalharItem);
     const acessLista=acesss.map(detalharItem);
@@ -763,25 +764,30 @@ function renderVendas(){
     </tr>`;
 
     if(aberto){
-      const linhaItem = i => `<tr>
-        <td>${escapeHtml(nomeCurtoProduto(i.titulo))}</td>
-        <td>${i.etiqueta && i.etiqueta!=='—' ? `<span class="est-tag">${escapeHtml(i.etiqueta)}</span>` : '—'}</td>
+      const linhaItem = (i, comAparelho) => `<tr>
+        <td>
+          <span class="forte">${escapeHtml(nomeCurtoProduto(i.titulo))}</span>
+          ${i.etiqueta ? `<span class="est-tag" style="margin-left:6px">${escapeHtml(i.etiqueta)}</span>` : ''}
+        </td>
+        ${comAparelho ? `<td><span class="est-imei">${escapeHtml(i.imei || '—')}</span></td>
+        <td>${origemItemTxt(i.appleId)}</td>` : ''}
         ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>` : ''}
         <td class="num forte">${money(i.valor)}</td>
         ${podeVerDinheiro() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
       </tr>`;
 
-      const bloco = (titulo, itens, total) => !itens.length ? '' : `
+      const bloco = (titulo, itens, comAparelho) => !itens.length ? '' : `
         <div class="v-bloco">
           <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
           <table class="c-tabela v-itens">
             <thead><tr>
-              <th>Produto</th><th>Etiqueta</th>
+              <th>Produto</th>
+              ${comAparelho ? '<th>IMEI</th><th>Origem</th>' : ''}
               ${podeVerDinheiro() ? '<th class="num">Custo</th>' : ''}
               <th class="num">Valor</th>
               ${podeVerDinheiro() ? '<th class="num">Lucro</th>' : ''}
             </tr></thead>
-            <tbody>${itens.map(linhaItem).join('')}</tbody>
+            <tbody>${itens.map(i => linhaItem(i, comAparelho)).join('')}</tbody>
           </table>
         </div>`;
 
@@ -801,8 +807,8 @@ function renderVendas(){
             ${UI.btn('Resumo da venda', {sm:true, onclick:`event.stopPropagation();compartilharVenda(${r.id})`})}
           </div>
         </div>
-        ${bloco('Aparelhos', r.itens.principais)}
-        ${bloco('Acessórios', r.itens.acessorios)}
+        ${bloco('Aparelhos', r.itens.principais, true)}
+        ${bloco('Acessórios', r.itens.acessorios, false)}
       </td></tr>`;
     }
     return linha;
@@ -827,8 +833,40 @@ let _vendasVisiveis = [];
 let vendasAbertas = new Set();
 
 function alternarLinhaVenda(id){
-  if(vendasAbertas.has(id)) vendasAbertas.delete(id); else vendasAbertas.add(id);
+  if(vendasAbertas.has(id)) vendasAbertas.delete(id);
+  else {
+    vendasAbertas.add(id);
+    const r = _vendasVisiveis.find(x => x.id === id);
+    const ids = (r?.itens?.principais || []).map(i => i.appleId).filter(Boolean);
+    if(ids.length) buscarOrigemItens(ids).then(() => { if(currentTab==='vendas') renderContent(); });
+  }
   if(currentTab==='vendas') renderContent();
+}
+
+// De onde o aparelho veio. Diferente do Estoque, aqui olhamos so em compras:
+// procurar em vendas devolveria a propria venda que estamos abrindo.
+let _origemItem = {};
+
+async function buscarOrigemItens(ids){
+  const faltam = [...new Set(ids)].filter(id => _origemItem[id] === undefined);
+  if(!faltam.length) return;
+  faltam.forEach(id => { _origemItem[id] = 'buscando'; });
+  try {
+    const linhas = await sbGet('compra_produtos',
+      `apple_id=in.(${faltam.join(',')})&select=apple_id,compras(fornecedor_nome,data_entrada)`, 500);
+    faltam.forEach(id => { _origemItem[id] = null; });
+    (linhas||[]).forEach(l => {
+      _origemItem[l.apple_id] = { fornecedor: l.compras?.fornecedor_nome || null,
+                                  data: l.compras?.data_entrada || null };
+    });
+  } catch(e){ console.warn('[origem item]', e); faltam.forEach(id => { _origemItem[id] = null; }); }
+}
+
+function origemItemTxt(appleId){
+  const o = appleId ? _origemItem[appleId] : undefined;
+  if(o === 'buscando') return '<span class="est-sempreco">buscando…</span>';
+  if(!o || !o.fornecedor) return '<span class="est-sempreco">—</span>';
+  return escapeHtml(o.fornecedor);
 }
 
 function sortVendas(col){
