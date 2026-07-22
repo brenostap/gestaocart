@@ -20,7 +20,9 @@ function pararTokenKeepAlive(){
 }
 
 async function doLogin(){
-  const email=document.getElementById('login-email').value.trim();
+  // celular costuma capitalizar a primeira letra e o teclado insere espaco no
+  // fim; normalizamos antes de enviar
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
   const password=document.getElementById('login-password').value;
   if(!email||!password){document.getElementById('login-error').textContent='Informe e-mail e senha.';return;}
   const btn=document.getElementById('login-btn');
@@ -33,7 +35,11 @@ async function doLogin(){
     enterApp();
     await loadAllData();
   }catch(e){
-    document.getElementById('login-error').textContent='E-mail ou senha inválidos.';
+    const msg = String(e?.message||'');
+    document.getElementById('login-error').textContent =
+      /Email not confirmed/i.test(msg) ? 'E-mail ainda não confirmado. Fale com o Breno.'
+      : /rate limit|too many/i.test(msg) ? 'Muitas tentativas. Aguarde um minuto e tente de novo.'
+      : 'E-mail ou senha inválidos.';
     btn.disabled=false;btn.textContent='Entrar';
   }
 }

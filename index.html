@@ -22,7 +22,8 @@
     <img class="login-logo-img" src="img/phonecart-full.png" alt="Phone Cart">
     <div class="login-sub">Dashboard interno — acesso restrito</div>
     <div class="login-label">E-mail</div>
-    <input class="login-input" type="email" id="login-email" placeholder="voce@exemplo.com" autocomplete="username">
+    <input class="login-input" type="email" id="login-email" placeholder="voce@exemplo.com" autocomplete="username"
+           autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email">
     <div class="login-label" style="margin-top:10px">Senha</div>
     <input class="login-input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="login-btn" id="login-btn" onclick="doLogin()">Entrar</button>
