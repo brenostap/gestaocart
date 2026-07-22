@@ -771,25 +771,32 @@ function renderVendas(){
         </td>
         ${comAparelho ? `<td><span class="est-imei">${escapeHtml(i.imei || '—')}</span></td>
         <td>${origemItemTxt(i.appleId, r.data)}</td>` : ''}
-        ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>` : ''}
+        ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>
         <td class="num forte">${money(i.valor)}</td>
-        ${podeVerDinheiro() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
+        <td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
       </tr>`;
 
-      const bloco = (titulo, itens, comAparelho) => !itens.length ? '' : `
+      const bloco = (titulo, itens, comAparelho) => {
+        if(!itens.length) return '';
+        if(!comAparelho && !podeVerDinheiro()){
+          return `<div class="v-bloco">
+            <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
+            <div class="v-item">${itens.map(i => escapeHtml(nomeCurtoProduto(i.titulo))).join(' · ')}</div>
+          </div>`;
+        }
+        return `
         <div class="v-bloco">
           <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
           <table class="c-tabela v-itens">
             <thead><tr>
               <th>Produto</th>
               ${comAparelho ? '<th>IMEI</th><th>Origem</th>' : ''}
-              ${podeVerDinheiro() ? '<th class="num">Custo</th>' : ''}
-              <th class="num">Valor</th>
-              ${podeVerDinheiro() ? '<th class="num">Lucro</th>' : ''}
+              ${podeVerDinheiro() ? '<th class="num">Custo</th><th class="num">Valor</th><th class="num">Lucro</th>' : ''}
             </tr></thead>
             <tbody>${itens.map(i => linhaItem(i, comAparelho)).join('')}</tbody>
           </table>
         </div>`;
+      };
 
       linha += `<tr class="est-detalhe"><td colspan="${COLS}">
         <div class="v-cliente">
