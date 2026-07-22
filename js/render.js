@@ -770,7 +770,7 @@ function renderVendas(){
           ${i.etiqueta ? `<span class="est-tag" style="margin-left:6px">${escapeHtml(i.etiqueta)}</span>` : ''}
         </td>
         ${comAparelho ? `<td><span class="est-imei">${escapeHtml(i.imei || '—')}</span></td>
-        <td>${origemItemTxt(i.appleId)}</td>` : ''}
+        <td>${origemItemTxt(i.appleId, r.data)}</td>` : ''}
         ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>` : ''}
         <td class="num forte">${money(i.valor)}</td>
         ${podeVerDinheiro() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
@@ -791,16 +791,12 @@ function renderVendas(){
           </table>
         </div>`;
 
-      const tel = r.telefone ? String(r.telefone).replace(/\D/g,'') : '';
       linha += `<tr class="est-detalhe"><td colspan="${COLS}">
         <div class="v-cliente">
           <div>
-            <i class="det-rot">Cliente</i>
             <div class="v-cliente-nome">${escapeHtml(r.cliente)}</div>
             <div class="v-cliente-meta">
-              ${r.telefone ? `<a class="est-link" href="https://wa.me/55${tel}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(r.telefone)} →</a>` : '<span class="est-sempreco">sem telefone</span>'}
-              · ${escapeHtml(cap1(r.vendedor))} / ${escapeHtml(cap1(r.atendente))}
-              · ${dataTxt(r.data)}
+              ${r.telefone ? escapeHtml(r.telefone) : '<span class="est-sempreco">sem telefone</span>'}
             </div>
           </div>
           <div class="v-cliente-acoes">
@@ -862,11 +858,25 @@ async function buscarOrigemItens(ids){
   } catch(e){ console.warn('[origem item]', e); faltam.forEach(id => { _origemItem[id] = null; }); }
 }
 
-function origemItemTxt(appleId){
+// Alem do fornecedor, mostra a data de entrada e quantos dias o aparelho ficou
+// parado ate ser vendido — as duas datas ja vinham na mesma busca.
+function origemItemTxt(appleId, dataVenda){
   const o = appleId ? _origemItem[appleId] : undefined;
   if(o === 'buscando') return '<span class="est-sempreco">buscando…</span>';
   if(!o || !o.fornecedor) return '<span class="est-sempreco">—</span>';
-  return escapeHtml(o.fornecedor);
+
+  let extra = '';
+  if(o.data){
+    // "2026-05-20" seria lido como meia-noite UTC e o fuso -3 jogaria para o dia
+    // anterior; fixar meio-dia evita a virada de data
+    const entrada = new Date(/^\d{4}-\d{2}-\d{2}$/.test(o.data) ? o.data + 'T12:00:00' : o.data);
+    extra = ` · ${entrada.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`;
+    if(dataVenda){
+      const dias = Math.round((new Date(dataVenda) - entrada) / 86400000);
+      if(dias >= 0) extra += ` · <span class="v-dias" data-tom="${dias>60?'alerta':''}">${dias}d parado</span>`;
+    }
+  }
+  return escapeHtml(o.fornecedor) + extra;
 }
 
 function sortVendas(col){
