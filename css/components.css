@@ -290,3 +290,20 @@
 .dash-mini b.ok{ color:var(--success); }
 .dash-mini b.critico{ color:var(--danger); }
 .dash-mini span{ font-size:11.5px; color:var(--text3); }
+
+/* detalhe da venda: cliente em bloco + itens com margem individual */
+.v-cliente{ display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap;
+            padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid var(--border); }
+.v-cliente > div:first-child{ flex:1; min-width:0; }
+.v-cliente-nome{ font-size:15px; font-weight:700; color:var(--text); margin:2px 0 3px; }
+.v-cliente-meta{ font-size:12px; color:var(--text3); display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.v-cliente-acoes{ margin-left:auto; }
+.v-bloco + .v-bloco{ margin-top:14px; }
+.v-bloco-tit{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase;
+              letter-spacing:.08em; color:var(--text4); margin-bottom:5px; }
+.v-bloco-tit span{ background:var(--bg4); padding:1px 5px; border-radius:4px; margin-left:3px; }
+table.v-itens{ font-size:12.5px; background:var(--bg2); border:1px solid var(--border);
+               border-radius:var(--radius-sm); overflow:hidden; }
+table.v-itens th{ background:var(--bg4); padding:6px 10px; }
+table.v-itens td{ padding:7px 10px; }
+table.v-itens tbody tr:hover td{ background:var(--bg3); }

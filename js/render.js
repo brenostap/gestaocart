@@ -583,10 +583,16 @@ function renderVendas(){
     const acessLucro=acesss.reduce((a,m)=>a+parseFloat(m.preco||0)-parseFloat(m.valor_estoque||0),0);
     const acessResumo=acesss.map(m=>({titulo:m.titulo||m.produto?.titulo||'Acessório',preco:parseFloat(m.preco||0)}));
     // Todos os produtos principais com titulo e etiqueta
-    const produtosLista=principais.map(p=>({
-      titulo:p.titulo||p.produto?.titulo||'—',
-      etiqueta:p.serial||p.apple?.serial||'—',
-    }));
+    // cada item carrega o proprio valor, custo e lucro — o dado existe em
+    // 100% das linhas de venda_produtos e nunca havia sido exposto
+    const detalharItem = p => {
+      const valor = parseFloat(p.preco||0), custo = parseFloat(p.valor_estoque||0);
+      return { titulo:p.titulo||p.produto?.titulo||'—',
+               etiqueta:p.serial||p.apple?.serial||'—',
+               imei:p.imei_1||'', valor, custo, lucro: valor - custo };
+    };
+    const produtosLista=principais.map(detalharItem);
+    const acessLista=acesss.map(detalharItem);
     const principal=produtosLista[0]||{titulo:'—',etiqueta:'—'};
     return{
       id:venda.id,
@@ -595,6 +601,7 @@ function renderVendas(){
       produto:principal.titulo,
       etiqueta:principal.etiqueta,
       produtosLista,
+      itens:{principais:produtosLista, acessorios:acessLista},
       loja:loja||'—',
       vendedor:vendedor||'—',
       atendente:atendente||'—',
@@ -756,26 +763,47 @@ function renderVendas(){
     </tr>`;
 
     if(aberto){
-      const prods = r.produtosLista.length
-        ? r.produtosLista.map(p => `<div class="v-item"><span class="est-tag">${escapeHtml(p.etiqueta)}</span> ${escapeHtml(shortProd(p.titulo))}</div>`).join('')
-        : '<div class="v-item est-sempreco">nenhum aparelho nesta venda</div>';
-      const acess = r.acessResumo.length
-        ? r.acessResumo.map(a => `<div class="v-item">${escapeHtml(a.titulo)}${podeVerDinheiro()?` · ${money(a.preco)}`:''}</div>`).join('')
-        : '<div class="v-item est-sempreco">sem acessórios</div>';
+      const linhaItem = i => `<tr>
+        <td>${escapeHtml(nomeCurtoProduto(i.titulo))}</td>
+        <td>${i.etiqueta && i.etiqueta!=='—' ? `<span class="est-tag">${escapeHtml(i.etiqueta)}</span>` : '—'}</td>
+        ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>` : ''}
+        <td class="num forte">${money(i.valor)}</td>
+        ${podeVerDinheiro() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
+      </tr>`;
 
+      const bloco = (titulo, itens, total) => !itens.length ? '' : `
+        <div class="v-bloco">
+          <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
+          <table class="c-tabela v-itens">
+            <thead><tr>
+              <th>Produto</th><th>Etiqueta</th>
+              ${podeVerDinheiro() ? '<th class="num">Custo</th>' : ''}
+              <th class="num">Valor</th>
+              ${podeVerDinheiro() ? '<th class="num">Lucro</th>' : ''}
+            </tr></thead>
+            <tbody>${itens.map(linhaItem).join('')}</tbody>
+          </table>
+        </div>`;
+
+      const tel = r.telefone ? String(r.telefone).replace(/\D/g,'') : '';
       linha += `<tr class="est-detalhe"><td colspan="${COLS}">
-        <div class="est-det-campos">
-          <div><i class="det-rot">Aparelhos (${r.nPrincipais})</i>${prods}</div>
-          <div><i class="det-rot">Acessórios (${r.nAcess})</i>${acess}</div>
-          ${podeVerDinheiro() ? `<div><i class="det-rot">Acessórios · bruto</i>${money(r.acessBruto)}</div>
-          <div><i class="det-rot">Acessórios · lucro</i>${money(r.acessLucro)}</div>` : ''}
-          <div><i class="det-rot">Cliente</i>${escapeHtml(r.cliente)}</div>
-          ${r.telefone ? `<div><i class="det-rot">Telefone</i>
-            <a class="est-link" href="https://wa.me/55${String(r.telefone).replace(/\D/g,'')}" target="_blank" rel="noopener"
-               onclick="event.stopPropagation()">${escapeHtml(r.telefone)} →</a></div>` : ''}
-          <div><i class="det-rot">Compartilhar</i>${UI.btn('Resumo da venda', {sm:true,
-            onclick:`event.stopPropagation();compartilharVenda(${r.id})`})}</div>
-        </div></td></tr>`;
+        <div class="v-cliente">
+          <div>
+            <i class="det-rot">Cliente</i>
+            <div class="v-cliente-nome">${escapeHtml(r.cliente)}</div>
+            <div class="v-cliente-meta">
+              ${r.telefone ? `<a class="est-link" href="https://wa.me/55${tel}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(r.telefone)} →</a>` : '<span class="est-sempreco">sem telefone</span>'}
+              · ${escapeHtml(cap1(r.vendedor))} / ${escapeHtml(cap1(r.atendente))}
+              · ${dataTxt(r.data)}
+            </div>
+          </div>
+          <div class="v-cliente-acoes">
+            ${UI.btn('Resumo da venda', {sm:true, onclick:`event.stopPropagation();compartilharVenda(${r.id})`})}
+          </div>
+        </div>
+        ${bloco('Aparelhos', r.itens.principais)}
+        ${bloco('Acessórios', r.itens.acessorios)}
+      </td></tr>`;
     }
     return linha;
   }).join('');
@@ -827,33 +855,38 @@ function filterVendas(tipo,val){
 // ── TEXTOS COMPARTILHAVEIS DAS VENDAS ────────────────────────────────────
 const brlTxt = n => 'R$ ' + Number(n||0).toLocaleString('pt-BR');
 const dataTxt = d => d ? new Date(d).toLocaleDateString('pt-BR') : '';
+const nomeCurtoProduto = t => String(t||'')
+  .replace(/^iPhone\s+/i,'').replace(/\s*(seminovo|lacrado)\s*$/i,'').trim();
 
-// Resumo de UMA venda — pensado para mandar ao cliente, entao nao leva
-// custo nem lucro, mesmo quando quem gera e socio.
+// Resumo de UMA venda — vai para o cliente, entao nao leva custo nem lucro,
+// mesmo quando quem gera e socio.
 function compartilharVenda(id){
   const r = _vendasVisiveis.find(x => x.id === id);
   if(!r) return;
 
-  let txt = `*Venda #${r.id}* · ${dataTxt(r.data)}\n\n`;
-  txt += `Cliente: ${r.cliente}\n`;
-  if(r.telefone) txt += `Telefone: ${r.telefone}\n`;
+  let txt = `${dataTxt(r.data)}\n#${r.id}\n${r.cliente}\n`;
 
-  if(r.produtosLista.length){
+  if(r.itens && r.itens.principais.length){
     txt += `\n*Aparelhos*\n`;
-    r.produtosLista.forEach(p => { txt += `${p.titulo}${p.etiqueta && p.etiqueta!=='—' ? ` · ${p.etiqueta}` : ''}\n`; });
+    r.itens.principais.forEach(p => {
+      const et = p.etiqueta && p.etiqueta !== '—' ? ` · ${p.etiqueta}` : '';
+      txt += `${nomeCurtoProduto(p.titulo)}${et} · ${brlTxt(p.valor)}\n`;
+    });
   }
   if(r.acessResumo.length){
     txt += `\n*Acessórios*\n`;
     r.acessResumo.forEach(a => { txt += `${a.titulo} · ${brlTxt(a.preco)}\n`; });
   }
   txt += `\n*Total: ${brlTxt(r.valor)}*\n`;
-  const quem = [r.vendedor, r.atendente].filter(x => x && x !== '—');
-  if(quem.length) txt += `\nAtendimento: ${quem.join(' · ')}`;
+  if(r.vendedor && r.vendedor !== '—')  txt += `Vendedor: ${cap1(r.vendedor)}\n`;
+  if(r.atendente && r.atendente !== '—') txt += `Atendente: ${cap1(r.atendente)}\n`;
 
-  abrirWaModalDireto(txt, `Venda #${r.id}`);
+  abrirWaModalDireto(txt.trimEnd(), `Venda #${r.id}`);
 }
 
-// Resumo do dia — uso interno da equipe, entao leva lucro quando o papel permite.
+const cap1 = n => n ? String(n).charAt(0).toUpperCase() + String(n).slice(1) : '';
+
+// Resumo do dia — uso interno da equipe.
 function resumoDoDia(){
   const hoje = brtNow();
   const doDia = allVendas.filter(v =>
@@ -861,40 +894,55 @@ function resumoDoDia(){
 
   if(!doDia.length){ abrirWaModalDireto('_Nenhuma venda registrada hoje._', 'Resumo do dia'); return; }
 
-  let aparelhos = 0, acessorios = 0, bruto = 0, lucro = 0;
+  let aparelhos = 0, bruto = 0, lucro = 0, totalAcess = 0;
   const porVendedor = {}, porAtendente = {};
 
   doDia.forEach(v => {
     const { vendedor, atendente } = getVendaInfo(v);
     const itens = v._produtos || [];
-    const princ = itens.filter(isPrincipal).length;
+    const princ = itens.filter(isPrincipal);
     const acess = itens.filter(p => !isPrincipal(p));
-    aparelhos += princ;
-    acessorios += acess.length;
+    const valorAcess = acess.reduce((a,p) => a + parseFloat(p.preco || 0), 0);
+
+    aparelhos  += princ.length;
+    totalAcess += valorAcess;
     bruto += parseFloat(v.valor_total || 0);
     lucro += parseFloat(v.lucro || 0);
-    if(vendedor) porVendedor[vendedor] = (porVendedor[vendedor] || 0) + princ;
-    if(atendente) porAtendente[atendente] = (porAtendente[atendente] || 0)
-      + acess.reduce((a,p) => a + parseFloat(p.preco || 0), 0);
+
+    if(vendedor){
+      porVendedor[vendedor] = porVendedor[vendedor] || { vendas:0, aparelhos:0 };
+      porVendedor[vendedor].vendas++;
+      porVendedor[vendedor].aparelhos += princ.length;
+    }
+    if(atendente){
+      porAtendente[atendente] = porAtendente[atendente] || { vendas:0, acess:0 };
+      porAtendente[atendente].vendas++;
+      porAtendente[atendente].acess += valorAcess;
+    }
   });
 
-  const cap = n => n.charAt(0).toUpperCase() + n.slice(1);
   let txt = `*Resumo do dia* · ${hoje.toLocaleDateString('pt-BR')}\n\n`;
-  txt += `${doDia.length} venda${doDia.length>1?'s':''} · ${aparelhos} aparelho${aparelhos!==1?'s':''} · ${acessorios} acessório${acessorios!==1?'s':''}\n`;
+  txt += `Vendas: ${doDia.length}\n`;
+  txt += `Aparelhos: ${aparelhos}\n`;
+  txt += `Acessórios: ${brlTxt(totalAcess)}\n`;
   if(podeVerDinheiro()){
     txt += `Bruto: ${brlTxt(bruto)}\n`;
     txt += `Lucro: ${brlTxt(lucro)}${bruto ? ` (margem ${Math.round(lucro/bruto*100)}%)` : ''}\n`;
   }
 
-  const vend = Object.entries(porVendedor).sort((a,b) => b[1]-a[1]);
+  const vend = Object.entries(porVendedor).sort((a,b) => b[1].vendas - a[1].vendas);
   if(vend.length){
     txt += `\n*Vendedores*\n`;
-    vend.forEach(([n,q]) => { txt += `${cap(n)} · ${q} aparelho${q!==1?'s':''}\n`; });
+    vend.forEach(([n,d]) => {
+      txt += `${cap1(n)} · ${d.vendas} venda${d.vendas!==1?'s':''} · ${d.aparelhos} aparelho${d.aparelhos!==1?'s':''}\n`;
+    });
   }
-  const aten = Object.entries(porAtendente).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  const aten = Object.entries(porAtendente).sort((a,b) => b[1].acess - a[1].acess);
   if(aten.length){
-    txt += `\n*Atendentes* (acessórios)\n`;
-    aten.forEach(([n,v]) => { txt += `${cap(n)} · ${brlTxt(v)}\n`; });
+    txt += `\n*Atendentes*\n`;
+    aten.forEach(([n,d]) => {
+      txt += `${cap1(n)} · ${brlTxt(d.acess)} em acessórios · ${d.vendas} atendimento${d.vendas!==1?'s':''}\n`;
+    });
   }
-  abrirWaModalDireto(txt, 'Resumo do dia');
+  abrirWaModalDireto(txt.trimEnd(), 'Resumo do dia');
 }
