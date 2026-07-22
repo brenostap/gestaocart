@@ -221,7 +221,7 @@ function renderEstoque(){
     { rotulo:'Entradas de cliente', valor: entradas.length,
       sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' },
   ];
-  if(podeVerDinheiro()){
+  if(podeVerMargem()){
     listaKpis.push(
       { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
       { rotulo:'Margem potencial', valor: money(margemPot), tom:'ok',
@@ -363,7 +363,7 @@ function detalheOrigemHtml(d){
 
 // -- Vista Lista: a tabela rica -------------------------------------------
 function renderEstoqueTabela(dados){
-  const COLUNAS_ESTOQUE = podeVerDinheiro() ? 7 : 6;
+  const COLUNAS_ESTOQUE = podeVerMargem() ? 7 : 6;
   const bat = b => {
     if(!b) return '<span class="est-bat">—</span>';
     const t = b < 80 ? 'critico' : b < 85 ? 'alerta' : 'ok';
@@ -396,7 +396,7 @@ function renderEstoqueTabela(dados){
         ['IMEI', `<span class="est-imei">${escapeHtml(l.d.imei || '—')}</span>`],
       ];
       // fornecedor e margem sao informacao de socio (brief §2)
-      if(podeVerDinheiro()){
+      if(podeVerMargem()){
         campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
         campos.push(['Margem', l.d.margem == null ? '—' : money(l.d.margem)]);
       }
@@ -408,13 +408,13 @@ function renderEstoqueTabela(dados){
     }
     const d = l.d;
     return `<tr class="est-linha${l.aberto ? ' aberta' : ''}" onclick="alternarLinhaEstoque(${l.id})">
-      <td><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span></td>
-      <td class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span></td>
-      <td>${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
-      <td class="num">${bat(d.bateria)}</td>
-      <td><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>
-      ${podeVerDinheiro() ? `<td class="num">${money(d.custo)}</td>` : ''}
-      <td class="num">${d.venda == null ? '<span class="est-sempreco">sem tabela</span>' : `<span class="est-venda">${money(d.venda)}</span>`}</td>
+      <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span></td>
+      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span></td>
+      <td data-rot="Cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
+      <td data-rot="Bateria" class="num">${bat(d.bateria)}</td>
+      <td data-rot="IMEI"><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>
+      ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(d.custo)}</td>` : ''}
+      <td data-rot="Venda" class="num">${d.venda == null ? '<span class="est-sempreco">sem tabela</span>' : `<span class="est-venda">${money(d.venda)}</span>`}</td>
     </tr>`;
   }).join('');
 
@@ -423,7 +423,7 @@ function renderEstoqueTabela(dados){
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
       <thead><tr>
         <th>Etiqueta</th><th>Produto</th><th>Cor</th><th class="num">Bateria</th>
-        <th>IMEI</th>${podeVerDinheiro() ? '<th class="num">Custo</th>' : ''}<th class="num">Venda</th>
+        <th>IMEI</th>${podeVerMargem() ? '<th class="num">Custo</th>' : ''}<th class="num">Venda</th>
       </tr></thead>
       <tbody>${corpo}</tbody></table></div>`
   });

@@ -309,3 +309,53 @@ table.v-itens td{ padding:7px 10px; }
 table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .v-dias{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); }
 .v-dias[data-tom="alerta"]{ color:var(--warning); font-weight:600; }
+
+/* ============================================================================
+   MOBILE — tabela densa vira cartao empilhado
+   Rolagem horizontal em tabela de 8 colunas e inutilizavel no celular: cada
+   linha passa a ser um cartao com rotulo ao lado do valor.
+   ========================================================================= */
+@media (max-width: 720px){
+  .c-tabela thead{ display:none; }
+  .c-tabela, .c-tabela tbody, .c-tabela tr, .c-tabela td{ display:block; width:100%; }
+
+  .c-tabela tbody tr{
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--bg2); margin-bottom:8px; padding:4px 0; overflow:hidden;
+  }
+  .c-tabela tbody tr:hover td{ background:transparent; }
+
+  .c-tabela td{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:none; padding:6px 12px; text-align:right;
+  }
+  .c-tabela td::before{
+    content:attr(data-rot);
+    font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase;
+    letter-spacing:.07em; color:var(--text4); text-align:left; flex:0 0 auto;
+  }
+  .c-tabela td:not([data-rot])::before{ content:''; }
+  .c-tabela .num, .c-tabela td[data-num]{ text-align:right; }
+
+  /* a primeira celula vira o titulo do cartao */
+  .c-tabela tbody tr td:first-child{
+    background:var(--bg3); padding:8px 12px; margin-bottom:2px;
+  }
+
+  /* a linha de detalhe ocupa o cartao inteiro */
+  .est-detalhe td{ display:block; text-align:left; padding:12px !important; }
+  .est-detalhe td::before{ content:''; }
+  .est-det-campos{ grid-template-columns:1fr; }
+  .v-cliente{ flex-direction:column; align-items:stretch; }
+  .v-cliente-acoes{ margin-left:0; }
+
+  /* tabelas de item dentro do detalhe seguem a mesma logica */
+  table.v-itens tbody tr{ margin-bottom:6px; }
+
+  .pg-acoes{ width:100%; }
+  .pg-acoes .c-btn{ flex:1; justify-content:center; }
+  .c-kpi-grid{ grid-template-columns:1fr 1fr; }
+  .c-kpi-value{ font-size:21px; }
+  .est-barra{ flex-direction:column; align-items:stretch; }
+  .est-sel select{ max-width:none; width:100%; }
+}

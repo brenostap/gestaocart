@@ -48,13 +48,23 @@ const MATRIZ_ACESSO = {
 
 function papelAtual(){ return 'socio'; }
 function podeVer(secao){ return (MATRIZ_ACESSO[papelAtual()] || []).includes(secao); }
-function podeVerDinheiro(){ return papelAtual() === 'socio'; }
 
-// Todo valor em R$ deveria passar por aqui: se o papel nao pode ver receita, o
-// numero simplesmente nao e renderizado. Evita que uma tela nova vaze R$ por
-// esquecimento quando os perfis entrarem.
+// Duas permissoes distintas, a pedido do dono:
+//   VALOR  = por quanto foi vendido. O colaborador negociou o preco, entao ve.
+//   MARGEM = custo e lucro. So socio.
+const VE_VALOR  = ['socio','gerente','vendedor','atendente'];
+const VE_MARGEM = ['socio'];
+
+function podeVerValor(){  return VE_VALOR.includes(papelAtual()); }
+function podeVerMargem(){ return VE_MARGEM.includes(papelAtual()); }
+
+// Mantido porque varias telas ja chamam; hoje significa "pode ver custo/lucro"
+function podeVerDinheiro(){ return podeVerMargem(); }
+
+// Todo valor em R$ deveria passar por aqui: se o papel nao pode ver, o numero
+// simplesmente nao e renderizado. Evita que uma tela nova vaze por esquecimento.
 function money(valor, mudo){
-  return podeVerDinheiro() ? brl(valor) : (mudo === undefined ? '—' : mudo);
+  return podeVerValor() ? brl(valor) : (mudo === undefined ? '—' : mudo);
 }
 
 // ---------------------------------------------------------------------------

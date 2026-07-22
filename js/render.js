@@ -683,12 +683,9 @@ function renderVendas(){
     { rotulo:'Pedidos', valor: rows.length, sub: mostrarPendentes ? 'pendentes' : 'no período' },
     { rotulo:'Produtos vendidos', valor: totalPrincipais, sub:'aparelhos, sem acessórios' },
   ];
-  if(podeVerDinheiro()){
-    listaKpis.push(
-      { rotulo:'Bruto', valor: money(totalBruto), sub:'receita do período' },
-      { rotulo:'Lucro', valor: money(totalLucro), tom:'ok',
+  if(podeVerValor())  listaKpis.push({ rotulo:'Bruto', valor: money(totalBruto), sub:'receita do período' });
+  if(podeVerMargem()) listaKpis.push({ rotulo:'Lucro', valor: money(totalLucro), tom:'ok',
         sub: totalBruto ? 'margem ' + Math.round(totalLucro/totalBruto*100) + '%' : '—' });
-  }
   const kpis = UI.kpis(listaKpis);
 
   // -- Alertas ------------------------------------------------------------
@@ -742,7 +739,7 @@ function renderVendas(){
 
   // -- Tabela com expansao ------------------------------------------------
   _vendasVisiveis = rows;
-  const COLS = podeVerDinheiro() ? 10 : 7;
+  const COLS = 7 + (podeVerMargem()?2:0) + (podeVerValor()?1:0);
 
   const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
   const th = (col, texto, num) =>
@@ -751,16 +748,16 @@ function renderVendas(){
   const corpo = rows.map(r => {
     const aberto = vendasAbertas.has(r.id);
     let linha = `<tr class="est-linha${aberto?' aberta':''}" onclick="alternarLinhaVenda(${r.id})">
-      <td><span class="est-seta">${aberto?'▾':'▸'}</span><span class="est-imei">${r.data ? r.data.split('-').reverse().slice(0,2).join('/') : '—'}</span></td>
-      <td><span class="est-tag">#${r.id}</span></td>
-      <td class="forte">${escapeHtml(shortNome(r.cliente))}</td>
-      <td>${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
-      <td>${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
-      <td>${escapeHtml(capNome(r.atendente))}</td>
-      <td class="num"><span class="est-imei">${r.qtd}</span></td>
-      ${podeVerDinheiro() ? `<td class="num">${money(r.custo)}</td>
-      <td class="num forte">${money(r.valor)}</td>
-      <td class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
+      <td data-rot="Data"><span class="est-seta">${aberto?'▾':'▸'}</span><span class="est-imei">${r.data ? r.data.split('-').reverse().slice(0,2).join('/') : '—'}</span></td>
+      <td data-rot="Venda"><span class="est-tag">#${r.id}</span></td>
+      <td data-rot="Cliente" class="forte">${escapeHtml(shortNome(r.cliente))}</td>
+      <td data-rot="Produto">${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
+      <td data-rot="Vendedor">${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
+      <td data-rot="Atendente">${escapeHtml(capNome(r.atendente))}</td>
+      <td data-rot="Qtd" class="num"><span class="est-imei">${r.qtd}</span></td>
+      ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(r.custo)}</td>` : ''}
+      ${podeVerValor()  ? `<td data-rot="Valor" class="num forte">${money(r.valor)}</td>` : ''}
+      ${podeVerMargem() ? `<td data-rot="Lucro" class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
     </tr>`;
 
     if(aberto){
@@ -771,14 +768,14 @@ function renderVendas(){
         </td>
         ${comAparelho ? `<td><span class="est-imei">${escapeHtml(i.imei || '—')}</span></td>
         <td>${origemItemTxt(i.appleId, r.data)}</td>` : ''}
-        ${podeVerDinheiro() ? `<td class="num">${money(i.custo)}</td>
-        <td class="num forte">${money(i.valor)}</td>
-        <td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
+        ${podeVerMargem() ? `<td class="num">${money(i.custo)}</td>` : ''}
+        ${podeVerValor()  ? `<td class="num forte">${money(i.valor)}</td>` : ''}
+        ${podeVerMargem() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
       </tr>`;
 
       const bloco = (titulo, itens, comAparelho) => {
         if(!itens.length) return '';
-        if(!comAparelho && !podeVerDinheiro()){
+        if(!comAparelho && !podeVerValor()){
           return `<div class="v-bloco">
             <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
             <div class="v-item">${itens.map(i => escapeHtml(nomeCurtoProduto(i.titulo))).join(' · ')}</div>
@@ -791,7 +788,7 @@ function renderVendas(){
             <thead><tr>
               <th>Produto</th>
               ${comAparelho ? '<th>IMEI</th><th>Origem</th>' : ''}
-              ${podeVerDinheiro() ? '<th class="num">Custo</th><th class="num">Valor</th><th class="num">Lucro</th>' : ''}
+              ${podeVerMargem() ? '<th class="num">Custo</th>' : ''}${podeVerValor() ? '<th class="num">Valor</th>' : ''}${podeVerMargem() ? '<th class="num">Lucro</th>' : ''}
             </tr></thead>
             <tbody>${itens.map(i => linhaItem(i, comAparelho)).join('')}</tbody>
           </table>
@@ -823,7 +820,7 @@ function renderVendas(){
           <thead><tr>
             ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
             ${th('vendedor','Vendedor')}${th('atendente','Atendente')}${th('qtd','Qtd',true)}
-            ${podeVerDinheiro() ? th('custo','Custo',true) + th('valor','Valor',true) + th('lucro','Lucro',true) : ''}
+            ${podeVerMargem() ? th('custo','Custo',true) : ''}${podeVerValor() ? th('valor','Valor',true) : ''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}
           </tr></thead><tbody>${corpo}</tbody></table></div>` })
     : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
