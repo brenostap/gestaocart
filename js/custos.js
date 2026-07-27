@@ -13,58 +13,9 @@ function setCustos(arr){
   // Nao salvar mais no localStorage
 }
 
-async function gerarSalariosDoMes(){
-  // Verificar se ja existem salarios fixos para o mes atual
-  const now = new Date();
-  const anoMes = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
-  
-  const salarios = [
-    { id_base: 9000000000001, desc: 'Salário Pietra',    valor: 4500, funcionario: 'pietra'   },
-    { id_base: 9000000000002, desc: 'Salário Anne',      valor: 2250, funcionario: 'anne'     },
-    { id_base: 9000000000003, desc: 'Salário Denilson',  valor: 2250, funcionario: 'denilson' },
-    { id_base: 9000000000004, desc: 'Salário Davi',      valor: 2250, funcionario: 'davi'     },
-    { id_base: 9000000000005, desc: 'Salário Mel',       valor: 1500, funcionario: 'mel'      },
-    { id_base: 9000000000006, desc: 'Salário Isa',       valor: 1500, funcionario: 'isa'      },
-    { id_base: 9000000000007, desc: 'Salário David',     valor: 1500, funcionario: 'david'    },
-    { id_base: 9000000000008, desc: 'Salário Vitinho',   valor: 2250, funcionario: 'vitinho'  },
-  ];
-
-  // ID unico por mes: base + YYYYMM (ex: 90000000000012604 para abril/2026)
-  const mesNum = now.getFullYear() * 100 + (now.getMonth()+1);
-  const dataHoje = now.toISOString().slice(0,10);
-
-  // Verificar se ja existem salarios deste mes no cache
-  const jaExistem = _custosCache && _custosCache.some(c => 
-    c.fixo && c.data && c.data.startsWith(anoMes)
-  );
-  if(jaExistem) return; // ja foram gerados
-
-  // Inserir no Supabase
-  const rows = salarios.map(s => ({
-    id: s.id_base * 10000 + mesNum,
-    descricao: s.desc,
-    valor: s.valor,
-    data: dataHoje,
-    area: 'funcionario',
-    loja: 'ambas',
-    obs: 'salário fixo mensal ' + anoMes,
-    fixo: true,
-    funcionario: s.funcionario
-  }));
-
-  try {
-    await fetch(SB_URL+'/rest/v1/custos', {
-      method: 'POST',
-      headers: {
-        'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_TOKEN,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=ignore-duplicates'
-      },
-      body: JSON.stringify(rows)
-    });
-    console.log('[salários] gerados para', anoMes);
-  } catch(e) { console.error('[salários] erro:', e); }
-}
+// (Removida a antiga gerarSalariosDoMes: era codigo morto — sempre no-op por rodar
+//  depois de garantirSalariosDoMes — e usava um id que estourava MAX_SAFE_INTEGER.
+//  A geracao de salarios do mes vive so em garantirSalariosDoMes, abaixo.)
 
 async function loadCustosFromSB(){
   try{
@@ -92,17 +43,12 @@ async function loadCustosFromSB(){
   return getCustos();
 }
 
-// Salarios fixos mensais -- configuracao central
-const SALARIOS_CONFIG = [
-  {func:'pietra',   desc:'Salário Pietra',   valor:4500},
-  {func:'anne',     desc:'Salário Anne',      valor:2250},
-  {func:'denilson', desc:'Salário Denilson',  valor:2250},
-  {func:'davi',     desc:'Salário Davi',      valor:2250},
-  {func:'mel',      desc:'Salário Mel',       valor:1500},
-  {func:'isa',      desc:'Salário Isa',       valor:1500},
-  {func:'david',    desc:'Salário David',     valor:1500},
-  {func:'vitinho',  desc:'Salário Vitinho',   valor:2250},
-];
+// Salarios fixos mensais -- derivados da fonte unica SALARIOS (config.js).
+const SALARIOS_CONFIG = Object.entries(SALARIOS).map(([func, valor]) => ({
+  func,
+  desc: 'Salário ' + func.charAt(0).toUpperCase() + func.slice(1),
+  valor,
+}));
 
 async function garantirSalariosDoMes(){
   const now = new Date();

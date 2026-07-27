@@ -307,7 +307,7 @@ function renderEquipe(){
   const m2=calc();
   // getCustos() em vez de _custosCache: o cache e null enquanto nao carregou
   const custosMesFech=filterCustoPeriod(getCustos()).reduce((a,c)=>a+parseFloat(c.valor||0),0);
-  const sal={pietra:4500,anne:2250,denilson:2250,davi:2250,mel:1500,isa:1500,david:1500,vitinho:2250,leo:2250,luana:2250,maria:3000};
+  const sal=SALARIOS;
   function calcCommVoF(k){const u=m2.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
   function calcCommAtF(k){return Math.round((m2.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m2.lAcess*0.05):0);}
   function calcBonusAtF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
@@ -328,14 +328,17 @@ function renderEquipe(){
     {id:'denilson',nome:'Denilson',sal:sal.denilson,comm:calcCommAtF('denilson'),bonus5:0,bonusMeta:calcBonusAtF(m2.atMap['denilson']?.brutoAcess||0)},
     {id:'leo',    nome:'Leo',     sal:sal.leo,     comm:calcCommAtF('leo'),     bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['leo']?.brutoAcess||0)},
     {id:'maria',  nome:'Maria',   sal:sal.maria,   comm:calcCommVoF('maria')+calcCommAtF('maria'), bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['maria']?.brutoAcess||0)},
-    {id:'luana',  nome:'Luana',   sal:sal.luana,   comm:calcCommAtF('luana'),   bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['luana']?.brutoAcess||0)},
-  ].map(p=>({...p, total:p.sal+p.comm+p.bonus5+p.bonusMeta}));
+    {id:'gabi',   nome:'Gabi',    sal:sal.gabi,    comm:calcCommAtF('gabi'),    bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['gabi']?.brutoAcess||0)},
+  ].map(p=>({...p, total:p.sal+p.comm+p.bonus5+p.bonusMeta+bonusColF}));
 
-  const totalColF=pessoas.reduce((a,p)=>a+p.total,0);
-  const totalBonusMetasF=bonusColF+pessoas.reduce((a,p)=>a+p.bonusMeta,0);
+  const totalColF=pessoas.reduce((a,p)=>a+p.total,0); // ja inclui o bonus coletivo por pessoa
+  // Bonus coletivo pago CHEIO para cada colaborador (uma vez por pessoa).
+  const totalColetivoF=pessoas.length*bonusColF;
+  const totalBonusMetaIndF=pessoas.reduce((a,p)=>a+p.bonusMeta,0);
   const voTotF=['david','isa','mel','pietra','maria'].reduce((a,k)=>a+calcCommVoF(k),0);
-  const atTotF=['anne','davi','vitinho','denilson','pietra','leo','luana','maria'].reduce((a,k)=>a+calcCommAtF(k),0);
-  const liqFinal=m2.lucro-voTotF-atTotF-Math.round(m2.lAcess*0.05)-custosMesFech-totalBonusMetasF;
+  const atTotF=['anne','davi','vitinho','denilson','pietra','leo','gabi','maria'].reduce((a,k)=>a+calcCommAtF(k),0);
+  // atTotF ja embute os 5% da Anne (via calcCommAtF); nao descontar de novo a parte.
+  const liqFinal=m2.lucro-voTotF-atTotF-custosMesFech-totalBonusMetaIndF-totalColetivoF;
 
   const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const tabelaFechamento=`
@@ -371,9 +374,9 @@ function renderEquipe(){
             <tr style="border-top:2px solid var(--border2)">
               <td style="padding:8px 8px;font-weight:700;color:var(--text)">Total folha</td>
               <td colspan="4" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
-                ${bonusColF>0?`+ bônus coletivo ${brl(bonusColF)} (devices+acess)`:''}
+                ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`:''}
               </td>
-              <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totalColF+bonusColF)}</td>
+              <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totalColF)}</td>
             </tr>
             <tr>
               <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa</td>
@@ -393,7 +396,7 @@ function gerarResumoEquipe(){
   const m=calc();
   const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const mesLabel=mesAtual.charAt(0).toUpperCase()+mesAtual.slice(1);
-  const sal={pietra:4500,anne:2250,denilson:2250,davi:2250,mel:1500,isa:1500,david:1500,vitinho:2250,leo:2250,luana:2250,maria:3000};
+  const sal=SALARIOS;
   function cvF(k){const u=m.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
   function caF(k){return Math.round((m.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m.lAcess*0.05):0);}
   function bmF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
@@ -415,7 +418,7 @@ function gerarResumoEquipe(){
     {id:'denilson',nome:'Denilson',sal:sal.denilson,comm:caF('denilson'),bonus5:0,                        bonusMeta:bmF(m.atMap['denilson']?.brutoAcess||0),  tipo:'presencial'},
     {id:'leo',    nome:'Leo',     sal:sal.leo,     comm:caF('leo'),     bonus5:0,                         bonusMeta:bmF(m.atMap['leo']?.brutoAcess||0),       tipo:'presencial'},
     {id:'maria',  nome:'Maria',   sal:sal.maria,   comm:cvF('maria')+caF('maria'), bonus5:0,             bonusMeta:bmF(m.atMap['maria']?.brutoAcess||0),     tipo:'ambos'},
-    {id:'luana',  nome:'Luana',   sal:sal.luana,   comm:caF('luana'),   bonus5:0,                         bonusMeta:bmF(m.atMap['luana']?.brutoAcess||0),     tipo:'presencial'},
+    {id:'gabi',   nome:'Gabi',    sal:sal.gabi,    comm:caF('gabi'),    bonus5:0,                         bonusMeta:bmF(m.atMap['gabi']?.brutoAcess||0),      tipo:'presencial'},
   ].map(p=>({...p, total:p.sal+p.comm+p.bonus5+p.bonusMeta+bonusColPorPessoa}));
 
   // Montar mensagem de cada pessoa
@@ -545,7 +548,7 @@ function renderFuncCard(id, lAcessTotal){
   const lAcessCalc = mCalc.lAcess || 0;
 
   // -- Salario fixo ------------------------------------------------------------
-  const salarios = {pietra:4500,anne:2250,denilson:2250,davi:2250,mel:1500,isa:1500,david:1500,vitinho:2250};
+  const salarios = SALARIOS;
   const sal = salarios[f.id] || 0;
 
   // -- Bonus coletivo por pessoa -----------------------------------------------

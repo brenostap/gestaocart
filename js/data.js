@@ -65,10 +65,10 @@ async function loadAllData(){
   allVendas=[];allMovs=[];estoqueItens=[];
   // Kick off carregamento da tabela de precos em paralelo (cache global)
   carregarTabelaPrecos();
-  // Carregar dados persistidos do Supabase
+  // Carregar dados persistidos do Supabase (loadCustosFromSB ja garante os
+  // salarios do mes via garantirSalariosDoMes; recarrega para pegar os novos)
   await loadCustosFromSB();
-  await gerarSalariosDoMes();
-  await loadCustosFromSB(); // recarregar com os novos salarios
+  await loadCustosFromSB();
   await loadEquipeFromSB();
   const hd={'apikey':SB_KEY,'Authorization':'Bearer '+(await sbAuthToken()),'Accept':'application/json'};
   try{

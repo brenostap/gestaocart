@@ -38,8 +38,18 @@ const FUNC=[
   {id:'leo',    ap:'Leo',     nome:'Leo',                         cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'leo'    },
   {id:'maria',  ap:'Maria',   nome:'Maria',                       cargo:'SAC / Vendedora',    pix:'',                         tipo:'online',    email:'',                                   atKey:'maria', voKey:'maria' },
   {id:'luana',  ap:'Luana',   nome:'Luana',                       cargo:'Atendente (saiu)',   pix:'',                         tipo:'presencial',email:'',                                   atKey:'luana'  },
+  {id:'gabi',   ap:'Gabi',    nome:'Gabi',                        cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'gabi'   },
   {id:'gustavo',   ap:'Gustavo',   nome:'Gustavo',   cargo:'Vendedor / Sócio',  pix:'', tipo:'online', email:'', voKey:'gustavo'},
   {id:'marcella',  ap:'Marcella',  nome:'Marcella',  cargo:'Sócia',             pix:'', tipo:'socio',  email:''},
 ];
 const COLORS=['#1d4ed8','#0f766e','#7c3aed','#b45309','#be123c','#0369a1','#15803d','#9333ea','#0e7490','#166534'];
+
+// Fonte unica dos salarios fixos mensais. Consumida por custos.js (geracao no
+// Supabase) e por equipe.js (fechamento, resumos e card individual). Luana saiu;
+// Gabi entrou no lugar (atendente presencial, R$2.250).
+const SALARIOS = {
+  pietra:4500, anne:2250, denilson:2250, davi:2250,
+  mel:1500,   isa:1500,  david:1500,    vitinho:2250,
+  leo:2250,   maria:3000, gabi:2250,
+};
 

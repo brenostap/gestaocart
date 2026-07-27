@@ -52,8 +52,9 @@ const SOCIOS_LOJA = ['breno','gustavo','marcella','marcela','marcelo','maju','du
 const VO_KEYS = ['david','isa','mel','pietra','maria'];
 
 // Atendentes presenciais OFICIAIS -- so esses recebem 25% de acess
-// leo (jun/2026), luana (saiu jun/2026), maria (hibrida: atende acess quando e a atendente)
-const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','maria'];
+// leo (jun/2026), luana (saiu jun/2026 -- mantida para historico), gabi (entrou no
+// lugar da luana), maria (hibrida: atende acess quando e a atendente)
+const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','gabi','maria'];
 
 // === Regras novas a partir de junho/2026 (NAO retroativas) ===
 // Tiers de meta coletiva e classificador de acessorio mudaram em jun/2026.

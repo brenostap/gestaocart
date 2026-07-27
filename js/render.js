@@ -40,7 +40,7 @@ function calc(){
 
   // Socios/Loja -- vendas da casa (gustavo, marcella, breno, ou sem vendedor identificado)
   const SOCIOS_KEYS=['gustavo','marcella','breno'];
-  const EQUIPE_KEYS=['isa','mel','david','pietra','vitinho','davi','anne','denilson','leo','luana','maria'];
+  const EQUIPE_KEYS=['isa','mel','david','pietra','vitinho','davi','anne','denilson','leo','luana','gabi','maria'];
   const isVendaLoja=(x)=>{
     const {vendedor}=getVendaInfo(x);
     if(!vendedor) return true;
