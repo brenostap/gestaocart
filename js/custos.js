@@ -133,6 +133,8 @@ async function deleteCustoFromSB(id){
   });
 }
 
+// Fonte unica das areas do dropdown. Adicionar/renomear aqui vale pro form,
+// pro modal de edicao e pro agrupamento da tabela.
 const AREAS=[
   {id:'aluguel',    label:'Aluguel'},
   {id:'logistica',  label:'Logística / frete'},
@@ -143,8 +145,25 @@ const AREAS=[
   {id:'outro',      label:'Outros'},
 ];
 
-function areaLabel(id){ return AREAS.find(a=>a.id===id)?.label||id; }
-function areaClass(id){ return 'crow-area area-'+id; }
+// Rotulos incluem ids legados que ja foram gravados no banco por versoes
+// antigas do modal de edicao, pra nenhum lancamento aparecer sem nome.
+const AREA_LABELS = Object.assign(
+  Object.fromEntries(AREAS.map(a => [a.id, a.label])),
+  {
+    outros:'Outros', salario:'Salário', assistencia:'Assistência',
+    financeiro:'Financeiro', ia:'IA / ferramentas', contabilidade:'Contabilidade',
+    operacional:'Operacional',
+  }
+);
+// Ids legados que reaproveitam a cor de uma area canonica (styles.css .area-*).
+const AREA_CLASSE = { outros:'outro', salario:'funcionario', assistencia:'fornecedor',
+  financeiro:'plataforma', ia:'plataforma', contabilidade:'plataforma', operacional:'logistica' };
+
+function areaLabel(id){ return AREA_LABELS[id] || id || 'Outros'; }
+function areaClass(id){ return 'crow-area area-'+(AREA_CLASSE[id] || (AREA_LABELS[id]?id:'outro')); }
+
+// Ordem de exibicao dos grupos na tabela (canonicas primeiro, resto no fim).
+function areaOrdem(id){ const i = AREAS.findIndex(a=>a.id===id); return i<0 ? 99 : i; }
 
 function filterCustoPeriod(custos){
   const now = new Date();
@@ -191,19 +210,79 @@ function custoParaLoja(c, loja, pctCart, pctUrban){
   return 0;
 }
 
-async function addCusto(){
-  const desc=document.getElementById('c-desc')?.value?.trim();
-  const valor=parseFloat(document.getElementById('c-valor')?.value||0);
-  const data=document.getElementById('c-data')?.value;
-  const area=document.getElementById('c-area')?.value||'outro';
-  const loja=document.getElementById('c-loja')?.value||'ambas';
-  const obs=document.getElementById('c-obs')?.value||'';
-  if(!desc||!valor||!data) return alert('Preencha descrição, valor e data.');
-  const novo={id:Date.now(),desc,valor,data,area,loja,obs,fixo:false,funcionario:null};
-  await saveCustoToSB(novo);
-  if(_custosCache) _custosCache.unshift(novo);
-  else _custosCache = [novo];
-  renderContent();
+// -- MODAL DE LANCAMENTO / EDICAO (novo unificado) --------------------------
+// id null  -> novo lancamento
+// id valido -> edita o custo existente (usado por abrirEdicaoCusto)
+function abrirModalCusto(id){
+  const c = id != null ? (_custosCache||[]).find(x=>x.id===id) : null;
+  const hoje = new Date().toISOString().slice(0,10);
+  const editando = !!c;
+  const areaOpts = AREAS.map(a => ({v:a.id, t:a.label}));
+  const lojaOpts = [{v:'cart',t:'📱 Phone Cart'},{v:'urban',t:'🏙 Urban'},{v:'ambas',t:'🔀 Ambas (rateio)'}];
+
+  const corpo = `<div class="c-form">
+    ${UI.campo({label:'Descrição', corpo:
+      UI.input({id:'mc-desc', valor:c?.desc||'', placeholder:'Ex: Aluguel de março'})})}
+    ${UI.linha(
+      UI.campo({label:'Valor (R$)', corpo:
+        UI.input({id:'mc-valor', tipo:'number', valor:c?.valor||'', placeholder:'0,00', extra:'step="0.01" min="0"'})}),
+      UI.campo({label:'Data', corpo:
+        UI.input({id:'mc-data', tipo:'date', valor:c?.data?.slice(0,10)||hoje})})
+    )}
+    ${UI.linha(
+      UI.campo({label:'Área', corpo: UI.select({id:'mc-area', opcoes:areaOpts, valor:c?.area||'outro'})}),
+      UI.campo({label:'Loja', corpo: UI.select({id:'mc-loja', opcoes:lojaOpts, valor:c?.loja||'ambas'})})
+    )}
+    ${UI.campo({label:'Obs (opcional)', corpo:
+      UI.input({id:'mc-obs', valor:c?.obs||'', placeholder:'Informação adicional...'})})}
+  </div>`;
+
+  const foot =
+    UI.btn('Cancelar', {onclick:'UI.fecharModal()'}) +
+    UI.btn(editando ? 'Salvar alterações' : '+ Lançar custo',
+      {onclick:`salvarModalCusto(${editando ? c.id : 'null'})`, variante:'primario', id:'mc-salvar'});
+
+  UI.abrirModal({titulo: editando ? '✏️ Editar custo' : '➕ Lançar novo custo', corpo, foot});
+  setTimeout(()=>document.getElementById('mc-desc')?.focus(), 30);
+}
+
+async function salvarModalCusto(id){
+  const desc  = document.getElementById('mc-desc')?.value?.trim();
+  const valor = parseFloat(document.getElementById('mc-valor')?.value||0);
+  const data  = document.getElementById('mc-data')?.value;
+  const area  = document.getElementById('mc-area')?.value||'outro';
+  const loja  = document.getElementById('mc-loja')?.value||'ambas';
+  const obs   = document.getElementById('mc-obs')?.value||'';
+  if(!desc || !valor || !data) return alert('Preencha descrição, valor e data.');
+
+  const btn = document.getElementById('mc-salvar');
+  if(btn){ btn.textContent='Salvando...'; btn.disabled=true; }
+
+  try{
+    if(id != null){
+      // Edicao -> PATCH
+      const r = await fetch(SB_URL+'/rest/v1/custos?id=eq.'+id, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Content-Type':'application/json'},
+        body: JSON.stringify({ descricao:desc, valor, loja, area, data, obs })
+      });
+      if(!r.ok) throw new Error('patch');
+      const idx = (_custosCache||[]).findIndex(x=>x.id===id);
+      if(idx>=0) _custosCache[idx] = {..._custosCache[idx], desc, descricao:desc, valor, loja, area, data, obs};
+    } else {
+      // Novo -> POST
+      const novo = {id:Date.now(), desc, valor, data, area, loja, obs, fixo:false, funcionario:null};
+      const r = await saveCustoToSB(novo);
+      if(!r.ok) throw new Error('post');
+      if(_custosCache) _custosCache.unshift(novo); else _custosCache=[novo];
+    }
+    UI.fecharModal();
+    renderContent();
+  }catch(e){
+    console.error('salvarModalCusto:', e);
+    if(btn){ btn.textContent = id!=null ? 'Salvar alterações' : '+ Lançar custo'; btn.disabled=false; }
+    alert('Erro ao salvar — tente novamente.');
+  }
 }
 async function deleteCusto(id){
   if(!confirm('Remover este custo?')) return;
@@ -211,6 +290,13 @@ async function deleteCusto(id){
   if(_custosCache) _custosCache = _custosCache.filter(c=>c.id!==id);
   else _custosCache = getCustos().filter(c=>c.id!==id);
   document.getElementById('content').innerHTML=renderCustos();
+}
+
+// Filtro de area da tabela (a loja e o periodo vivem na sidebar, brief §7.2)
+let custoAreaFiltro = 'todas';
+function setCustoArea(a){
+  custoAreaFiltro = a;
+  document.getElementById('content').innerHTML = renderCustos();
 }
 
 function renderCustos(){
@@ -251,129 +337,114 @@ function renderCustos(){
     if(l==='urban')return'<span class="cloja-urban">Urban</span>';
     return`<span class="cloja-ambas">Ambas (${Math.round(pctCart*100)}/${Math.round(pctUrban*100)})</span>`;
   };
+  const fmtData=d=>{ if(!d) return '—'; const [y,mo,dia]=d.slice(0,10).split('-'); return `${dia}/${mo}`; };
 
-  // Form de lancamento
-  const today=new Date().toISOString().slice(0,10);
-  const formHTML=`
-    <div class="custo-form">
-      <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:12px">Lançar novo custo</div>
-      <div class="custo-form-grid4">
-        <div>
-          <span class="clabel">Descrição</span>
-          <input id="c-desc" class="cinput" type="text" placeholder="Ex: Aluguel março">
-        </div>
-        <div>
-          <span class="clabel">Valor (R$)</span>
-          <input id="c-valor" class="cinput" type="number" placeholder="0,00" step="0.01" min="0">
-        </div>
-        <div>
-          <span class="clabel">Data</span>
-          <input id="c-data" class="cinput" type="date" value="${today}">
-        </div>
-        <div>
-          <span class="clabel">Área</span>
-          <select id="c-area" class="cselect">
-            ${AREAS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}
-          </select>
-        </div>
+  // -- CABECALHO DA PAGINA + acao primaria (abre o modal) -------------------
+  const headHTML=`
+    <div class="pg-head">
+      <div>
+        <div class="pg-kicker">Custos operacionais</div>
+        <div class="pg-title">Custos</div>
+        <div class="pg-desc">Aluguel, salários, marketing e afins. Custos “ambas” são rateados entre as lojas na proporção de aparelhos vendidos no período.</div>
       </div>
-      <div class="custo-form-grid">
-        <div>
-          <span class="clabel">Loja</span>
-          <select id="c-loja" class="cselect">
-            <option value="cart">Phone Cart</option>
-            <option value="urban">Urban</option>
-            <option value="ambas">Ambas (rateio proporcional)</option>
-          </select>
-        </div>
-        <div>
-          <span class="clabel">Obs (opcional)</span>
-          <input id="c-obs" class="cinput" type="text" placeholder="Informação adicional...">
-        </div>
-      </div>
-      <button class="cadd-btn" onclick="addCusto()">+ Lançar custo</button>
-    </div>`;
-
-  // Sumario
-  const sumsHTML=`
-    <div class="csum-grid">
-      <div class="csum-card">
-        <div class="csum-label">Total geral</div>
-        <div class="csum-val">${brl(totalGeral)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">${custos.length} lançamentos</div>
-      </div>
-      <div class="csum-card">
-        <div class="csum-label">Cart (efetivo)</div>
-        <div class="csum-val" style="color:#60a5fa">${brl(totalCartEfetivo)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">incl. ${Math.round(pctCart*100)}% das ambas</div>
-      </div>
-      <div class="csum-card">
-        <div class="csum-label">Urban (efetivo)</div>
-        <div class="csum-val" style="color:#fb923c">${brl(totalUrbanEfetivo)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">incl. ${Math.round(pctUrban*100)}% das ambas</div>
-      </div>
-      <div class="csum-card">
-        <div class="csum-label">Custos compartilhados</div>
-        <div class="csum-val" style="color:var(--purple)">${brl(totalAmbas)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">${brl(totalAmbas*pctCart)} Cart / ${brl(totalAmbas*pctUrban)} Urban</div>
+      <div class="pg-acoes">
+        ${UI.btn('➕ Lançar custo', {onclick:'abrirModalCusto()', variante:'primario'})}
       </div>
     </div>`;
 
-  // Resultado com custos
-  const resultHTML=`
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">Resultado após custos operacionais</div>
-      <div class="cresult-row"><div class="r-lbl">Lucro bruto (FoneNinja)</div><div class="r-pos">${brl(m.lucro)}</div></div>
-      <div class="cresult-row"><div class="r-lbl">− Comissões online</div><div class="r-neg">− ${brl(m.voTot)}</div></div>
-      <div class="cresult-row"><div class="r-lbl">− Comissões atendentes</div><div class="r-neg">− ${brl(m.atTot)}</div></div>
-      <div class="cresult-row"><div class="r-lbl">− Custos operacionais (total)</div><div class="r-neg">− ${brl(totalGeral)}</div></div>
-      <div class="cresult-row"><div class="r-lbl">Resultado líquido real</div><div class="r-pos">${brl(m.lucro-m.voTot-m.atTot-totalGeral)}</div></div>
-    </div>`;
+  // -- KPIs -----------------------------------------------------------------
+  const kpisHTML=UI.kpis([
+    {rotulo:'Total geral', valor:brl(totalGeral), sub:`${custos.length} lançamentos no período`},
+    {rotulo:'Cart · efetivo', valor:brl(totalCartEfetivo), sub:`inclui ${Math.round(pctCart*100)}% das compartilhadas`, tom:'marca'},
+    {rotulo:'Urban · efetivo', valor:brl(totalUrbanEfetivo), sub:`inclui ${Math.round(pctUrban*100)}% das compartilhadas`},
+    {rotulo:'Compartilhados', valor:brl(totalAmbas), sub:`${brl(totalAmbas*pctCart)} Cart · ${brl(totalAmbas*pctUrban)} Urban`, tom:'processo'},
+  ]);
 
-  // Filtros da tabela
-  // Loja e periodo agora vivem na sidebar (contexto persistente, brief §7.2)
-  const filtersHTML='';
+  // -- Resultado apos custos ------------------------------------------------
+  const liqReal=m.lucro-m.voTot-m.atTot-totalGeral;
+  const resultHTML=UI.card({
+    titulo:'Resultado após custos operacionais',
+    corpo:`
+      <div class="result-row"><div class="r-lbl">Lucro bruto (FoneNinja)</div><div class="r-pos">${brl(m.lucro)}</div></div>
+      <div class="result-row"><div class="r-lbl">− Comissões online</div><div class="r-neg">− ${brl(m.voTot)}</div></div>
+      <div class="result-row"><div class="r-lbl">− Comissões atendentes</div><div class="r-neg">− ${brl(m.atTot)}</div></div>
+      <div class="result-row"><div class="r-lbl">− Custos operacionais</div><div class="r-neg">− ${brl(totalGeral)}</div></div>
+      <div class="result-row"><div class="r-lbl">Resultado líquido real</div><div class="${liqReal>=0?'r-pos':'r-neg'}">${brl(liqReal)}</div></div>`,
+  });
 
-  // Filtrar por loja selecionada
+  // -- Filtrar por loja (sidebar) -------------------------------------------
   let filtrados=custos;
   if(currentStore!=='ambas') filtrados=custos.filter(c=>c.loja===currentStore||c.loja==='ambas');
 
-  // Tabela de custos
-  const tableRows=filtrados.length===0
-    ?'<div style="padding:20px;text-align:center;color:var(--text4);font-size:13px">Nenhum custo lançado para este período.</div>'
-    :filtrados.map(c=>{
-      const efetivo=currentStore!=='ambas'?custoParaLoja(c,currentStore,pctCart,pctUrban):parseFloat(c.valor||0);
-      return`<div class="crow" id="crow-${c.id}">
-        <div>${c.data||'—'}</div>
-        <div>
-          <div style="color:#ddd;font-size:12px">${escapeHtml(c.desc||'')}</div>
-          ${c.obs?`<div style="font-size:11px;color:var(--text4);margin-top:1px">${escapeHtml(c.obs)}</div>`:''}
-        </div>
-        <div><span class="${areaClass(c.area)}">${areaLabel(c.area)}</span></div>
-        <div>${lojaTag(c.loja)}</div>
-        <div style="font-size:12px;color:var(--text2)">${brl(parseFloat(c.valor||0))}</div>
-        <div style="font-size:12px;${c.loja==='ambas'?'color:var(--text3)':''}">${c.loja==='ambas'?brl(efetivo)+' efetivo':''}</div>
-        <div style="display:flex;gap:4px">
-          <button class="cdel-btn" style="background:rgba(91,139,245,.1);color:var(--cart);border-color:rgba(91,139,245,.2)" onclick="abrirEdicaoCusto(${c.id})">✏️</button>
-          <button class="cdel-btn" onclick="deleteCusto(${c.id})">×</button>
-        </div>
-      </div>`;
-    }).join('');
+  // -- Chips de area (contador por area, no espirito da referencia) ---------
+  const porArea={};
+  filtrados.forEach(c=>{ const a=c.area||'outro'; (porArea[a]=porArea[a]||[]).push(c); });
+  const areasPresentes=Object.keys(porArea).sort((a,b)=> areaOrdem(a)-areaOrdem(b) || areaLabel(a).localeCompare(areaLabel(b),'pt-BR'));
+  const chipsHTML=UI.toolbar(
+    UI.chip(`Todas <span class="c-grupo-cnt">${filtrados.length}</span>`, custoAreaFiltro==='todas', `setCustoArea('todas')`),
+    ...areasPresentes.map(a=>UI.chip(`${areaLabel(a)} <span class="c-grupo-cnt">${porArea[a].length}</span>`, custoAreaFiltro===a, `setCustoArea('${a}')`))
+  );
 
-  return`${filtersHTML}${sumsHTML}${resultHTML}${formHTML}
-    <div style="font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${filtrados.length} lançamentos no período</div>
-    <div class="ctable">
-      <div class="cth-row">
-        <div class="cth">Data</div>
-        <div class="cth">Descrição</div>
-        <div class="cth">Área</div>
-        <div class="cth">Loja</div>
-        <div class="cth">Valor</div>
-        <div class="cth">Efetivo</div>
-        <div class="cth"></div>
-      </div>
-      ${tableRows}
-    </div>`;
+  // -- Tabela agrupada por area (faixa sticky por grupo) --------------------
+  const areasMostrar = custoAreaFiltro==='todas' ? areasPresentes : areasPresentes.filter(a=>a===custoAreaFiltro);
+
+  let corpoTabela='';
+  if(filtrados.length===0){
+    corpoTabela=`<tr class="crow-vazia"><td colspan="6">${UI.vazio({
+      ico:'🧾', titulo:'Nenhum custo neste período',
+      texto:'Assim que você lançar aluguel, salários ou marketing, eles aparecem aqui agrupados por área.',
+      acao:UI.btn('➕ Lançar o primeiro custo', {onclick:'abrirModalCusto()', variante:'primario', sm:true})
+    })}</td></tr>`;
+  } else {
+    corpoTabela=areasMostrar.map(a=>{
+      const itens=porArea[a].slice().sort((x,y)=>String(y.data||'').localeCompare(String(x.data||'')));
+      const subtotal=itens.reduce((s,c)=>s+parseFloat(c.valor||0),0);
+      const faixa=`<tr class="c-grupo"><td colspan="6">
+        <span class="${areaClass(a)}">${areaLabel(a)}</span>
+        <span class="c-grupo-cnt">${itens.length} ${itens.length===1?'lançamento':'lançamentos'}</span>
+        <span class="c-grupo-sub">${brl(subtotal)}</span>
+      </td></tr>`;
+      const linhas=itens.map(c=>{
+        const mostraEfetivo = c.loja==='ambas' && currentStore!=='ambas';
+        const efetivo = custoParaLoja(c, currentStore, pctCart, pctUrban);
+        return `<tr>
+          <td data-rot="Data" class="mono">${fmtData(c.data)}</td>
+          <td data-rot="Descrição">
+            <div class="forte">${escapeHtml(c.desc||'')}</div>
+            ${c.obs?`<div style="font-size:11px;color:var(--text4);margin-top:1px">${escapeHtml(c.obs)}</div>`:''}
+            ${c.fixo?'<span class="c-badge" style="margin-top:3px">fixo mensal</span>':''}
+          </td>
+          <td data-rot="Loja">${lojaTag(c.loja)}</td>
+          <td data-rot="Valor" class="num forte">${brl(parseFloat(c.valor||0))}</td>
+          <td ${mostraEfetivo?'data-rot="Efetivo"':''} class="num" style="color:var(--text3)">${mostraEfetivo?brl(efetivo):''}</td>
+          <td data-rot="" style="text-align:right;white-space:nowrap">
+            ${UI.btn('✏️', {onclick:`abrirModalCusto(${c.id})`, variante:'sutil', sm:true, titulo:'Editar'})}
+            ${UI.btn('🗑', {onclick:`deleteCusto(${c.id})`, variante:'sutil', sm:true, titulo:'Remover'})}
+          </td>
+        </tr>`;
+      }).join('');
+      return faixa+linhas;
+    }).join('');
+  }
+
+  const tabelaHTML=UI.card({
+    titulo:'Lançamentos', sub:`${filtrados.length} no período`, flush:true,
+    corpo:`<div class="c-tabela-wrap"><table class="c-tabela">
+      <thead><tr>
+        <th style="width:64px">Data</th>
+        <th>Descrição</th>
+        <th style="width:120px">Loja</th>
+        <th class="num" style="width:110px">Valor</th>
+        <th class="num" style="width:110px">Efetivo</th>
+        <th style="width:88px"></th>
+      </tr></thead>
+      <tbody>${corpoTabela}</tbody>
+    </table></div>`,
+  });
+
+  return `${headHTML}${kpisHTML}
+    <div style="height:14px"></div>${resultHTML}
+    <div style="height:14px"></div>${chipsHTML}${tabelaHTML}`;
 }
 
 

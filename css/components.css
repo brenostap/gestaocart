@@ -148,6 +148,73 @@
   @keyframes sheet-sobe{ from{ transform:translateY(28px) } to{ transform:none } }
 }
 
+/* -- MODAL CENTRAL (formularios: lancar/editar) --------------------------- */
+/* O painel lateral (.c-painel) e pra detalhe sem perder a lista; o modal e
+   pra uma acao focada — criar/editar um registro. No celular vira sheet. */
+.c-modal-overlay{
+  position:fixed; inset:0; z-index:70; background:rgba(10,14,24,.5);
+  backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center;
+  padding:20px; animation:c-modal-fade .15s ease-out;
+}
+@keyframes c-modal-fade{ from{ opacity:0 } to{ opacity:1 } }
+.c-modal{
+  width:100%; max-width:460px; max-height:90vh; display:flex; flex-direction:column;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--radius-card); box-shadow:var(--shadow-xl);
+  animation:c-modal-pop .18s cubic-bezier(.2,.7,.3,1);
+}
+@keyframes c-modal-pop{ from{ transform:translateY(12px) scale(.98); opacity:.5 } to{ transform:none; opacity:1 } }
+.c-modal-head{
+  display:flex; align-items:center; gap:10px;
+  padding:15px 18px; border-bottom:1px solid var(--border);
+}
+.c-modal-title{ font-size:15.5px; font-weight:700; color:var(--text); flex:1; min-width:0; }
+.c-modal-body{ padding:18px; overflow-y:auto; }
+.c-modal-foot{ display:flex; gap:10px; padding:14px 18px; border-top:1px solid var(--border); }
+.c-modal-foot .c-btn{ flex:1; justify-content:center; }
+.c-modal-foot .c-btn.primario{ flex:2; }
+@media (max-width:560px){
+  .c-modal-overlay{ align-items:flex-end; padding:0; }
+  .c-modal{ max-width:none; max-height:92vh; border-radius:16px 16px 0 0;
+            animation:sheet-sobe .2s ease-out; }
+}
+
+/* -- CAMPOS DE FORMULARIO ------------------------------------------------- */
+.c-form{ display:flex; flex-direction:column; gap:13px; }
+.c-field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.c-field-label{
+  font-family:var(--font-mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:.07em; color:var(--text4);
+}
+.c-field-row{ display:grid; gap:10px; }
+.c-field-row.dois{ grid-template-columns:1fr 1fr; }
+.c-input, .c-select{
+  width:100%; box-sizing:border-box; padding:9px 12px;
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:var(--radius-sm); color:var(--text);
+  font-family:inherit; font-size:13px; outline:none; transition:border-color .12s;
+}
+.c-input:focus, .c-select:focus{ border-color:var(--cart); }
+.c-input::placeholder{ color:var(--text4); }
+.c-select{ cursor:pointer; }
+
+/* -- TABELA AGRUPADA (faixa de grupo dentro de .c-tabela) ----------------- */
+.c-tabela tr.c-grupo td{
+  position:sticky; top:31px; z-index:2;
+  background:var(--bg3); padding:9px 14px;
+  border-top:1px solid var(--border2); border-bottom:1px solid var(--border);
+}
+.c-tabela tr.c-grupo:first-child td{ border-top:none; }
+.c-grupo-cnt{
+  font-family:var(--font-mono); font-size:10px; color:var(--text4);
+  margin-left:9px; vertical-align:middle;
+}
+.c-grupo-sub{
+  float:right; font-family:var(--font-mono); font-size:12px; font-weight:600;
+  color:var(--text2); font-variant-numeric:tabular-nums;
+}
+.c-tabela tr.crow-vazia:hover td{ background:transparent; }
+
 /* -- LINHA CHAVE/VALOR ---------------------------------------------------- */
 .c-kv{ display:flex; align-items:baseline; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
 .c-kv:last-child{ border-bottom:none; }
@@ -341,6 +408,19 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .c-tabela tbody tr td:first-child{
     background:var(--bg3); padding:8px 12px; margin-bottom:2px;
   }
+
+  /* faixa de grupo: nao vira cartao, vira uma banda de secao */
+  .c-tabela tbody tr.c-grupo{
+    border:none; background:transparent; margin:16px 0 6px; padding:0;
+  }
+  .c-tabela tbody tr.c-grupo td{
+    position:static; display:flex; align-items:center; justify-content:space-between;
+    background:transparent; padding:0 2px; border:none;
+  }
+  .c-tabela tbody tr.c-grupo td::before{ content:''; }
+  .c-grupo-sub{ float:none; }
+  /* celula sem conteudo (ex.: Efetivo n/a) nao vira linha fantasma no cartao */
+  .c-tabela tbody tr:not(.c-grupo) td:empty{ display:none; }
 
   /* a linha de detalhe ocupa o cartao inteiro */
   .est-detalhe td{ display:block; text-align:left; padding:12px !important; }

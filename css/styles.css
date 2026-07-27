@@ -210,22 +210,8 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;pointer-eve
 .vsumcard-val{font-size:20px;font-weight:600;font-feature-settings:'tnum'}
 .vendas-alerta{background:var(--yellow-bg);border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--yellow);display:flex;justify-content:space-between;align-items:center}
 
-/* CUSTOS */
-.custo-form{background:var(--bg2);border:.5px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:14px}
-.custo-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.custo-form-grid4{display:grid;grid-template-columns:2fr 1fr 1fr 1.5fr;gap:10px;margin-bottom:10px}
-.cinput{width:100%;padding:9px 14px;background:var(--bg3);border:.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;font-family:inherit;transition:border-color .2s}
-.cinput:focus{border-color:var(--border2)}
-.cinput::placeholder{color:var(--text4)}
-.clabel{font-size:11px;color:var(--text3);margin-bottom:4px;display:block;font-weight:500}
-.cselect{width:100%;padding:9px 14px;background:var(--bg3);border:.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;cursor:pointer}
-.cadd-btn{padding:10px 22px;background:var(--grad-cart);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-cart)}
-.cadd-btn:hover{opacity:.9;transform:translateY(-1px)}
-.ctable{background:var(--bg2);border:.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
-.cth-row{display:grid;grid-template-columns:90px 1fr 90px 80px 90px 80px 36px;gap:6px;padding:8px 16px;background:var(--bg3);border-bottom:.5px solid var(--border)}
-.cth{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.crow{display:grid;grid-template-columns:90px 1fr 90px 80px 90px 80px 36px;gap:6px;padding:9px 16px;border-top:.5px solid var(--border);font-size:12px;align-items:center;transition:background .15s}
-.crow:hover{background:var(--bg3)}
+/* CUSTOS — form e tabela agora usam o kit (.c-modal/.c-tabela/.c-kpi).
+   Sobraram so os badges de area e loja, ainda usados por areaClass()/lojaTag(). */
 .crow-area{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap;display:inline-block}
 .area-aluguel{background:rgba(91,139,245,.15);color:var(--cart)}
 .area-logistica{background:rgba(91,83,232,.1);color:var(--purple)}
@@ -237,14 +223,6 @@ body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;pointer-eve
 .cloja-cart{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(91,139,245,.15);color:var(--cart);font-weight:600}
 .cloja-urban{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(243,146,0,.14);color:var(--urban);font-weight:600}
 .cloja-ambas{font-size:10px;padding:2px 7px;border-radius:6px;background:rgba(91,83,232,.1);color:var(--purple);font-weight:600}
-.cdel-btn{padding:3px 8px;background:transparent;border:1px solid #fca5a5;border-radius:6px;color:var(--red);font-size:11px;cursor:pointer;transition:all .2s}
-.cdel-btn:hover{background:var(--red-bg)}
-.csum-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
-.csum-card{background:var(--bg2);border:.5px solid var(--border);border-radius:10px;padding:14px 16px}
-.csum-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
-.csum-val{font-size:20px;font-weight:600;font-feature-settings:'tnum'}
-.cresult-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);font-size:13px}
-.cresult-row:last-child{border-bottom:none;font-size:15px;font-weight:600;padding-top:10px}
 
 /* ESTOQUE */
 .estoque-toggle{display:flex;gap:6px;margin-bottom:14px}

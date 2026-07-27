@@ -126,4 +126,47 @@ const UI = {
     document.body.insertAdjacentHTML('beforeend', this.painel(opts));
   },
   fecharPainel(){ document.querySelector('.c-painel-overlay')?.remove(); },
+
+  // -- Campos de formulario -----------------------------------------------
+  // Tela nova nao escreve <input> na mao: pede UI.campo(...) (brief §1).
+  campo({label, corpo} = {}){
+    return `<div class="c-field">
+      ${label ? `<span class="c-field-label">${label}</span>` : ''}
+      ${corpo || ''}
+    </div>`;
+  },
+  input({id, tipo, valor, placeholder, extra} = {}){
+    return `<input class="c-input" id="${id}" type="${tipo || 'text'}"
+      value="${valor == null ? '' : this.esc(valor)}"
+      ${placeholder ? `placeholder="${this.esc(placeholder)}"` : ''} ${extra || ''}>`;
+  },
+  select({id, opcoes = [], valor} = {}){
+    const opts = opcoes.map(o => {
+      const v = (o && typeof o === 'object') ? o.v : o;
+      const t = (o && typeof o === 'object') ? o.t : o;
+      return `<option value="${this.esc(v)}"${String(v) === String(valor) ? ' selected' : ''}>${t}</option>`;
+    }).join('');
+    return `<select class="c-select" id="${id}">${opts}</select>`;
+  },
+  linha(...campos){ return `<div class="c-field-row${campos.length > 1 ? ' dois' : ''}">${campos.join('')}</div>`; },
+
+  // -- Modal central (acao focada: criar/editar) --------------------------
+  modal({titulo, corpo, foot, id, onFechar} = {}){
+    const fechar = onFechar || 'UI.fecharModal()';
+    return `<div class="c-modal-overlay" ${id ? `id="${id}"` : ''} onclick="if(event.target===this){${fechar}}">
+      <div class="c-modal">
+        <div class="c-modal-head">
+          <div class="c-modal-title">${titulo || ''}</div>
+          ${this.btn('✕', {onclick: fechar, variante:'sutil', sm:true})}
+        </div>
+        <div class="c-modal-body">${corpo || ''}</div>
+        ${foot ? `<div class="c-modal-foot">${foot}</div>` : ''}
+      </div>
+    </div>`;
+  },
+  abrirModal(opts){
+    this.fecharModal();
+    document.body.insertAdjacentHTML('beforeend', this.modal(opts));
+  },
+  fecharModal(){ document.querySelector('.c-modal-overlay')?.remove(); },
 };

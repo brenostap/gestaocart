@@ -195,105 +195,12 @@ function trocarAbaIncompletas(sev){
 }
 
 
+// Editar um custo reusa o modal unificado de custos.js (novo + editar).
+// (O antigo modal com estilo inline e lista de areas divergente foi removido.)
 function abrirEdicaoCusto(id){
   const c = (_custosCache||[]).find(x=>x.id===id);
   if(!c){ alert('Custo não encontrado'); return; }
-  editarCusto(id, c.desc||c.descricao||'', c.valor||0, c.loja||'ambas', c.area||'outros', c.data||'', c.obs||'');
-}
-
-function editarCusto(id, desc, valor, loja, area, data, obs){
-  const existing = document.getElementById('modal-editar-custo');
-  if(existing) existing.remove();
-
-  const areas = ['marketing','assistencia','financeiro','aluguel','ia','contabilidade','operacional','outros','salario'];
-  const areaOpts = areas.map(a => `<option value="${a}"${a===area?' selected':''}>${areaLabel(a)}</option>`).join('');
-  const lojaOpts = ['cart','urban','ambas'].map(l => `<option value="${l}"${l===loja?' selected':''}>${l==='cart'?'📱 Cart':l==='urban'?'🏙 Urban':'🔀 Ambas'}</option>`).join('');
-
-  const modal = document.createElement('div');
-  modal.id = 'modal-editar-custo';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)';
-  modal.innerHTML = `
-    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:440px;padding:24px">
-      <div style="font-size:15px;font-weight:700;margin-bottom:20px">✏️ Editar custo</div>
-
-      <div style="display:grid;gap:12px">
-        <div>
-          <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Descrição</div>
-          <input id="ec-desc" value="${UI.esc(desc)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
-            <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Valor</div>
-            <input id="ec-valor" type="number" value="${valor}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Data</div>
-            <input id="ec-data" type="date" value="${data}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
-            <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Loja</div>
-            <select id="ec-loja" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">${lojaOpts}</select>
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Categoria</div>
-            <select id="ec-area" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">${areaOpts}</select>
-          </div>
-        </div>
-        <div>
-          <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Obs</div>
-          <input id="ec-obs" value="${obs}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:20px">
-        <button onclick="document.getElementById('modal-editar-custo').remove()"
-          style="flex:1;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;color:var(--text3);font-size:13px;cursor:pointer">Cancelar</button>
-        <button onclick="salvarEdicaoCusto(${id})"
-          style="flex:2;padding:10px;background:var(--cart);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Salvar alterações</button>
-      </div>
-    </div>`;
-
-  document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
-  document.getElementById('ec-desc').focus();
-}
-
-async function salvarEdicaoCusto(id){
-  const desc  = document.getElementById('ec-desc').value.trim();
-  const valor = parseFloat(document.getElementById('ec-valor').value);
-  const loja  = document.getElementById('ec-loja').value;
-  const area  = document.getElementById('ec-area').value;
-  const data  = document.getElementById('ec-data').value;
-  const obs   = document.getElementById('ec-obs').value.trim();
-
-  if(!desc || isNaN(valor)){
-    alert('Preencha descrição e valor'); return;
-  }
-
-  const btn = document.querySelector('#modal-editar-custo button:last-child');
-  btn.textContent = 'Salvando...'; btn.disabled = true;
-
-  const r = await fetch(SB_URL+'/rest/v1/custos?id=eq.'+id, {
-    method: 'PATCH',
-    headers: {'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Content-Type':'application/json'},
-    body: JSON.stringify({ descricao:desc, valor, loja, area, data, obs })
-  });
-
-  if(r.ok){
-    document.getElementById('modal-editar-custo').remove();
-    // Atualizar cache local
-    const idx = (_custosCache||[]).findIndex(c=>c.id===id);
-    if(idx>=0){
-      _custosCache[idx] = {..._custosCache[idx], desc, descricao:desc, valor, loja, area, data, obs};
-    }
-    renderContent();
-    mostrarNotif('✅ Custo atualizado');
-  } else {
-    btn.textContent = 'Salvar alterações'; btn.disabled = false;
-    alert('Erro ao salvar — tente novamente');
-  }
+  abrirModalCusto(id);
 }
 
 
