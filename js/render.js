@@ -14,8 +14,10 @@ function calc(){
     }
   });
   const mvPeriod=allMovs.filter(m=>ids.has(m.parent_id)&&!allProdutosMap[m.parent_id]);
-  // Combinar -- injetar parent_id nos produtos de _produtos para compatibilidade com atMap
-  const isCancelado=(p)=>parseFloat(p.valor_estoque||0)===0 && (p.imei_1 || parseFloat(p.preco||0)>=200);
+  // Combinar -- injetar parent_id nos produtos de _produtos para compatibilidade com atMap.
+  // isCancelado: usa a definicao canonica (equipe.js) -- custo 0 && imei. Antes havia uma
+  // copia local com "|| preco>=200" que escondia acessorios sem custo (venda real) do
+  // dashboard, divergindo da folha que os contava. Removida para unificar.
   const acPeriod=[
     ...v.filter(x=>allProdutosMap[x.id]).flatMap(x=>
       allProdutosMap[x.id].filter(p=>!isPrincipal(p)&&!isCancelado(p)).map(p=>({...p,parent_id:x.id}))
