@@ -565,7 +565,8 @@ function renderVendas(){
 
   // Filtrar vendas por periodo e loja (sem canceled, sem pending por padrao)
   let v = mostrarPendentes ? getPendentes() : filterByPeriod(allVendas);
-  
+  const completo = vendasModo === 'completo';
+
   // KPIs da aba vendas -- devem bater com o dashboard
   const kpiProdutos = v.reduce((a,x) => a+(x._produtos&&x._produtos.length>0?x._produtos.filter(p=>isPrincipal(p)).length:0),0);
   const kpiBruto = v.reduce((a,x) => a+parseFloat(x.valor_total||0),0);
@@ -618,6 +619,9 @@ function renderVendas(){
       acessLucro,
       acessResumo,
       lucro:parseFloat(venda.lucro||0),
+      parcelas:parseInt(venda.parcelas||1)||1,
+      taxa:parseFloat(venda.taxa_venda||0),
+      liquido:parseFloat(venda.liquido_venda||0),
       nPrincipais:principais.length,
       nAcess:acesss.length,
     };
@@ -740,11 +744,19 @@ function renderVendas(){
           ${opt('todos',vendasAtendente,'Todos')}${atends.map(x=>opt(x,vendasAtendente,capNome(x))).join('')}
         </select></label>
       ${ativos ? UI.btn('Limpar filtros', {onclick:"filterVendas('limpar')", variante:'sutil', sm:true}) : ''}
+      ${UI.btn(completo?'− Menos colunas':'+ Mais colunas', {onclick:'toggleVendasModo()', variante:'sutil', sm:true})}
     </div>`;
 
   // -- Tabela com expansao ------------------------------------------------
   _vendasVisiveis = rows;
-  const COLS = 8 + (podeVerMargem()?2:0) + (podeVerValor()?1:0);
+  const COLS = 8
+    + (completo ? 1 : 0)                      // Parcelas
+    + (podeVerMargem() ? 1 : 0)               // Custo
+    + (podeVerValor()  ? 1 : 0)               // Valor
+    + (completo && podeVerMargem() ? 1 : 0)   // Taxa
+    + (completo && podeVerValor()  ? 1 : 0)   // Líquido
+    + (podeVerMargem() ? 1 : 0)               // Lucro
+    + (completo && podeVerMargem() ? 1 : 0);  // Margem
 
   const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
   const th = (col, texto, num) =>
@@ -760,10 +772,14 @@ function renderVendas(){
       <td data-rot="Vendedor">${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
       <td data-rot="Atendente">${escapeHtml(capNome(r.atendente))}</td>
       <td data-rot="Pagto">${pagtoTag(r.formas)}</td>
+      ${completo ? `<td data-rot="Parcelas" class="num"><span class="est-imei">${r.parcelas>1?r.parcelas+'x':'à vista'}</span></td>` : ''}
       <td data-rot="Qtd" class="num"><span class="est-imei">${r.qtd}</span></td>
       ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(r.custo)}</td>` : ''}
       ${podeVerValor()  ? `<td data-rot="Valor" class="num forte">${money(r.valor)}</td>` : ''}
+      ${completo && podeVerMargem() ? `<td data-rot="Taxa" class="num">${r.taxa>0?money(r.taxa):'—'}</td>` : ''}
+      ${completo && podeVerValor()  ? `<td data-rot="Líquido" class="num">${r.liquido>0?money(r.liquido):'—'}</td>` : ''}
       ${podeVerMargem() ? `<td data-rot="Lucro" class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
+      ${completo && podeVerMargem() ? `<td data-rot="Margem" class="num">${r.valor>0?Math.round(r.lucro/r.valor*100)+'%':'—'}</td>` : ''}
     </tr>`;
 
     if(aberto){
@@ -825,8 +841,8 @@ function renderVendas(){
         corpo:`<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
           <thead><tr>
             ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
-            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}<th>Pagto</th>${th('qtd','Qtd',true)}
-            ${podeVerMargem() ? th('custo','Custo',true) : ''}${podeVerValor() ? th('valor','Valor',true) : ''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}
+            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}<th>Pagto</th>${completo?'<th class="num">Parc.</th>':''}${th('qtd','Qtd',true)}
+            ${podeVerMargem() ? th('custo','Custo',true) : ''}${podeVerValor() ? th('valor','Valor',true) : ''}${completo&&podeVerMargem()?'<th class="num">Taxa</th>':''}${completo&&podeVerValor()?'<th class="num">Líquido</th>':''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}${completo&&podeVerMargem()?'<th class="num">Margem</th>':''}
           </tr></thead><tbody>${corpo}</tbody></table></div>` })
     : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
@@ -837,6 +853,11 @@ function renderVendas(){
 
 let _vendasVisiveis = [];
 let vendasAbertas = new Set();
+let vendasModo = 'compacto'; // 'compacto' | 'completo' — liga as colunas analiticas extras
+function toggleVendasModo(){
+  vendasModo = vendasModo==='completo' ? 'compacto' : 'completo';
+  if(currentTab==='vendas') document.getElementById('content').innerHTML = renderVendas();
+}
 
 function alternarLinhaVenda(id){
   if(vendasAbertas.has(id)) vendasAbertas.delete(id);

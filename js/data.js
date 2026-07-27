@@ -18,17 +18,29 @@ async function loadFromSupabase(){
     setProgress(25+Math.round(i/vendasIds.length*35), 'Produtos: '+(i+lote.length)+'/'+vendasIds.length+'...');
   }
 
-  // Pagamentos -- so a forma de pagamento por venda (para o badge). Mesmo padrao
-  // de lotes de 100 ids; ignora cancelados. NAO alimenta calculo de lucro.
+  // Pagamentos por venda -- forma (badge) + agregados (taxa/liquido/parcelas)
+  // para as colunas da tabela. Ignora cancelados. NAO altera o lucro.
   setProgress(62,'Carregando pagamentos...');
   let pagamentos = [];
   for(let i=0;i<vendasIds.length;i+=100){
     const lote = vendasIds.slice(i,i+100);
-    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,status&venda_id=in.(${lote.join(',')})`);
+    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,valor,taxa,liquido,numero_parcelas,status&venda_id=in.(${lote.join(',')})`);
     pagamentos = pagamentos.concat(pags||[]);
   }
   const pagsMap={};
-  (pagamentos||[]).forEach(p=>{ if(p.status!=='canceled'){ (pagsMap[p.venda_id]=pagsMap[p.venda_id]||[]).push(p.forma_pagamento); } });
+  (pagamentos||[]).forEach(p=>{ if(p.status!=='canceled'){ (pagsMap[p.venda_id]=pagsMap[p.venda_id]||[]).push(p); } });
+  // taxa = custo real da maquininha (Σ taxa; liquido ja e valor-taxa). liquido =
+  // o que caiu de fato. parcelas = maior parcelamento entre os pagamentos.
+  const pagInfoMap={};
+  Object.keys(pagsMap).forEach(vid=>{
+    const arr = pagsMap[vid];
+    pagInfoMap[vid] = {
+      formas: [...new Set(arr.map(p=>p.forma_pagamento).filter(Boolean))],
+      taxa: arr.reduce((a,p)=>a+parseFloat(p.taxa||0),0),
+      liquido: arr.reduce((a,p)=>a+parseFloat(p.liquido||0),0),
+      parcelas: arr.reduce((m,p)=>Math.max(m, parseInt(p.numero_parcelas||1)||1),1),
+    };
+  });
 
   setProgress(65,'Carregando estoque...');
   const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
@@ -42,7 +54,10 @@ async function loadFromSupabase(){
   
   allVendas = vendas.map(v=>({
     ...v,
-    formas_pagamento: [...new Set((pagsMap[v.id]||[]).filter(Boolean))],
+    formas_pagamento: (pagInfoMap[v.id]||{}).formas || [],
+    taxa_venda: (pagInfoMap[v.id]||{}).taxa || 0,
+    liquido_venda: (pagInfoMap[v.id]||{}).liquido || 0,
+    parcelas: (pagInfoMap[v.id]||{}).parcelas || 1,
     // Campos que o codigo espera
     data_saida: v.data_saida,
     valor_total: v.valor_total,
