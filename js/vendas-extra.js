@@ -19,6 +19,12 @@ function getVendasIncompletas(){
       isPrincipal(p) && parseFloat(p.preco||0) > 0 && parseFloat(p.valor_estoque||0) > parseFloat(p.preco||0)
     );
 
+    // Item vendido sem custo lancado (valor_estoque 0, com preco e sem imei -> nao e
+    // cancelamento): o lucro sai inflado (= preco) e a comissao/margem ficam erradas.
+    const custoZeroItem = v._produtos?.find(p =>
+      parseFloat(p.preco||0) > 0 && parseFloat(p.valor_estoque||0) === 0 && !p.imei_1
+    );
+
     const vendIsVO = matchNome(vend, VO_KEYS);
     const vendIsAT = matchNome(vend, AT_KEYS); // atendente pode vender device (R$25/un)
     const vendIsLoja = !vend || SOCIOS_LOJA.includes(vend);
@@ -35,6 +41,7 @@ function getVendasIncompletas(){
     if(atend && !atendIsKnown) tipos.push('atendente_desconhecido');
     if(valor === 0 && temProduto && v.status==='completed') tipos.push('valor_zero');
     if(prejuizoDevice) tipos.push('prejuizo_device');
+    if(custoZeroItem) tipos.push('custo_zero');
 
     if(tipos.length > 0) {
       // Severidade: 'leve' se a venda nao tem device (so acessorio) -- nao bloqueia comissao de R$25
@@ -83,6 +90,7 @@ function abrirModalIncompletas(){
     'atendente_desconhecido': '❓ Atendente desconhecido',
     'valor_zero': '💸 Valor R$ 0',
     'prejuizo_device': '📉 Device com prejuízo',
+    'custo_zero': '🏷️ Custo não lançado',
   };
 
   function rowsHTML(itens, sev){
