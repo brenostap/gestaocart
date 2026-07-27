@@ -55,6 +55,20 @@ const UI = {
     return `<span class="c-badge${mono ? ' c-badge-mono' : ''}"${this._tom(tom)}>${texto}</span>`;
   },
 
+  // -- Badge de forma de pagamento ----------------------------------------
+  // Eixo de cor proprio (data-forma), nao os tons semanticos. Normaliza o nome
+  // cru da FoneNinja ("Pix MercadoPago", "Crédito"...) para chave + rotulo curto.
+  // Forma nao reconhecida vira badge neutro com o texto original.
+  badgePagto(forma){
+    const raw = String(forma == null ? '' : forma).toLowerCase();
+    let key = '', label = forma || '—';
+    if(raw.includes('pix'))                          { key = 'pix';      label = 'Pix'; }
+    else if(raw.includes('créd') || raw.includes('cred')) { key = 'credito';  label = 'Crédito'; }
+    else if(raw.includes('déb')  || raw.includes('deb'))  { key = 'debito';   label = 'Débito'; }
+    else if(raw.includes('dinh'))                    { key = 'dinheiro'; label = 'Dinheiro'; }
+    return `<span class="c-badge"${key ? ` data-forma="${key}"` : ''}>${this.esc(label)}</span>`;
+  },
+
   // -- Tabela -------------------------------------------------------------
   // colunas: [{titulo, num, largura}]
   // linhas:  [[celula, ...]]  — celula pode ser string ou {v, num, classe}

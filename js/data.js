@@ -18,6 +18,18 @@ async function loadFromSupabase(){
     setProgress(25+Math.round(i/vendasIds.length*35), 'Produtos: '+(i+lote.length)+'/'+vendasIds.length+'...');
   }
 
+  // Pagamentos -- so a forma de pagamento por venda (para o badge). Mesmo padrao
+  // de lotes de 100 ids; ignora cancelados. NAO alimenta calculo de lucro.
+  setProgress(62,'Carregando pagamentos...');
+  let pagamentos = [];
+  for(let i=0;i<vendasIds.length;i+=100){
+    const lote = vendasIds.slice(i,i+100);
+    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,status&venda_id=in.(${lote.join(',')})`);
+    pagamentos = pagamentos.concat(pags||[]);
+  }
+  const pagsMap={};
+  (pagamentos||[]).forEach(p=>{ if(p.status!=='canceled'){ (pagsMap[p.venda_id]=pagsMap[p.venda_id]||[]).push(p.forma_pagamento); } });
+
   setProgress(65,'Carregando estoque...');
   const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
   const ajustes = await sbGet('ajustes_acessorios', 'order=id.asc', 500);
@@ -30,6 +42,7 @@ async function loadFromSupabase(){
   
   allVendas = vendas.map(v=>({
     ...v,
+    formas_pagamento: [...new Set((pagsMap[v.id]||[]).filter(Boolean))],
     // Campos que o codigo espera
     data_saida: v.data_saida,
     valor_total: v.valor_total,

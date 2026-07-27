@@ -67,6 +67,13 @@
   --purple:#5b53e8;
   --blue:#3b6fd6;
 
+  /* Formas de pagamento — eixo de cor CATEGORICO (nao semantico); tons calmos
+     que nao reusam verde=lucro / violeta=cart / ambar=urban. Ver DESIGN-SYSTEM. */
+  --pay-pix:#0f766e;      --pay-pix-bg:#d3efea;
+  --pay-credito:#a83a63;  --pay-credito-bg:#fbe0e9;
+  --pay-debito:#4f6178;   --pay-debito-bg:#e5eaf1;
+  --pay-dinheiro:#8a6437; --pay-dinheiro-bg:#f2e7d3;
+
   --shadow-sm:0 1px 2px rgba(0,0,0,.04);
   --shadow-md:0 2px 6px rgba(0,0,0,.06);
   --shadow-lg:0 4px 12px rgba(0,0,0,.08);
@@ -116,6 +123,11 @@
     --purple:#a5b4fc;
     --blue:#5b8bf5;
 
+    --pay-pix:#5eead4;      --pay-pix-bg:#0c302c;
+    --pay-credito:#f7a8c0;  --pay-credito-bg:#3a1a26;
+    --pay-debito:#aab8cd;   --pay-debito-bg:#212a3d;
+    --pay-dinheiro:#d8b57e; --pay-dinheiro-bg:#33280f;
+
     --shadow-sm:0 1px 2px rgba(0,0,0,.35);
     --shadow-md:0 2px 8px rgba(0,0,0,.42);
     --shadow-lg:0 6px 18px rgba(0,0,0,.5);
@@ -140,6 +152,10 @@
   --red:#f87171;   --red-bg:#3d1a1a;
   --yellow:#f5a623;--yellow-bg:#3a2a10;
   --purple:#a5b4fc; --blue:#5b8bf5;
+  --pay-pix:#5eead4;      --pay-pix-bg:#0c302c;
+  --pay-credito:#f7a8c0;  --pay-credito-bg:#3a1a26;
+  --pay-debito:#aab8cd;   --pay-debito-bg:#212a3d;
+  --pay-dinheiro:#d8b57e; --pay-dinheiro-bg:#33280f;
   --shadow-sm:0 1px 2px rgba(0,0,0,.35);
   --shadow-md:0 2px 8px rgba(0,0,0,.42);
   --shadow-lg:0 6px 18px rgba(0,0,0,.5);

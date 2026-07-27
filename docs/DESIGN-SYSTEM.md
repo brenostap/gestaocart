@@ -11,6 +11,7 @@ Este arquivo diz *onde está* e *o que já foi decidido*.
 | Fonte | **Sora** (texto) + **Geist Mono** (números, ids, seriais) | testada contra Geist, Manrope, Jakarta, Outfit e Space Grotesk em `direcoes.html` |
 | Acento | azul `#3b6fd6` (Cart) / laranja `#F39200` (Urban) | só na ação primária e no estado ativo (Apple HIG) |
 | Cor semântica | verde=lucro/ok · âmbar=atenção · vermelho=crítico · violeta=processo | cor = significado, nunca decoração |
+| Cor de forma de pagamento | eixo próprio `--pay-*` (Pix=teal · Crédito=rosa · Débito=ardósia · Dinheiro=bronze) via `UI.badgePagto` | **exceção consciente**: forma é categoria, não estado. Tons calmos que **não** reusam os semânticos (verde=lucro/âmbar=urban/violeta=cart); forma desconhecida cai no badge neutro |
 | Tema escuro | `prefers-color-scheme` + override manual em `data-theme` | preferência salva em `localStorage.pc_tema` |
 | Build | **sem bundler** — `<script>` clássicos | preserva os ~91 `onclick` inline do HTML |
 

@@ -606,6 +606,7 @@ function renderVendas(){
       produtosLista,
       itens:{principais:produtosLista, acessorios:acessLista},
       loja:loja||'—',
+      formas:venda.formas_pagamento||[],
       vendedor:vendedor||'—',
       atendente:atendente||'—',
       isSocio:vendedor?['gustavo','marcella'].includes(vendedor.toLowerCase()):false,
@@ -665,6 +666,8 @@ function renderVendas(){
   const capNome = n => n && n!=='—' ? n.charAt(0).toUpperCase()+n.slice(1) : '—';
   const lojaTag = l => l==='cart' ? UI.badge('Cart','processo')
                      : l==='urban' ? UI.badge('Urban','alerta') : '';
+  const pagtoTag = formas => (formas && formas.length)
+                     ? formas.map(f => UI.badgePagto(f)).join(' ') : '';
 
   // -- Cabecalho ----------------------------------------------------------
   const cabecalho = `
@@ -741,7 +744,7 @@ function renderVendas(){
 
   // -- Tabela com expansao ------------------------------------------------
   _vendasVisiveis = rows;
-  const COLS = 7 + (podeVerMargem()?2:0) + (podeVerValor()?1:0);
+  const COLS = 8 + (podeVerMargem()?2:0) + (podeVerValor()?1:0);
 
   const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
   const th = (col, texto, num) =>
@@ -756,6 +759,7 @@ function renderVendas(){
       <td data-rot="Produto">${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
       <td data-rot="Vendedor">${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
       <td data-rot="Atendente">${escapeHtml(capNome(r.atendente))}</td>
+      <td data-rot="Pagto">${pagtoTag(r.formas)}</td>
       <td data-rot="Qtd" class="num"><span class="est-imei">${r.qtd}</span></td>
       ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(r.custo)}</td>` : ''}
       ${podeVerValor()  ? `<td data-rot="Valor" class="num forte">${money(r.valor)}</td>` : ''}
@@ -821,7 +825,7 @@ function renderVendas(){
         corpo:`<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
           <thead><tr>
             ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
-            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}${th('qtd','Qtd',true)}
+            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}<th>Pagto</th>${th('qtd','Qtd',true)}
             ${podeVerMargem() ? th('custo','Custo',true) : ''}${podeVerValor() ? th('valor','Valor',true) : ''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}
           </tr></thead><tbody>${corpo}</tbody></table></div>` })
     : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',

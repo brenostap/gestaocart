@@ -59,6 +59,12 @@
 .c-badge[data-tom="alerta"]   { background:var(--warning-bg); color:var(--warning); }
 .c-badge[data-tom="critico"]  { background:var(--danger-bg);  color:var(--danger); }
 .c-badge[data-tom="processo"] { background:var(--process-bg); color:var(--process); }
+/* forma de pagamento — eixo de cor categorico (nao semantico); ver DESIGN-SYSTEM.
+   forma desconhecida cai no neutro base do .c-badge. */
+.c-badge[data-forma="pix"]      { background:var(--pay-pix-bg);      color:var(--pay-pix); }
+.c-badge[data-forma="credito"]  { background:var(--pay-credito-bg);  color:var(--pay-credito); }
+.c-badge[data-forma="debito"]   { background:var(--pay-debito-bg);   color:var(--pay-debito); }
+.c-badge[data-forma="dinheiro"] { background:var(--pay-dinheiro-bg); color:var(--pay-dinheiro); }
 .c-badge-mono{ font-family:var(--font-mono); font-weight:500; letter-spacing:0; }
 
 /* -- TABELA --------------------------------------------------------------- */
