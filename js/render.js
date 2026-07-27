@@ -113,7 +113,7 @@ function calc(){
 function renderContent(){
   const c=document.getElementById('content');
   if(!c)return;
-  if(currentTab==='dash')c.innerHTML=renderDash();
+  if(currentTab==='dash')c.innerHTML=(typeof renderDashV2==='function'&&typeof dashV2Ativo==='function'&&dashV2Ativo())?renderDashV2():renderDash();
   else if(currentTab==='vendas')c.innerHTML=renderVendas();
   else if(currentTab==='estoque')c.innerHTML=renderEstoque();
   else if(currentTab==='custos')c.innerHTML=renderCustos();
@@ -218,7 +218,7 @@ function renderDash(){
         <h1 class="pg-title">Dashboard</h1>
         <div class="pg-desc">Resultado do período, metas da equipe e comparativo entre as lojas.</div>
       </div>
-      <div class="pg-acoes">${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}</div>
+      <div class="pg-acoes">${UI.btn('✨ Testar novo layout', {onclick:'toggleDashV2()', variante:'sutil'})}${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}</div>
     </div>`;
 
   const listaKpi = [

@@ -1,0 +1,101 @@
+/* ============================================================================
+   dash-v2 — componentes novos do dashboard reconstruído (preview gated)
+   Só o que NÃO existe no kit nasce aqui. Cards, KPIs e tabelas reusam .c-* .
+   Quando promovido a padrão, o que for genérico migra para components.css.
+   Regra: nenhuma cor literal — sempre var(--…) de theme.css.
+   ============================================================================ */
+
+/* -- Header do dashboard (título + ações + sino) -------------------------- */
+.d2-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.d2-actions{display:flex;align-items:center;gap:10px;position:relative}
+
+/* -- Sino de notificação --------------------------------------------------- */
+.d2-bell{position:relative;width:38px;height:38px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.d2-bell:hover{background:var(--bg3);color:var(--text2)}
+.d2-bell .d2-bell-dot{position:absolute;top:7px;right:8px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--red);border:2px solid var(--bg);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.d2-notif{display:none;position:absolute;top:46px;right:0;width:340px;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:8px;z-index:60;box-shadow:var(--shadow-xl,0 16px 40px rgba(0,0,0,.4))}
+.d2-notif.open{display:block}
+.d2-notif-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 10px}
+.d2-notif-h b{font-size:13px;font-weight:700;color:var(--text)}
+.d2-notif-h span{font-size:11px;color:var(--text4)}
+.d2-notif-item{display:flex;align-items:center;gap:11px;padding:10px;border-radius:10px;cursor:pointer;background:none;border:none;width:100%;text-align:left;font:inherit}
+.d2-notif-item:hover{background:var(--bg3)}
+.d2-notif-ic{width:32px;height:32px;border-radius:8px;background:var(--bg4);color:var(--text3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.d2-notif-tx{flex:1;min-width:0}
+.d2-notif-tx .a{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d2-notif-tx .b{font-size:11px;color:var(--text4);margin-top:1px}
+.d2-notif-go{font-size:11px;color:var(--cart);font-weight:600;white-space:nowrap}
+.d2-notif-empty{padding:16px;text-align:center;font-size:12px;color:var(--text4)}
+
+/* -- Grids de linha -------------------------------------------------------- */
+.d2-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.d2-grid-donut{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:720px){.d2-grid-2,.d2-grid-donut{grid-template-columns:1fr}}
+
+/* -- Gráfico Vendas do período -------------------------------------------- */
+.d2-tiles{display:flex;gap:10px;margin:4px 0 10px;flex-wrap:wrap}
+.d2-tile{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 13px;min-width:104px}
+.d2-tile-l{font-size:10.5px;color:var(--text4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.d2-tile-v{font-size:18px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.d2-pin{width:8px;height:8px;border-radius:2px;display:inline-block}
+.d2-legend{display:flex;gap:16px;font-size:11.5px;color:var(--text3)}
+.d2-legend span{display:inline-flex;align-items:center;gap:6px}
+.d2-legend .d2-line{width:14px;height:2px;border-radius:2px;background:var(--text2)}
+.d2-chart{display:block;width:100%}
+
+/* -- Donut ----------------------------------------------------------------- */
+.d2-donut-wrap{display:flex;align-items:center;gap:24px}
+.d2-donut{position:relative;flex-shrink:0}
+.d2-donut .d2-donut-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.d2-donut .d2-donut-c b{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.d2-donut .d2-donut-c span{font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.d2-leg{flex:1;display:flex;flex-direction:column;gap:12px}
+.d2-leg-item{display:flex;align-items:center;gap:10px}
+.d2-leg-item .d2-pin{width:10px;height:10px;border-radius:3px}
+.d2-leg-tx{flex:1;min-width:0}
+.d2-leg-tx .n{font-size:13px;font-weight:600;color:var(--text)}
+.d2-leg-tx .s{font-size:11px;color:var(--text4);margin-top:1px}
+.d2-leg-v{font-size:15px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+
+/* -- Gauge (meia-lua) ------------------------------------------------------ */
+.d2-gauge-wrap{display:flex;flex-direction:column;align-items:center}
+.d2-gauge-val{margin-top:-40px;text-align:center}
+.d2-gauge-val b{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+.d2-gauge-val span{font-size:11.5px;color:var(--text4);display:block}
+.d2-gauge-foot{display:flex;justify-content:space-between;width:100%;margin-top:14px;font-size:11.5px}
+.d2-gauge-foot .k{color:var(--text4)}
+.d2-gauge-foot .v{color:var(--text2);font-weight:600;text-align:center}
+
+/* -- Ranking --------------------------------------------------------------- */
+.d2-rank-row{display:grid;grid-template-columns:20px 1fr auto auto;gap:12px;align-items:center;padding:10px 2px;border-top:1px solid var(--border)}
+.d2-rank-row:first-child{border-top:none}
+.d2-rank-pos{font-size:12px;font-weight:700;color:var(--text4);text-align:center}
+.d2-rank-who{display:flex;align-items:center;gap:10px;min-width:0}
+.d2-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;flex-shrink:0;background:var(--bg4);color:var(--text2);border:1px solid var(--border2)}
+.d2-rank-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d2-rank-res{font-size:12.5px;color:var(--text3);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.d2-rank-com{font-size:13px;font-weight:700;color:var(--text);text-align:right;white-space:nowrap;min-width:58px;font-variant-numeric:tabular-nums}
+.d2-rank-loja .d2-rank-name{color:var(--text3)}
+
+/* -- Resultado (cascata recolhível) --------------------------------------- */
+.d2-cascata summary{cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--text2);display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+.d2-cascata summary::-webkit-details-marker{display:none}
+.d2-cascata summary .chev{color:var(--text4);font-size:12px;transition:transform .2s}
+.d2-cascata[open] summary .chev{transform:rotate(90deg)}
+.d2-res-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-top:1px solid var(--border);font-size:13px}
+.d2-res-row .k{color:var(--text3)}
+.d2-res-row .v{font-weight:600;font-variant-numeric:tabular-nums}
+.d2-res-row.neg .v{color:var(--red);font-weight:500}
+.d2-res-row.total{margin-top:4px;border-top:1px solid var(--border2);padding-top:10px}
+.d2-res-row.total .k{color:var(--text2);font-weight:600}
+.d2-res-row.total .v{font-size:16px;font-weight:800;color:var(--green)}
+
+/* -- Distribuição de margem ------------------------------------------------ */
+.d2-mg-faixas{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.d2-mg-faixa{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;text-align:center;min-width:64px}
+.d2-mg-faixa b{font-size:16px;font-weight:700;display:block;font-variant-numeric:tabular-nums}
+.d2-mg-faixa span{font-size:10px;color:var(--text4)}
+.d2-mg-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px}
+.d2-mg-badge{padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+.d2-live{color:var(--green);font-size:10px;font-weight:600}
