@@ -113,7 +113,7 @@ function renderTabela(){
     const curto = titulo.replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').replace(/\s*Lacrado\s*$/i,' LAC').trim();
     const cor = pct<10 ? 'var(--red)' : pct<15 ? 'var(--yellow)' : 'var(--green)';
     return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 10px;font-size:12px;color:var(--text3)">${item.serial||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;color:var(--text3)">${escapeHtml(item.serial||'—')}</td>
       <td style="padding:7px 10px;font-size:12px">${escapeHtml(curto)}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums">${brl(custo)}</td>
       <td style="padding:7px 10px;font-size:12px;text-align:right;color:var(--cart);font-weight:600;font-variant-numeric:tabular-nums">${brl(precoTabela)}</td>

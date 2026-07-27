@@ -400,8 +400,8 @@ function renderCustos(){
       return`<div class="crow" id="crow-${c.id}">
         <div>${c.data||'—'}</div>
         <div>
-          <div style="color:#ddd;font-size:12px">${c.desc}</div>
-          ${c.obs?`<div style="font-size:11px;color:var(--text4);margin-top:1px">${c.obs}</div>`:''}
+          <div style="color:#ddd;font-size:12px">${escapeHtml(c.desc||'')}</div>
+          ${c.obs?`<div style="font-size:11px;color:var(--text4);margin-top:1px">${escapeHtml(c.obs)}</div>`:''}
         </div>
         <div><span class="${areaClass(c.area)}">${areaLabel(c.area)}</span></div>
         <div>${lojaTag(c.loja)}</div>

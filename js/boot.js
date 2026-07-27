@@ -3,14 +3,18 @@ window.onload=async function(){
   sb.auth.onAuthStateChange((_event, session)=>{
     SB_TOKEN = session ? session.access_token : SB_KEY;
   });
-  const { data:{ session } } = await sb.auth.getSession();
-  if(session){
-    SB_TOKEN=session.access_token;
-    enterApp();
-    loadAllData();
-  } else {
-    // Sem sessão: mostrar tela de login
-    const ls=document.getElementById('login-screen');
-    if(ls) ls.style.display='flex';
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session){
+      SB_TOKEN=session.access_token;
+      enterApp();
+      loadAllData();
+      return;
+    }
+  }catch(e){
+    console.error('Falha ao recuperar sessao no boot:', e);
   }
+  // Sem sessão (ou falha ao obtê-la): mostrar tela de login como fallback
+  const ls=document.getElementById('login-screen');
+  if(ls) ls.style.display='flex';
 };

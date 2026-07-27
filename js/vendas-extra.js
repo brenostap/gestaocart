@@ -211,7 +211,7 @@ function editarCusto(id, desc, valor, loja, area, data, obs){
       <div style="display:grid;gap:12px">
         <div>
           <div style="font-size:11px;color:var(--text4);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Descrição</div>
-          <input id="ec-desc" value="${desc}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
+          <input id="ec-desc" value="${UI.esc(desc)}" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;box-sizing:border-box">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <div>

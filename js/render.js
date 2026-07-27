@@ -453,8 +453,8 @@ function renderDash(){
           <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
             <span style="flex-shrink:0;background:${x.mg<0?'rgba(255,69,58,.15)':'rgba(255,212,10,.1)'};color:${x.mg<0?'var(--red)':'var(--yellow)'};padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px">${x.mg}%</span>
             <div style="min-width:0">
-              <div style="font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.modelo||'—'}</div>
-              <div style="font-size:10px;color:var(--text4)">${dataFmt} · ${x.vendedor||'—'} · ${x.loja||'—'} · <span style="font-family:monospace">#${x.id}</span></div>
+              <div style="font-size:12px;font-weight:500;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(x.modelo||'—')}</div>
+              <div style="font-size:10px;color:var(--text4)">${dataFmt} · ${escapeHtml(x.vendedor||'—')} · ${x.loja||'—'} · <span style="font-family:monospace">#${x.id}</span></div>
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:10px">
@@ -487,7 +487,7 @@ function renderDash(){
       return '<div style="display:grid;grid-template-columns:40px 60px 1fr 80px 80px 70px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:12px">'
         +'<div style="font-size:10px;color:var(--text4)">'+dataFmt+'</div>'
         +'<div style="font-size:10px;color:var(--cart);font-family:monospace;cursor:pointer;text-decoration:underline" onclick="irParaVenda('+venda.id+')">#'+venda.id+'</div>'
-        +'<div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+prodStr+'</div><div style="font-size:10px;color:var(--text3);margin-top:1px">'+nomeCliente+' '+lojaTag+(vendedor?' · <span style="color:var(--text4)">'+vendedor+'</span>':'')+'</div></div>'
+        +'<div style="min-width:0"><div style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(prodStr)+'</div><div style="font-size:10px;color:var(--text3);margin-top:1px">'+escapeHtml(nomeCliente)+' '+lojaTag+(vendedor?' · <span style="color:var(--text4)">'+escapeHtml(vendedor)+'</span>':'')+'</div></div>'
         +'<div style="font-weight:600;text-align:right">'+brl(bruto)+'</div>'
         +'<div style="text-align:right;color:'+mgColor+';font-weight:600">'+brl(lucro)+'</div>'
         +'<div style="text-align:right;font-size:11px;color:'+mgColor+'">'+mgV+'%</div>'
@@ -540,7 +540,7 @@ function renderDash(){
         return`<div style="display:grid;grid-template-columns:55px 60px 1fr 90px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--border);font-size:12px">
           <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:${tipoConfig.bg};color:${tipoConfig.color}">${tipoConfig.label}</span>
           <span style="color:var(--text3);font-size:11px">${dataFmt}</span>
-          <span style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mov.aparelho}</span>
+          <span style="color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(mov.aparelho)}</span>
           <span style="text-align:right;font-weight:600">${mov.valor>0?brl(mov.valor):'—'}</span>
         </div>`;
       }).join('')}

@@ -108,12 +108,12 @@ function renderMovsClientes(){
     const rowHtml='<div style="display:grid;grid-template-columns:1fr 100px 110px 60px 80px 90px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;align-items:center;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'rgba(91,139,245,.04)\'" onmouseout="this.style.background=\'\'" onclick="toggleClienteExpand(this.getAttribute(\'data-cid\'))" data-cid="'+expandId+'">'
       +'<div style="min-width:0">'
         +'<div style="display:flex;align-items:center;gap:6px;overflow:hidden">'
-          +'<span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nomeCurto+'</span>'
+          +'<span style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escapeHtml(nomeCurto)+'</span>'
           +(c.compras>1?'<span style="flex-shrink:0;font-size:10px;background:rgba(91,139,245,.15);color:var(--cart);padding:1px 6px;border-radius:4px;font-weight:700">'+c.compras+'x</span>':'')
         +'</div>'
         +(linksHtml?'<div style="margin-top:3px">'+linksHtml+'</div>':'')
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.cidade!=='—'?c.cidade:'—')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(c.cidade!=='—'?escapeHtml(c.cidade):'—')+'</div>'
       +'<div style="font-size:13px;font-weight:600;text-align:right">'+brl(c.bruto)+'</div>'
       +'<div style="font-size:12px;color:var(--text3);text-align:center">'+c.compras+'</div>'
       +'<div style="font-size:12px;font-weight:600;text-align:center;color:var(--cart)">'+c.iphones+'</div>'

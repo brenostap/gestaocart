@@ -79,10 +79,20 @@ async function loadAllData(){
         setProgress(95,'Carregando estoque FoneNinja...');
         // Buscar estoque atualizado do FoneNinja (dados mais frescos)
         const dp=encodeURIComponent(JSON.stringify({first:0,rows:1000,sortField:'id',sortOrder:-1,filters:{global:{value:null,matchMode:'contains'},status:{value:'available',matchMode:'equals'}}}));
-        const re=await fetch(BASE+'/apples?dt_params='+dp,{headers:hd});
-        const de=await re.json();
-        const ae=de.payload?.data||de.data||[];
-        if(ae.length>0) estoqueItens=ae;
+        // Estoque "fresco" do FoneNinja e nice-to-have: se falhar (timeout/cold-start/erro),
+        // mantem o estoque ja carregado do Supabase em vez de descartar a carga e deslogar.
+        try{
+          const re=await fetch(BASE+'/apples?dt_params='+dp,{headers:hd});
+          if(re.ok){
+            const de=await re.json();
+            const ae=de.payload?.data||de.data||[];
+            if(ae.length>0) estoqueItens=ae;
+          }else{
+            console.warn('Estoque fresco FoneNinja: HTTP '+re.status+' — mantendo estoque do Supabase');
+          }
+        }catch(freshErr){
+          console.warn('Estoque fresco FoneNinja indisponivel — mantendo estoque do Supabase:', freshErr.message);
+        }
         setProgress(100,'Pronto!');
         await carregarTabelaPrecos();
         document.getElementById('loading-overlay').style.display='none';
@@ -99,6 +109,7 @@ async function loadAllData(){
     setProgress(5,'Carregando vendas...');
     for(let p=1;p<=8;p++){
       const r=await fetch(BASE+'/vendas?sort=data_saida:desc&page='+p+'&perPage=100&filters[status]=completed',{headers:hd});
+      if(!r.ok) throw new Error('Falha ao carregar vendas (HTTP '+r.status+')');
       const d=await r.json();const a=d.data||[];
       allVendas=allVendas.concat(a);
       setProgress(5+p*4,'Vendas: '+allVendas.length+'...');

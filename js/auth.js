@@ -96,6 +96,14 @@ async function sbGet(table, params='', limit=2000){
   const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json','Prefer':'count=exact'}});
   if(r.status===401){ sessaoExpirou(); throw new Error('Sessão expirada'); }
   if(!r.ok) throw new Error(`Supabase ${table}: ${r.status}`);
-  return r.json();
+  const json=await r.json();
+  // count=exact -> Content-Range "inicio-fim/total". Se o total passar do limit, a
+  // resposta veio truncada em silencio (o dashboard subconta faturamento/lucro). Avisa.
+  const range=r.headers.get('content-range');
+  const total=range&&range.includes('/')?parseInt(range.split('/')[1],10):null;
+  if(total!=null&&Array.isArray(json)&&total>json.length){
+    console.warn(`sbGet(${table}): ${json.length} de ${total} linhas — limite de ${limit} atingido, dados TRUNCADOS. Aumente o limit ou pagine.`);
+  }
+  return json;
 }
 
