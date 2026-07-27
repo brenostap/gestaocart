@@ -29,8 +29,9 @@
 
 /* -- Grids de linha -------------------------------------------------------- */
 .d2-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-.d2-grid-donut{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:720px){.d2-grid-2,.d2-grid-donut{grid-template-columns:1fr}}
+.d2-grid-donut{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:960px){.d2-grid-donut{grid-template-columns:1fr}}
+@media(max-width:720px){.d2-grid-2{grid-template-columns:1fr}}
 
 /* -- Gráfico Vendas do período -------------------------------------------- */
 .d2-tiles{display:flex;gap:10px;margin:4px 0 10px;flex-wrap:wrap}
@@ -42,6 +43,14 @@
 .d2-legend span{display:inline-flex;align-items:center;gap:6px}
 .d2-legend .d2-line{width:14px;height:2px;border-radius:2px;background:var(--text2)}
 .d2-chart{display:block;width:100%}
+.d2-hit{fill:transparent;cursor:pointer}
+.d2-hit:hover{fill:var(--text);fill-opacity:.05}
+.d2-tip{position:fixed;z-index:9999;pointer-events:none;display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:9px 11px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:12px;min-width:132px}
+.d2-tip-h{font-size:11px;color:var(--text4);font-weight:600;margin-bottom:6px}
+.d2-tip-r{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:2px 0}
+.d2-tip-r span{color:var(--text3);display:inline-flex;align-items:center;gap:6px}
+.d2-tip-r i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.d2-tip-r b{font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
 
 /* -- Donut ----------------------------------------------------------------- */
 .d2-donut-wrap{display:flex;align-items:center;gap:24px}
@@ -62,9 +71,8 @@
 .d2-gauge-val{margin-top:-40px;text-align:center}
 .d2-gauge-val b{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
 .d2-gauge-val span{font-size:11.5px;color:var(--text4);display:block}
-.d2-gauge-foot{display:flex;justify-content:space-between;width:100%;margin-top:14px;font-size:11.5px}
-.d2-gauge-foot .k{color:var(--text4)}
-.d2-gauge-foot .v{color:var(--text2);font-weight:600;text-align:center}
+.d2-gauge-scale{display:flex;justify-content:space-between;width:100%;margin-top:12px;font-size:11px;color:var(--text4)}
+.d2-gauge-bonus{text-align:center;font-size:11.5px;color:var(--text2);font-weight:600;margin-top:6px}
 
 /* -- Ranking --------------------------------------------------------------- */
 .d2-rank-row{display:grid;grid-template-columns:20px 1fr auto auto;gap:12px;align-items:center;padding:10px 2px;border-top:1px solid var(--border)}

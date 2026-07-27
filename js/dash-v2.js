@@ -19,6 +19,25 @@ function toggleDashV2(){
 function d2ToggleNotif(){ document.getElementById('d2-notif')?.classList.toggle('open'); }
 function d2Abrir(fn){ document.getElementById('d2-notif')?.classList.remove('open'); if(typeof window[fn]==='function') window[fn](); }
 
+// Tooltip do gráfico (mostra os números do dia ao passar o mouse)
+function d2ChartTip(e, el){
+  let t=document.getElementById('d2-tip');
+  if(!t){ t=document.createElement('div'); t.id='d2-tip'; t.className='d2-tip'; document.body.appendChild(t); }
+  const d=el.dataset, c=+d.c, u=+d.u, a=+d.a;
+  t.innerHTML=`<div class="d2-tip-h">Dia ${d.d}</div>
+    <div class="d2-tip-r"><span><i style="background:var(--cart)"></i>Cart</span><b>${c}</b></div>
+    <div class="d2-tip-r"><span><i style="background:var(--urban)"></i>Urban</span><b>${u}</b></div>
+    <div class="d2-tip-r"><span>Aparelhos</span><b>${c+u}</b></div>
+    <div class="d2-tip-r"><span>Acessórios</span><b>${brl(a)}</b></div>`;
+  t.style.display='block';
+  const pad=14, w=t.offsetWidth, h=t.offsetHeight;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if(x+w>window.innerWidth)  x=e.clientX-w-pad;
+  if(y+h>window.innerHeight) y=e.clientY-h-pad;
+  t.style.left=x+'px'; t.style.top=y+'px';
+}
+function d2ChartTipHide(){ const t=document.getElementById('d2-tip'); if(t) t.style.display='none'; }
+
 // -- SVG: gráfico barras (Cart+Urban) + linha (acessório R$) -----------------
 function _d2Chart(serie){
   if(!serie.length) return UI.vazio({titulo:'Sem vendas no período', texto:'Quando entrarem vendas, o gráfico aparece aqui.'});
@@ -49,6 +68,10 @@ function _d2Chart(serie){
   for(let i=0;i<n;i++) path+=(i?'L':'M')+cx(i).toFixed(1)+','+yR(serie[i].acess).toFixed(1);
   s+=`<path d="${path}" fill="none" stroke="var(--text2)" stroke-width="2"/>`;
   for(let i=0;i<n;i++) s+=`<circle cx="${cx(i).toFixed(1)}" cy="${yR(serie[i].acess).toFixed(1)}" r="${i===n-1?4:2.5}" fill="var(--bg2)" stroke="var(--text2)" stroke-width="2"/>`;
+  // áreas invisíveis de hover (coluna do dia) -> tooltip
+  for(let i=0;i<n;i++){ const d=serie[i], x=padL+slot*i;
+    s+=`<rect class="d2-hit" x="${x.toFixed(1)}" y="${padT}" width="${slot.toFixed(1)}" height="${plotH.toFixed(1)}" data-d="${(d.dia||'').slice(8)}" data-c="${d.cart}" data-u="${d.urban}" data-a="${Math.round(d.acess)}" onmousemove="d2ChartTip(event,this)" onmouseleave="d2ChartTipHide()"></rect>`;
+  }
   return `<svg class="d2-chart" viewBox="0 0 ${W} ${H}">${s}</svg>`;
 }
 
@@ -218,7 +241,8 @@ function renderDashV2(){
     <div class="d2-gauge-wrap">${_d2Gauge(m.unPrincipal, devMax, 'var(--cart)')}
       <div class="d2-gauge-val"><b>${m.unPrincipal}</b><span>${devProx?'de '+devProx.qt+' · faltam '+(devProx.qt-m.unPrincipal):'todas as faixas batidas'}</span></div>
     </div>
-    <div class="d2-gauge-foot"><span class="k">${metasDevList[0].qt}</span><span class="v">${devProx?'bônus +'+brl(devProx.bonus)+' na próxima faixa':'🏆'}</span><span class="k">${devMax}</span></div>`});
+    <div class="d2-gauge-scale"><span>0</span><span>${devMax}</span></div>
+    <div class="d2-gauge-bonus">${devProx?'bônus +'+brl(devProx.bonus)+' na próxima faixa':'🏆 todas batidas'}</div>`});
 
   const acMax=metasAcList[metasAcList.length-1].val;
   const acProx=metasAcList.find(x=>m.vendaAcess<x.val);
@@ -226,10 +250,11 @@ function renderDashV2(){
     <div class="d2-gauge-wrap">${_d2Gauge(m.vendaAcess, acMax, 'var(--cart)')}
       <div class="d2-gauge-val"><b>${brl(m.vendaAcess)}</b><span>${acProx?'de '+brl(acProx.val)+' · faltam '+brl(acProx.val-m.vendaAcess):'todas as faixas batidas'}</span></div>
     </div>
-    <div class="d2-gauge-foot"><span class="k">${brl(metasAcList[0].val)}</span><span class="v">${acProx?'bônus +'+brl(acProx.bonus)+' na próxima faixa':'🏆'}</span><span class="k">${brl(acMax)}</span></div>`}) : '';
+    <div class="d2-gauge-scale"><span>R$0</span><span>${brl(acMax)}</span></div>
+    <div class="d2-gauge-bonus">${acProx?'bônus +'+brl(acProx.bonus)+' na próxima faixa':'🏆 todas batidas'}</div>`}) : '';
 
   const rowDonut = donutCard
-    ? `<div class="d2-grid-donut">${donutCard}<div style="display:grid;gap:14px">${gaugeDev}${gaugeAc}</div></div>`
+    ? `<div class="d2-grid-donut">${donutCard}${gaugeDev}${gaugeAc}</div>`
     : `<div class="d2-grid-2">${gaugeDev}${gaugeAc||''}</div>`;
 
   // -- Ranking: Vendedores | Atendentes ------------------------------------
@@ -262,40 +287,6 @@ function renderDashV2(){
     <div class="d2-res-row total"><span class="k">Lucro líquido real</span><span class="v">${brl(liqComMetas)}</span></div>
   </details>`}) : '';
 
-  // -- Distribuição de margem ----------------------------------------------
-  let margemCard='';
-  if(verM){
-    const vv=filterByPeriod(allVendas);
-    const mAlerts=vv.map(x=>{
-      const tot=parseFloat(x.valor_total||0), luc=parseFloat(x.lucro||0);
-      const mgv=tot>0?Math.round(luc/tot*1000)/10:0;
-      const {vendedor,loja}=getVendaInfo(x);
-      const prods=x._produtos?x._produtos.filter(p=>isPrincipal(p)):[];
-      const modelo=prods.length?(prods[0].titulo||'').replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').trim():'';
-      return {id:x.id,mg:mgv,luc,tot,vendedor,loja,data:x.data_saida,modelo};
-    }).filter(x=>x.tot>500);
-    if(mAlerts.length){
-      const neg=mAlerts.filter(x=>x.mg<0), baixas=mAlerts.filter(x=>x.mg>=0&&x.mg<10);
-      const dist=[
-        {l:'Negativa',c:neg.length,cor:'var(--red)'},
-        {l:'<10%',c:baixas.length,cor:'var(--yellow)'},
-        {l:'10–15%',c:mAlerts.filter(x=>x.mg>=10&&x.mg<15).length,cor:'var(--text3)'},
-        {l:'15–20%',c:mAlerts.filter(x=>x.mg>=15&&x.mg<20).length,cor:'var(--text3)'},
-        {l:'>20%',c:mAlerts.filter(x=>x.mg>=20).length,cor:'var(--green)'}
-      ];
-      const faixas=`<div class="d2-mg-faixas">${dist.map(f=>`<div class="d2-mg-faixa"><b style="color:${f.cor}">${f.c}</b><span>${f.l}</span></div>`).join('')}</div>`;
-      const piores=[...neg,...baixas].sort((a,b)=>a.mg-b.mg).slice(0,5).map(x=>{
-        const dt=x.data?x.data.replace(/T.*/,'').slice(5).replace('-','/'):'—';
-        const cor=x.mg<0?'var(--red)':'var(--yellow)';
-        return `<div class="d2-mg-item"><span class="d2-mg-badge" style="color:${cor};background:var(--bg3)">${x.mg}%</span>
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${UI.esc(x.modelo||'—')} <span style="color:var(--text4)">· ${dt} · ${UI.esc(x.vendedor||'—')}</span></span>
-          <span style="text-align:right"><b style="font-variant-numeric:tabular-nums">${brl(x.tot)}</b> <span style="color:var(--red)">${brl(x.luc)}</span></span></div>`;
-      }).join('');
-      const subMg=`${neg.length+baixas.length} venda${(neg.length+baixas.length)!==1?'s':''} abaixo de 10%`;
-      margemCard=UI.card({titulo:'Distribuição de margem', sub:subMg, corpo:faixas+`<div style="font-size:10px;color:var(--text4);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Piores margens do período</div>`+piores});
-    }
-  }
-
   // -- Vendas recentes (tabela) --------------------------------------------
   const recentes=filterByPeriod(allVendas).slice()
     .sort((a,b)=>(b.data_saida||'').localeCompare(a.data_saida||'')).slice(0,8);
@@ -310,5 +301,5 @@ function renderDashV2(){
     UI.tabela({colunas:[{titulo:'Data'},{titulo:'Cód'},{titulo:'Aparelho'},{titulo:'Valor total',num:true},{titulo:'Lucro',num:true}], linhas,
       vazio:UI.vazio({titulo:'Sem vendas no período', texto:'As vendas do FoneNinja aparecem aqui assim que entram.'})})});
 
-  return header+kpis+chartCard+rowDonut+rankRow+resultado+margemCard+salesCard;
+  return header+kpis+chartCard+rowDonut+rankRow+resultado+salesCard;
 }
