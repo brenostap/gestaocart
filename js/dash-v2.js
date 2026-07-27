@@ -225,7 +225,7 @@ function renderDashV2(){
   const custoAcess=m.vendaAcess-m.lAcess;
   const comAcess=m.atTot+m.anneBonus;
   const liqAcess=m.lAcess-m.atTot-m.anneBonus;
-  const donutCard = verM ? UI.card({titulo:'Acessórios · para onde vai', sub:'bruto '+brl(m.vendaAcess), corpo:`
+  const donutCard = verM ? UI.card({titulo:'Acessórios', sub:'bruto '+brl(m.vendaAcess), corpo:`
     <div class="d2-donut-wrap">
       ${_d2Donut([{val:liqAcess,color:'var(--green)'},{val:comAcess,color:'var(--text3)'},{val:custoAcess,color:'var(--border3)'}], brl(m.vendaAcess), 'bruto')}
       <div class="d2-leg">
