@@ -19,17 +19,11 @@ function toggleDashV2(){
 function d2ToggleNotif(){ document.getElementById('d2-notif')?.classList.toggle('open'); }
 function d2Abrir(fn){ document.getElementById('d2-notif')?.classList.remove('open'); if(typeof window[fn]==='function') window[fn](); }
 
-// Tooltip do gráfico (mostra os números do dia ao passar o mouse)
-function d2ChartTip(e, el){
+// Tooltip compartilhado (gráfico + donut)
+function _d2ShowTip(e, html){
   let t=document.getElementById('d2-tip');
   if(!t){ t=document.createElement('div'); t.id='d2-tip'; t.className='d2-tip'; document.body.appendChild(t); }
-  const d=el.dataset, c=+d.c, u=+d.u, a=+d.a;
-  t.innerHTML=`<div class="d2-tip-h">Dia ${d.d}</div>
-    <div class="d2-tip-r"><span><i style="background:var(--cart)"></i>Cart</span><b>${c}</b></div>
-    <div class="d2-tip-r"><span><i style="background:var(--urban)"></i>Urban</span><b>${u}</b></div>
-    <div class="d2-tip-r"><span>Aparelhos</span><b>${c+u}</b></div>
-    <div class="d2-tip-r"><span>Acessórios</span><b>${brl(a)}</b></div>`;
-  t.style.display='block';
+  t.innerHTML=html; t.style.display='block';
   const pad=14, w=t.offsetWidth, h=t.offsetHeight;
   let x=e.clientX+pad, y=e.clientY+pad;
   if(x+w>window.innerWidth)  x=e.clientX-w-pad;
@@ -37,6 +31,20 @@ function d2ChartTip(e, el){
   t.style.left=x+'px'; t.style.top=y+'px';
 }
 function d2ChartTipHide(){ const t=document.getElementById('d2-tip'); if(t) t.style.display='none'; }
+function d2ChartTip(e, el){
+  const d=el.dataset, c=+d.c, u=+d.u, a=+d.a;
+  _d2ShowTip(e, `<div class="d2-tip-h">Dia ${d.d}</div>
+    <div class="d2-tip-r"><span><i style="background:var(--cart)"></i>Cart</span><b>${c}</b></div>
+    <div class="d2-tip-r"><span><i style="background:var(--urban)"></i>Urban</span><b>${u}</b></div>
+    <div class="d2-tip-r"><span>Aparelhos</span><b>${c+u}</b></div>
+    <div class="d2-tip-r"><span>Acessórios</span><b>${brl(a)}</b></div>`);
+}
+function d2SliceTip(e, el){
+  const d=el.dataset;
+  _d2ShowTip(e, `<div class="d2-tip-h"><i style="background:${d.color};width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px"></i>${d.l}</div>
+    <div class="d2-tip-r"><span>Valor</span><b>${brl(+d.v)}</b></div>
+    <div class="d2-tip-r"><span>Fatia</span><b>${d.p}%</b></div>`);
+}
 
 // -- SVG: gráfico barras (Cart+Urban) + linha (acessório R$) -----------------
 function _d2Chart(serie){
@@ -81,8 +89,8 @@ function _d2Donut(segs, centroV, centroL){
   const tot=segs.reduce((a,x)=>a+Math.max(0,x.val),0)||1;
   let off=0, arcs=`<circle cx="75" cy="75" r="${r}" fill="none" stroke="var(--bg4)" stroke-width="18"/>`;
   segs.forEach(sg=>{
-    const len=Math.max(0,sg.val)/tot*C;
-    arcs+=`<circle cx="75" cy="75" r="${r}" fill="none" stroke="${sg.color}" stroke-width="18" stroke-dasharray="${len.toFixed(1)} ${(C-len).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 75 75)"/>`;
+    const val=Math.max(0,sg.val), len=val/tot*C, pct=Math.round(val/tot*100);
+    arcs+=`<circle class="d2-slice" cx="75" cy="75" r="${r}" fill="none" stroke="${sg.color}" stroke-width="18" stroke-dasharray="${len.toFixed(1)} ${(C-len).toFixed(1)}" stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 75 75)" data-l="${sg.label||''}" data-v="${Math.round(val)}" data-p="${pct}" data-color="${sg.color}" onmousemove="d2SliceTip(event,this)" onmouseleave="d2ChartTipHide()"/>`;
     off+=len;
   });
   return `<div class="d2-donut"><svg width="150" height="150" viewBox="0 0 150 150">${arcs}</svg>
@@ -227,7 +235,7 @@ function renderDashV2(){
   const liqAcess=m.lAcess-m.atTot-m.anneBonus;
   const donutCard = verM ? UI.card({titulo:'Acessórios', sub:'bruto '+brl(m.vendaAcess), corpo:`
     <div class="d2-donut-wrap">
-      ${_d2Donut([{val:liqAcess,color:'var(--green)'},{val:comAcess,color:'var(--text3)'},{val:custoAcess,color:'var(--border3)'}], brl(m.vendaAcess), 'bruto')}
+      ${_d2Donut([{val:liqAcess,color:'var(--green)',label:'Líquido'},{val:comAcess,color:'var(--text3)',label:'Comissões'},{val:custoAcess,color:'var(--border3)',label:'Custo'}], brl(m.vendaAcess), 'bruto')}
       <div class="d2-leg">
         <div class="d2-leg-item"><span class="d2-pin" style="background:var(--green)"></span><div class="d2-leg-tx"><div class="n">Líquido</div><div class="s">o que sobra pra loja</div></div><div class="d2-leg-v" style="color:var(--green)">${brl(liqAcess)}</div></div>
         <div class="d2-leg-item"><span class="d2-pin" style="background:var(--text3)"></span><div class="d2-leg-tx"><div class="n">Comissões</div><div class="s">atendentes + Anne</div></div><div class="d2-leg-v">${brl(comAcess)}</div></div>
