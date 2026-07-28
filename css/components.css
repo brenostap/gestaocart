@@ -473,12 +473,15 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .v-dia-kpi b.ok{ color:var(--success); }
 .v-dia-kpi em{ font-size:10px; color:var(--text4); font-style:normal; }
 
-.v-dia-cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 22px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border2); }
+.v-dia-cols{ display:grid; grid-template-columns:repeat(3,minmax(0,340px)); justify-content:start;
+             gap:10px 34px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border2); }
 .v-dia-sec-t{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text4); font-weight:600; margin-bottom:7px; }
-.v-dia-lin{ display:flex; align-items:baseline; gap:8px; padding:3px 0; font-size:12px; }
-.v-dia-lin .nm{ color:var(--text); font-weight:600; }
-.v-dia-lin .mt{ color:var(--text3); font-size:11px; }
-.v-dia-lin .cm{ margin-left:auto; color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.v-dia-lin{ display:flex; align-items:baseline; gap:7px; padding:3px 0; font-size:12px; }
+.v-dia-lin .nm{ color:var(--text); font-weight:600; white-space:nowrap; }
+.v-dia-lin .mt{ color:var(--text3); font-size:11px; white-space:nowrap; }
+/* filete pontilhado liga rotulo ao valor (evita o vao confuso ate o numero) */
+.v-dia-lin .v-lead{ flex:1 1 auto; min-width:12px; align-self:center; height:0; border-bottom:1px dotted var(--border3); }
+.v-dia-lin .cm{ color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .v-dia-lin .cm em{ color:var(--text4); font-weight:400; font-style:normal; font-size:10.5px; }
 .v-dia-vazio{ color:var(--text4); font-size:12px; padding:3px 0; }
 .v-dia-nota{ font-size:10.5px; color:var(--text4); font-style:italic; margin-top:10px; }

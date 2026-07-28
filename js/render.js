@@ -1008,23 +1008,24 @@ function resumoDiaHTML(dia, diaRows, COLS){
 
   let detalhe = '';
   if(aberto){
+    const lead = '<span class="v-lead"></span>';
     const vendRows = Object.entries(vendMap)
       .sort((a,b)=>b[1].ap-a[1].ap)
       .map(([k,d]) => `<div class="v-dia-lin"><span class="nm">${cap1(k)}</span>
         <span class="mt">${d.v} venda${d.v!==1?'s':''} · ${d.ap} un</span>
-        ${verM?`<span class="cm">${money(d.ap*25)}</span>`:''}</div>`).join('')
+        ${verM?`${lead}<span class="cm">${money(d.ap*25)}</span>`:''}</div>`).join('')
       || '<div class="v-dia-vazio">—</div>';
     const atRows = Object.entries(atMap)
       .sort((a,b)=>b[1].ab-a[1].ab)
       .map(([k,d]) => `<div class="v-dia-lin"><span class="nm">${cap1(k)}</span>
         <span class="mt">${verV?money(d.ab):d.qt+' at.'} acess.</span>
-        ${verM?`<span class="cm">${money(d.al*0.25)}</span>`:''}</div>`).join('')
+        ${verM?`${lead}<span class="cm">${money(d.al*0.25)}</span>`:''}</div>`).join('')
       || '<div class="v-dia-vazio">—</div>';
     const ordem = ['pix','credito','debito','dinheiro','outro'];
     const pgRows = Object.entries(pgMap)
       .sort((a,b)=>ordem.indexOf(a[0])-ordem.indexOf(b[0]))
       .map(([,d]) => `<div class="v-dia-lin"><span class="nm">${escapeHtml(d.label)}</span>
-        <span class="cm">${money(d.cheio)}${verM?` <em>líq ${money(d.liq)}</em>`:''}</span></div>`).join('')
+        ${lead}<span class="cm">${money(d.cheio)}${verM?` <em>líq ${money(d.liq)}</em>`:''}</span></div>`).join('')
       || '<div class="v-dia-vazio">—</div>';
 
     detalhe = `<div class="v-dia-cols">
