@@ -23,7 +23,7 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - ✅ Colunas parcelas/taxa/líquido/margem + toggle "Mais colunas".
 
 ## Sync / Dados (repo phonecar-sync)
-- 🔨 ⭐ **Trocas detalhadas**: capturar os aparelhos que ENTRAM na troca (modelo/IMEI/valor) — hoje só guardamos o total. Alimenta a ficha da venda.
+- 🔨 ⭐ **Trocas detalhadas** (jul/2026): captura dos aparelhos que ENTRAM na troca (modelo/IMEI/valor). **Construído**: tabela `venda_trocas` (Supabase, RLS `auth_read` + `raw` jsonb defensivo); `salvarTrocasVenda()` no `phonecar-sync/sync.js` (lê o `upgrade.produtos[]` que o detalhe da venda já traz e antes era descartado); app consome via `_trocas` (data.js) e lista na ficha (render.js, bloco Upgrade — cai no placeholder antigo quando não há dado). **Pendente**: (1) push do `phonecar-sync` (patch entregue); (2) rodar backfill dos ~1.229 históricos à noite — Actions → Run workflow → `backfill_trocas: true`; (3) **validar o mapeamento** olhando `venda_trocas.raw` da 1ª rodada (colunas `titulo/imei_1/valor` são best-effort; se vier `null` mas existir no `raw`, ajustar nome do campo no `salvarTrocasVenda` — sem mexer na tabela).
 - 💡 Backfill de pagamentos/contas de fev–mai/2026 (pra formas/números aparecerem no histórico).
 - 💡 "Visão larga": 1 linha por venda com tudo junto (cliente, produtos, pagamento, troca) — base pra relatórios.
 - 💡 Relatório/export sob demanda (planilha) — falta definir o processo (contador? fechamento do mês?).

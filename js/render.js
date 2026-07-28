@@ -624,6 +624,7 @@ function renderVendas(){
       pagamentos,
       upgradeValor:parseFloat(venda.upgrade_valor||0),
       upgradeQtd:parseInt(venda.upgrade_qtd||0)||0,
+      trocas:venda._trocas||[],
       vendedor:vendedor||'—',
       atendente:atendente||'—',
       isSocio:vendedor?['gustavo','marcella'].includes(vendedor.toLowerCase()):false,
@@ -924,14 +925,29 @@ function fichaVendaHTML(r){
     </div>` : '';
 
   // -- Upgrade (aparelhos de troca — termo do sistema) --
+  // Se o sync ja capturou os aparelhos de entrada (r.trocas), lista modelo/IMEI/valor;
+  // senao, mantem so o total + aviso de "em breve".
+  const itemTroca = t => {
+    const nm = t.titulo ? nomeCurtoProduto(t.titulo) : 'Aparelho usado';
+    const meta = t.imei_1 ? `IMEI ${escapeHtml(t.imei_1)}` : '';
+    return `<div class="vf-item">
+      <div>
+        <div class="vf-nm">${escapeHtml(nm)}</div>
+        ${meta?`<div class="vf-meta">${meta}</div>`:''}
+      </div>
+      ${verV&&parseFloat(t.valor||0)>0?`<div class="vf-v num">${money(t.valor)}</div>`:''}
+    </div>`;
+  };
+  const temTrocas = Array.isArray(r.trocas) && r.trocas.length;
   const blocoUpgrade = (r.upgradeValor>0 || r.upgradeQtd>0) ? `
     <div class="vf-blk">
       <div class="vf-blk-t">Upgrade ${r.upgradeQtd>0?`<span class="vf-cnt">${r.upgradeQtd} ${r.upgradeQtd>1?'aparelhos':'aparelho'}</span>`:''}</div>
+      ${temTrocas ? r.trocas.map(itemTroca).join('') : ''}
       <div class="vf-item">
         <div><div class="vf-nm">Abatimento em aparelhos usados</div></div>
         ${verV?`<div class="vf-v num">${money(r.upgradeValor)}</div>`:''}
       </div>
-      <div class="vf-soon">Modelo e IMEI dos aparelhos de troca — em breve (assim que o sync passar a capturar).</div>
+      ${temTrocas ? '' : '<div class="vf-soon">Modelo e IMEI dos aparelhos de troca — em breve (assim que o sync passar a capturar).</div>'}
     </div>` : '';
 
   // -- Resumo --

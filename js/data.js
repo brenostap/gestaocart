@@ -42,6 +42,17 @@ async function loadFromSupabase(){
     };
   });
 
+  // Trocas (aparelhos de ENTRADA do upgrade) por venda -- detalhe modelo/IMEI/valor
+  // que a ficha da venda mostra. So existe pras vendas ja capturadas/backfilladas.
+  let trocas = [];
+  for(let i=0;i<vendasIds.length;i+=100){
+    const lote = vendasIds.slice(i,i+100);
+    const t = await sbGet('venda_trocas', `select=venda_id,titulo,imei_1,serial,valor&venda_id=in.(${lote.join(',')})`);
+    trocas = trocas.concat(t||[]);
+  }
+  const trocasMap={};
+  (trocas||[]).forEach(t=>{ (trocasMap[t.venda_id]=trocasMap[t.venda_id]||[]).push(t); });
+
   setProgress(65,'Carregando estoque...');
   const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
   const ajustes = await sbGet('ajustes_acessorios', 'order=id.asc', 500);
@@ -68,6 +79,8 @@ async function loadFromSupabase(){
     // Pagamentos crus por forma (nao-cancelados) -- a ficha da venda mostra
     // valor/parcelas/taxa/liquido/conta de cada forma. NAO altera o lucro.
     _pagamentos: pagsMap[v.id] || [],
+    // Aparelhos de entrada da troca (modelo/IMEI/valor). Vazio ate o sync capturar.
+    _trocas: trocasMap[v.id] || [],
     _produtos: (prodsMap[v.id]||[]).map(p=>({
       ...p,
       apple_id: p.apple_id,
