@@ -384,6 +384,100 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .v-dias[data-tom="alerta"]{ color:var(--warning); font-weight:600; }
 
 /* ============================================================================
+   VENDAS — master-detail: linha enxuta (achar) + ficha da venda (entender)
+   A linha mostra so o essencial; o detalhe mora na ficha docada do lado.
+   ========================================================================= */
+.v-stage{ display:grid; grid-template-columns:minmax(0,1fr) 384px; gap:16px; align-items:start; }
+.v-lista{ min-width:0; }
+.v-ficha-dock{ position:sticky; top:16px; }
+.vf-scrim{ display:none; }
+
+/* linha selecionada — realce discreto + seta de acento */
+.est-tabela .est-linha.sel td{ background:var(--bg4); }
+.est-tabela .est-linha.sel .est-seta{ color:var(--cart); }
+.est-tabela .est-linha.sel .est-prod{ color:var(--cart); }
+
+/* -- a ficha (cartao com acento da marca a esquerda) -- */
+.v-ficha{
+  background:var(--bg2); border:1px solid var(--border2);
+  border-radius:var(--radius-card); box-shadow:var(--shadow-lg);
+  overflow:hidden; position:relative;
+}
+.v-ficha::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--cart); }
+.vf-head{ padding:15px 18px 13px; border-bottom:1px solid var(--border); position:relative; }
+.vf-eyebrow{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); letter-spacing:.04em; }
+.vf-title{ font-size:16.5px; font-weight:700; color:var(--text); margin:3px 0 8px; letter-spacing:-.01em; }
+.vf-chips{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.vf-chip{ font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:var(--radius-pill); }
+.vf-chip[data-tom="ok"]    { color:var(--success); background:var(--success-bg); }
+.vf-chip[data-tom="alerta"]{ color:var(--warning); background:var(--warning-bg); }
+.vf-fechar{
+  display:none; position:absolute; top:12px; right:12px; width:30px; height:30px;
+  border:1px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg3);
+  color:var(--text3); font-size:14px; cursor:pointer; line-height:1;
+}
+.vf-fechar:hover{ color:var(--text); background:var(--bg4); }
+.vf-body{ padding:4px 18px 16px; max-height:calc(100vh - 120px); overflow-y:auto; }
+
+.vf-blk{ padding:13px 0; border-top:1px solid var(--border); }
+.vf-blk:first-child{ border-top:none; }
+.vf-blk-t{
+  font-family:var(--font-mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text4); font-weight:600; margin:0 0 9px; display:flex; align-items:center; gap:6px;
+}
+.vf-cnt{ background:var(--bg4); padding:1px 6px; border-radius:4px; color:var(--text3); }
+
+.vf-item{ display:flex; justify-content:space-between; gap:12px; align-items:baseline; padding:5px 0; }
+.vf-item > div:first-child{ min-width:0; }
+.vf-nm{ color:var(--text); font-weight:600; font-size:13px; }
+.vf-meta{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); margin-top:2px; line-height:1.45; }
+.vf-v{ color:var(--text); font-weight:600; font-size:13px; flex:none; text-align:right; white-space:nowrap; }
+.vf-v small{ display:block; font-weight:400; color:var(--text4); font-size:10.5px; margin-top:1px; }
+
+.vf-pay{ padding:6px 0; }
+.vf-pay-top{ display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+
+.vf-kv{ display:flex; justify-content:space-between; gap:12px; padding:4px 0; font-size:13px; }
+.vf-kv .k{ color:var(--text3); }
+.vf-kv .vv{ color:var(--text); font-weight:600; }
+.vf-kv.big{ margin-top:3px; padding-top:9px; border-top:1px solid var(--border); }
+.vf-kv.big .k{ color:var(--text); font-weight:600; }
+.vf-kv.big .vv{ color:var(--success); font-size:15px; }
+
+.vf-contatos{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.vf-cbtn{
+  font-size:11.5px; font-weight:600; color:var(--text2); text-decoration:none;
+  border:1px solid var(--border2); border-radius:var(--radius-sm); padding:5px 10px; background:var(--bg3);
+}
+.vf-cbtn:hover{ color:var(--text); background:var(--bg4); }
+.vf-soon{ font-size:11px; color:var(--text4); font-style:italic; margin-top:7px; }
+
+/* estado vazio da ficha (nada selecionado) */
+.v-ficha-vazia{ text-align:center; padding:40px 22px; color:var(--text3); }
+.v-ficha-vazia::before{ display:none; }
+.vf-vazia-ico{ font-size:26px; margin-bottom:8px; opacity:.7; }
+.vf-vazia-tit{ font-size:14px; font-weight:600; color:var(--text2); margin-bottom:4px; }
+.vf-vazia-txt{ font-size:12px; color:var(--text4); max-width:34ch; margin:0 auto; line-height:1.5; }
+
+/* tablet/celular: uma coluna; a ficha vira sheet que sobe ao selecionar */
+@media (max-width: 960px){
+  .v-stage{ display:block; }
+  .v-ficha-dock{
+    position:fixed; left:0; right:0; bottom:0; z-index:65;
+    transform:translateY(101%); transition:transform .24s ease; pointer-events:none;
+  }
+  .v-stage.tem-selecao .v-ficha-dock{ transform:none; pointer-events:auto; }
+  .v-ficha{ border-radius:16px 16px 0 0; border-bottom:none; max-height:88vh; display:flex; flex-direction:column; }
+  .vf-body{ max-height:none; }
+  .vf-fechar{ display:block; }
+  .v-ficha-vazia{ display:none; } /* sem selecao, nada de sheet no celular */
+  .v-stage.tem-selecao .vf-scrim{
+    display:block; position:fixed; inset:0; z-index:64;
+    background:rgba(10,14,24,.42); backdrop-filter:blur(2px);
+  }
+}
+
+/* ============================================================================
    MOBILE — tabela densa vira cartao empilhado
    Rolagem horizontal em tabela de 8 colunas e inutilizavel no celular: cada
    linha passa a ser um cartao com rotulo ao lado do valor.

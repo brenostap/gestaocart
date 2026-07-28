@@ -593,21 +593,37 @@ function renderVendas(){
       return { titulo:p.titulo||p.produto?.titulo||'—',
                etiqueta:p.serial||p.apple?.serial||'',
                imei:p.imei_1||'', appleId:p.apple_id||null,
+               qtd:parseInt(p.quantidade||1)||1,
                valor, custo, lucro: valor - custo };
     };
     const produtosLista=principais.map(detalharItem);
     const acessLista=acesss.map(detalharItem);
     const principal=produtosLista[0]||{titulo:'—',etiqueta:'—'};
+    // Pagamentos por forma para a ficha (valor/parcelas/taxa/liquido/conta)
+    const pagamentos=(venda._pagamentos||[]).map(p=>({
+      forma:p.forma_pagamento||'—',
+      conta:p.conta_bancaria||'',
+      valor:parseFloat(p.valor||0),
+      taxa:parseFloat(p.taxa||0),
+      liquido:parseFloat(p.liquido||0),
+      parcelas:parseInt(p.numero_parcelas||1)||1,
+    }));
     return{
       id:venda.id,
       data:venda.data_saida?.slice(0,10),
+      status:venda.status,
       cliente:venda.cliente?.nome||'—',
+      cidade:venda.cliente?.cidade||'',
+      instagram:venda.cliente?.instagram||'',
       produto:principal.titulo,
       etiqueta:principal.etiqueta,
       produtosLista,
       itens:{principais:produtosLista, acessorios:acessLista},
       loja:loja||'—',
       formas:venda.formas_pagamento||[],
+      pagamentos,
+      upgradeValor:parseFloat(venda.upgrade_valor||0),
+      upgradeQtd:parseInt(venda.upgrade_qtd||0)||0,
       vendedor:vendedor||'—',
       atendente:atendente||'—',
       isSocio:vendedor?['gustavo','marcella'].includes(vendedor.toLowerCase()):false,
@@ -670,8 +686,6 @@ function renderVendas(){
   const capNome = n => n && n!=='—' ? n.charAt(0).toUpperCase()+n.slice(1) : '—';
   const lojaTag = l => l==='cart' ? UI.badge('Cart','processo')
                      : l==='urban' ? UI.badge('Urban','alerta') : '';
-  const pagtoTag = formas => (formas && formas.length)
-                     ? formas.map(f => UI.badgePagto(f)).join(' ') : '';
 
   // -- Cabecalho ----------------------------------------------------------
   const cabecalho = `
@@ -747,128 +761,209 @@ function renderVendas(){
       ${UI.btn(completo?'− Menos colunas':'+ Mais colunas', {onclick:'toggleVendasModo()', variante:'sutil', sm:true})}
     </div>`;
 
-  // -- Tabela com expansao ------------------------------------------------
+  // -- Linha enxuta + ficha da venda (master-detail) ----------------------
+  // A linha so mostra o essencial pra achar a venda. Acessorios, pagamento e
+  // detalhe moram NA FICHA (painel do lado). Clicar seleciona; toca de novo fecha.
   _vendasVisiveis = rows;
-  const COLS = 8
-    + (completo ? 1 : 0)                      // Parcelas
-    + (podeVerMargem() ? 1 : 0)               // Custo
-    + (podeVerValor()  ? 1 : 0)               // Valor
-    + (completo && podeVerMargem() ? 1 : 0)   // Taxa
-    + (completo && podeVerValor()  ? 1 : 0)   // Líquido
-    + (podeVerMargem() ? 1 : 0)               // Lucro
-    + (completo && podeVerMargem() ? 1 : 0);  // Margem
 
   const seta = col => vendasSortCol===col ? (vendasSortDir>0 ? ' ▲' : ' ▼') : '';
   const th = (col, texto, num) =>
     `<th class="${num?'num ':''}ord" onclick="sortVendas('${col}')">${texto}${seta(col)}</th>`;
 
   const corpo = rows.map(r => {
-    const aberto = vendasAbertas.has(r.id);
-    let linha = `<tr class="est-linha${aberto?' aberta':''}" onclick="alternarLinhaVenda(${r.id})">
-      <td data-rot="Data"><span class="est-seta">${aberto?'▾':'▸'}</span><span class="est-imei">${r.data ? r.data.split('-').reverse().slice(0,2).join('/') : '—'}</span></td>
-      <td data-rot="Venda"><span class="est-tag">#${r.id}</span></td>
+    const sel = r.id === vendasSelecionada;
+    const mg = r.valor>0 ? Math.round(r.lucro/r.valor*100) : 0;
+    return `<tr class="est-linha${sel?' sel':''}" onclick="selecionarVenda(${r.id})">
+      <td data-rot="Venda"><span class="est-seta">▸</span><span class="est-tag">#${r.id}</span></td>
+      <td data-rot="Data"><span class="est-imei">${r.data ? r.data.split('-').reverse().slice(0,2).join('/') : '—'}</span></td>
       <td data-rot="Cliente" class="forte">${escapeHtml(shortNome(r.cliente))}</td>
+      <td data-rot="Loja">${lojaTag(r.loja)}</td>
       <td data-rot="Produto">${escapeHtml(shortProd(r.produto))}${r.nPrincipais>1?` <span class="v-mais">+${r.nPrincipais-1}</span>`:''}</td>
-      <td data-rot="Vendedor">${escapeHtml(capNome(r.vendedor))} ${lojaTag(r.loja)}</td>
+      <td data-rot="Vendedor">${escapeHtml(capNome(r.vendedor))}</td>
       <td data-rot="Atendente">${escapeHtml(capNome(r.atendente))}</td>
-      <td data-rot="Pagto">${pagtoTag(r.formas)}</td>
-      ${completo ? `<td data-rot="Parcelas" class="num"><span class="est-imei">${r.parcelas>1?r.parcelas+'x':'à vista'}</span></td>` : ''}
-      <td data-rot="Qtd" class="num"><span class="est-imei">${r.qtd}</span></td>
-      ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(r.custo)}</td>` : ''}
+      ${completo ? `<td data-rot="Parc." class="num"><span class="est-imei">${r.parcelas>1?r.parcelas+'x':'à vista'}</span></td>` : ''}
       ${podeVerValor()  ? `<td data-rot="Valor" class="num forte">${money(r.valor)}</td>` : ''}
       ${completo && podeVerMargem() ? `<td data-rot="Taxa" class="num">${r.taxa>0?money(r.taxa):'—'}</td>` : ''}
-      ${completo && podeVerValor()  ? `<td data-rot="Líquido" class="num">${r.liquido>0?money(r.liquido):'—'}</td>` : ''}
       ${podeVerMargem() ? `<td data-rot="Lucro" class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
-      ${completo && podeVerMargem() ? `<td data-rot="Margem" class="num">${r.valor>0?Math.round(r.lucro/r.valor*100)+'%':'—'}</td>` : ''}
+      ${completo && podeVerMargem() ? `<td data-rot="Margem" class="num">${r.valor>0?mg+'%':'—'}</td>` : ''}
     </tr>`;
-
-    if(aberto){
-      const linhaItem = (i, comAparelho) => `<tr>
-        <td>
-          <span class="forte">${escapeHtml(nomeCurtoProduto(i.titulo))}</span>
-          ${i.etiqueta ? `<span class="est-tag" style="margin-left:6px">${escapeHtml(i.etiqueta)}</span>` : ''}
-        </td>
-        ${comAparelho ? `<td><span class="est-imei">${escapeHtml(i.imei || '—')}</span></td>
-        <td>${origemItemTxt(i.appleId, r.data)}</td>` : ''}
-        ${podeVerMargem() ? `<td class="num">${money(i.custo)}</td>` : ''}
-        ${podeVerValor()  ? `<td class="num forte">${money(i.valor)}</td>` : ''}
-        ${podeVerMargem() ? `<td class="num"><span class="est-margem" data-tom="${i.lucro>0?'ok':'critico'}">${i.lucro>0?'+':''}${money(i.lucro)}</span></td>` : ''}
-      </tr>`;
-
-      const bloco = (titulo, itens, comAparelho) => {
-        if(!itens.length) return '';
-        if(!comAparelho && !podeVerValor()){
-          return `<div class="v-bloco">
-            <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
-            <div class="v-item">${itens.map(i => escapeHtml(nomeCurtoProduto(i.titulo))).join(' · ')}</div>
-          </div>`;
-        }
-        return `
-        <div class="v-bloco">
-          <div class="v-bloco-tit">${titulo} <span>${itens.length}</span></div>
-          <table class="c-tabela v-itens">
-            <thead><tr>
-              <th>Produto</th>
-              ${comAparelho ? '<th>IMEI</th><th>Origem</th>' : ''}
-              ${podeVerMargem() ? '<th class="num">Custo</th>' : ''}${podeVerValor() ? '<th class="num">Valor</th>' : ''}${podeVerMargem() ? '<th class="num">Lucro</th>' : ''}
-            </tr></thead>
-            <tbody>${itens.map(i => linhaItem(i, comAparelho)).join('')}</tbody>
-          </table>
-        </div>`;
-      };
-
-      linha += `<tr class="est-detalhe"><td colspan="${COLS}">
-        <div class="v-cliente">
-          <div>
-            <div class="v-cliente-nome">${escapeHtml(r.cliente)}</div>
-            <div class="v-cliente-meta">
-              ${r.telefone ? escapeHtml(r.telefone) : '<span class="est-sempreco">sem telefone</span>'}
-            </div>
-          </div>
-          <div class="v-cliente-acoes">
-            ${UI.btn('Resumo da venda', {sm:true, onclick:`event.stopPropagation();compartilharVenda(${r.id})`})}
-          </div>
-        </div>
-        ${bloco('Aparelhos', r.itens.principais, true)}
-        ${bloco('Acessórios', r.itens.acessorios, false)}
-      </td></tr>`;
-    }
-    return linha;
   }).join('');
 
   const tabela = rows.length
     ? UI.card({ titulo:'Pedidos', sub: rows.length + (rows.length===1?' venda':' vendas'), flush:true,
         corpo:`<div class="c-tabela-wrap"><table class="c-tabela est-tabela">
           <thead><tr>
-            ${th('data','Data')}${th('id','Venda')}${th('cliente','Cliente')}${th('produto','Produto')}
-            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}<th>Pagto</th>${completo?'<th class="num">Parc.</th>':''}${th('qtd','Qtd',true)}
-            ${podeVerMargem() ? th('custo','Custo',true) : ''}${podeVerValor() ? th('valor','Valor',true) : ''}${completo&&podeVerMargem()?'<th class="num">Taxa</th>':''}${completo&&podeVerValor()?'<th class="num">Líquido</th>':''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}${completo&&podeVerMargem()?'<th class="num">Margem</th>':''}
+            ${th('id','Venda')}${th('data','Data')}${th('cliente','Cliente')}<th>Loja</th>${th('produto','Produto')}
+            ${th('vendedor','Vendedor')}${th('atendente','Atendente')}${completo?'<th class="num">Parc.</th>':''}${podeVerValor() ? th('valor','Valor',true) : ''}${completo&&podeVerMargem()?'<th class="num">Taxa</th>':''}${podeVerMargem() ? th('lucro','Lucro',true) : ''}${completo&&podeVerMargem()?'<th class="num">Margem</th>':''}
           </tr></thead><tbody>${corpo}</tbody></table></div>` })
     : UI.card({ corpo: UI.vazio({ ico:'🧾', titulo:'Nenhuma venda encontrada',
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
                       : 'Assim que uma venda for concluída na FoneNinja, ela aparece aqui em até 2 minutos.' }) });
 
-  return cabecalho + kpis + alertas + filtros + tabela;
+  // Ficha da venda selecionada — docada no desktop, sheet no celular.
+  const selRow = vendasSelecionada!=null ? rows.find(r => r.id === vendasSelecionada) : null;
+  const ficha  = selRow ? fichaVendaHTML(selRow) : fichaVaziaHTML();
+
+  const stage = `<div class="v-stage${selRow?' tem-selecao':''}">
+    <div class="v-lista">${tabela}</div>
+    <div class="vf-scrim" onclick="fecharFicha()"></div>
+    <aside class="v-ficha-dock">${ficha}</aside>
+  </div>`;
+
+  return cabecalho + kpis + alertas + filtros + stage;
+}
+
+// ── FICHA DA VENDA (painel master-detail) ────────────────────────────────
+// Texto limpo, sem arco-iris: cor so na loja e no lucro. Custo/lucro/taxa/margem
+// so aparecem para quem pode ver (podeVerMargem); valor da venda para podeVerValor.
+function fichaVendaHTML(r){
+  const dataBR = r.data ? r.data.split('-').reverse().join('/') : '—';
+  const verM = podeVerMargem();
+  const verV = podeVerValor();
+  const lojaBadge = r.loja==='cart' ? UI.badge('Cart','processo')
+                  : r.loja==='urban' ? UI.badge('Urban','alerta') : '';
+  const chipStatus = r.status==='completed'
+    ? '<span class="vf-chip" data-tom="ok">✓ Concluída</span>'
+    : `<span class="vf-chip" data-tom="alerta">⏳ ${escapeHtml(r.status||'pendente')}</span>`;
+
+  // -- Cliente --
+  const digits = (r.telefone||'').replace(/\D/g,'');
+  const waNum  = digits ? (digits.length<=11 ? '55'+digits : digits) : '';
+  const insta  = (r.instagram||'').replace(/^@/,'').trim();
+  const contatos = [
+    waNum ? `<a class="vf-cbtn" href="https://wa.me/${waNum}" target="_blank" rel="noopener">WhatsApp</a>` : '',
+    insta ? `<a class="vf-cbtn" href="https://instagram.com/${encodeURIComponent(insta)}" target="_blank" rel="noopener">Instagram</a>` : '',
+    UI.btn('Resumo da venda', {sm:true, variante:'sutil', onclick:`compartilharVenda(${r.id})`}),
+  ].filter(Boolean).join('');
+  const blocoCliente = `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Cliente</div>
+      <div class="vf-item"><div>
+        <div class="vf-nm">${escapeHtml(r.cliente)}</div>
+        ${r.cidade ? `<div class="vf-meta">${escapeHtml(r.cidade)}</div>` : ''}
+      </div></div>
+      <div class="vf-contatos">${contatos}</div>
+    </div>`;
+
+  // -- Aparelhos --
+  const itemAparelho = i => {
+    const bits = [];
+    if(i.imei) bits.push('IMEI '+escapeHtml(i.imei));
+    if(verM)   bits.push('custo '+money(i.custo));
+    // Origem so aparece quando ha algo util (fornecedor/"buscando"); "—" seco fica de fora.
+    const origem = i.appleId ? origemItemTxt(i.appleId, r.data) : '';
+    const mostraOrigem = origem && !/>—</.test(origem);
+    return `<div class="vf-item">
+      <div>
+        <div class="vf-nm">${escapeHtml(nomeCurtoProduto(i.titulo))}</div>
+        ${bits.length ? `<div class="vf-meta">${bits.join(' · ')}</div>` : ''}
+        ${mostraOrigem ? `<div class="vf-meta">${origem}</div>` : ''}
+      </div>
+      ${verV ? `<div class="vf-v num">${money(i.valor)}${verM?`<small>lucro ${money(i.lucro)}</small>`:''}</div>` : ''}
+    </div>`;
+  };
+  const blocoAparelhos = r.itens.principais.length ? `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Aparelhos <span class="vf-cnt">${r.itens.principais.length}</span></div>
+      ${r.itens.principais.map(itemAparelho).join('')}
+    </div>` : '';
+
+  // -- Acessórios --
+  const itemAcess = i => `<div class="vf-item">
+      <div><div class="vf-nm">${escapeHtml(nomeCurtoProduto(i.titulo))}</div>
+        ${i.qtd>1?`<div class="vf-meta">${i.qtd} unidades</div>`:''}</div>
+      ${verV ? `<div class="vf-v num">${money(i.valor)}</div>` : ''}
+    </div>`;
+  const blocoAcess = r.itens.acessorios.length ? `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Acessórios <span class="vf-cnt">${r.itens.acessorios.length}</span></div>
+      ${r.itens.acessorios.map(itemAcess).join('')}
+    </div>` : '';
+
+  // -- Pagamento (por forma) --
+  const pagLinha = p => {
+    const parc = p.parcelas>1 ? ' '+p.parcelas+'×' : '';
+    const brk = [];
+    if(verM && p.taxa>0)    brk.push('taxa '+money(p.taxa));
+    if(verM && p.liquido>0) brk.push('líquido '+money(p.liquido));
+    if(p.conta)             brk.push(escapeHtml(p.conta));
+    return `<div class="vf-pay">
+      <div class="vf-pay-top">
+        <span class="vf-nm">${escapeHtml(cap1(p.forma))}${parc}</span>
+        ${verV?`<span class="vf-v num">${money(p.valor)}</span>`:''}
+      </div>
+      ${brk.length?`<div class="vf-meta">${brk.join(' · ')}</div>`:''}
+    </div>`;
+  };
+  const blocoPagto = r.pagamentos.length ? `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Pagamento</div>
+      ${r.pagamentos.map(pagLinha).join('')}
+    </div>` : '';
+
+  // -- Upgrade (aparelhos de troca — termo do sistema) --
+  const blocoUpgrade = (r.upgradeValor>0 || r.upgradeQtd>0) ? `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Upgrade ${r.upgradeQtd>0?`<span class="vf-cnt">${r.upgradeQtd} ${r.upgradeQtd>1?'aparelhos':'aparelho'}</span>`:''}</div>
+      <div class="vf-item">
+        <div><div class="vf-nm">Abatimento em aparelhos usados</div></div>
+        ${verV?`<div class="vf-v num">${money(r.upgradeValor)}</div>`:''}
+      </div>
+      <div class="vf-soon">Modelo e IMEI dos aparelhos de troca — em breve (assim que o sync passar a capturar).</div>
+    </div>` : '';
+
+  // -- Resumo --
+  const mg = r.valor>0 ? Math.round(r.lucro/r.valor*100) : 0;
+  const blocoResumo = `
+    <div class="vf-blk">
+      <div class="vf-blk-t">Resumo</div>
+      ${verV?`<div class="vf-kv"><span class="k">Valor da venda</span><span class="vv num">${money(r.valor)}</span></div>`:''}
+      ${verM?`<div class="vf-kv"><span class="k">Custo da mercadoria</span><span class="vv num">${money(r.custo)}</span></div>`:''}
+      ${verM&&r.taxa>0?`<div class="vf-kv"><span class="k">Taxa de cartão paga</span><span class="vv num">${money(r.taxa)}</span></div>`:''}
+      ${verM?`<div class="vf-kv big"><span class="k">Lucro</span><span class="vv num">${money(r.lucro)}${r.valor>0?` · ${mg}%`:''}</span></div>`:''}
+    </div>`;
+
+  return `<div class="v-ficha">
+    <div class="vf-head">
+      <button class="vf-fechar" onclick="fecharFicha()" aria-label="Fechar ficha">✕</button>
+      <div class="vf-eyebrow">Ficha da venda</div>
+      <div class="vf-title">#${r.id} · ${dataBR}</div>
+      <div class="vf-chips">${lojaBadge} ${chipStatus}</div>
+    </div>
+    <div class="vf-body">
+      ${blocoCliente}${blocoAparelhos}${blocoAcess}${blocoPagto}${blocoUpgrade}${blocoResumo}
+    </div>
+  </div>`;
+}
+
+function fichaVaziaHTML(){
+  return `<div class="v-ficha v-ficha-vazia">
+    <div class="vf-vazia-ico">🧾</div>
+    <div class="vf-vazia-tit">Selecione uma venda</div>
+    <div class="vf-vazia-txt">Clique numa linha pra abrir a ficha — aparelhos, acessórios, pagamento e resumo.</div>
+  </div>`;
 }
 
 let _vendasVisiveis = [];
-let vendasAbertas = new Set();
+let vendasSelecionada = null; // id da venda com ficha aberta (null = nenhuma)
 let vendasModo = 'compacto'; // 'compacto' | 'completo' — liga as colunas analiticas extras
 function toggleVendasModo(){
   vendasModo = vendasModo==='completo' ? 'compacto' : 'completo';
   if(currentTab==='vendas') document.getElementById('content').innerHTML = renderVendas();
 }
 
-function alternarLinhaVenda(id){
-  if(vendasAbertas.has(id)) vendasAbertas.delete(id);
+// Seleciona a venda e abre a ficha do lado. Tocar na mesma linha fecha.
+function selecionarVenda(id){
+  if(vendasSelecionada === id){ vendasSelecionada = null; }
   else {
-    vendasAbertas.add(id);
+    vendasSelecionada = id;
     const r = _vendasVisiveis.find(x => x.id === id);
     const ids = (r?.itens?.principais || []).map(i => i.appleId).filter(Boolean);
     if(ids.length) buscarOrigemItens(ids).then(() => { if(currentTab==='vendas') renderContent(); });
   }
   if(currentTab==='vendas') renderContent();
 }
+function fecharFicha(){ vendasSelecionada = null; if(currentTab==='vendas') renderContent(); }
 
 // De onde o aparelho veio. Diferente do Estoque, aqui olhamos so em compras:
 // procurar em vendas devolveria a propria venda que estamos abrindo.

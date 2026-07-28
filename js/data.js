@@ -24,7 +24,7 @@ async function loadFromSupabase(){
   let pagamentos = [];
   for(let i=0;i<vendasIds.length;i+=100){
     const lote = vendasIds.slice(i,i+100);
-    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,valor,taxa,liquido,numero_parcelas,status&venda_id=in.(${lote.join(',')})`);
+    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,conta_bancaria,valor,taxa,taxa_extra,liquido,numero_parcelas,status&venda_id=in.(${lote.join(',')})`);
     pagamentos = pagamentos.concat(pags||[]);
   }
   const pagsMap={};
@@ -65,6 +65,9 @@ async function loadFromSupabase(){
     observacoes: v.observacoes,
     qtd_produtos: v.qtd_produtos,
     cliente: { nome: v.cliente_nome, telefone: v.cliente_tel, instagram: v.cliente_insta, cidade: v.cliente_cidade },
+    // Pagamentos crus por forma (nao-cancelados) -- a ficha da venda mostra
+    // valor/parcelas/taxa/liquido/conta de cada forma. NAO altera o lucro.
+    _pagamentos: pagsMap[v.id] || [],
     _produtos: (prodsMap[v.id]||[]).map(p=>({
       ...p,
       apple_id: p.apple_id,

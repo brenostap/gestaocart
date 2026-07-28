@@ -160,6 +160,7 @@ function verPendentes(){
 
 function irParaVenda(id){
   vendasSearch=String(id);
+  vendasSelecionada=Number(id); // ja abre a ficha da venda
   setTab('vendas');
 }
 
