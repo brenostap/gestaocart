@@ -8,7 +8,13 @@ pra fazer junto. Formato livre: título curto + 1 linha. Pode editar à vontade.
 Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = alto valor (recomendação do Claude)
 
 ## Tela de Vendas
-- 🔨 **Master-detail**: linha enxuta (#Venda · Data · Cliente · Loja · Produto · Vendedor · Atendente · Valor · Lucro) + **"ficha da venda"** (painel lateral) com todo o detalhe (aparelhos, acessórios, pagamento com valores, troca, cliente, resumo).
+- 🔨 **Master-detail (APROVADO no mock, pronto pra construir)**: 
+  - **Linha enxuta:** #Venda · Data · Cliente · Loja (badge Cart/Urban) · Produto · Vendedor · Atendente · Valor · Lucro. Cor só onde significa (loja, lucro verde). #Venda no começo.
+  - **Data + Cliente fixas** ao arrastar; clique na linha abre a ficha.
+  - **Ficha da venda (painel lateral)** com blocos, texto limpo (sem etiqueta colorida demais): **Cliente** (contato/cidade/WhatsApp) · **Aparelhos** (modelo/IMEI/custo/valor/lucro/origem) · **Acessórios** (nome+valor) · **Pagamento** (por forma: valor·parcelas·taxa·líquido·conta) · **Upgrade** (aparelhos de troca + valor) · **Resumo** (valor/custo/taxa/lucro/margem).
+  - Rótulo do bloco de troca = **"Upgrade"** (termo do sistema), não "Troca recebida".
+  - Acessórios e pagamento moram NA FICHA, não na linha. Seletor de colunas vira coisa pequena (opcionais Taxa/Margem/Parcelas).
+  - Mock de referência: claude.ai/code/artifact/19d0055e-6811-4fae-ba82-f000c3c5728c
 - 💡 Colunas fixas (Data + Cliente) ao arrastar pro lado.
 - 💡 Seletor de colunas opcionais na tabela (Taxa/Margem/Parcelas), com o app lembrando a escolha.
 - 💡 ⭐ Divisória por dia com resumo do dia (nº vendas, faturamento, lucro, mix de pagamento).
