@@ -44,6 +44,31 @@ const FUNC=[
 ];
 const COLORS=['#1d4ed8','#0f766e','#7c3aed','#b45309','#be123c','#0369a1','#15803d','#9333ea','#0e7490','#166534'];
 
+// Cor -> hex aproximado do produto, para as bolinhas da aba Tabela de precos.
+// A planilha oficial manda o NOME em pt-BR; aqui ele vira cor de bolinha. A chave
+// e normalizada (minuscula, sem acento) pra casar "Cinza Espacial" e "Cinza espacial".
+// Cor desconhecida cai no cinza neutro (corHex devolve null) — nunca quebra.
+const CORES_HEX = {
+  'amarelo':'#FDE36A', 'azul':'#7FA8D6', 'azul sierra':'#9FB8CC',
+  'branco':'#ECECEC', 'cinza espacial':'#52525A', 'dourado':'#EAD9B0',
+  'estelar':'#F1EAD9', 'grafite':'#3C3C3E', 'laranja':'#E8853F',
+  'laranja cosmico':'#C25A28', 'lavanda':'#CFC7E8', 'meia noite':'#26303F',
+  'ouro rose':'#E6C6B8', 'prateado':'#E4E5E7', 'preto':'#1C1C1E',
+  'preto brilhante':'#0B0B0D', 'preto espacial':'#2A2A2C', 'rosa':'#F4D3D8',
+  'roxo':'#B7A8DB', 'roxo profundo':'#55506A', 'salvia':'#C3CDBF',
+  'titanio azul':'#5E6B7E', 'titanio branco':'#E8E8E6', 'titanio desert':'#C9B89E',
+  'titanio natural':'#B9B5AE', 'titanio preto':'#3A3A3C',
+  'titanio laranja cosmico':'#C25A28', 'ultramarino':'#5B6FB5',
+  'verde':'#A8D5B5', 'verde alpino':'#4E5851', 'verde meia noite':'#3B4A45',
+  'verde-acinzentado':'#9AA69A', 'vermelho':'#C63B3B',
+  // nomes em ingles, caso a planilha passe a usar
+  'cosmic orange':'#C25A28', 'deep blue':'#2E4A6B', 'silver':'#E4E5E7'
+};
+function _normCor(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ').trim();
+}
+function corHex(nome){ return CORES_HEX[_normCor(nome)] || null; }
+
 // Fonte unica dos salarios fixos mensais. Consumida por custos.js (geracao no
 // Supabase) e por equipe.js (fechamento, resumos e card individual). Luana saiu;
 // Gabi entrou no lugar (atendente presencial, R$2.250).

@@ -445,3 +445,72 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .est-barra{ flex-direction:column; align-items:stretch; }
   .est-sel select{ max-width:none; width:100%; }
 }
+
+/* ============================================================================
+   TABELA DE PREÇOS — agrupada por modelo (aba Tabela)
+   Faixa do modelo (sticky) com as cores em bolinhas; sub-linhas por GB/cor.
+   O número é o herói: separa por espaço e peso, borda leve só entre linhas.
+   ========================================================================= */
+.tpr-cnt{ font-family:var(--font-mono); font-size:10px; opacity:.6; margin-left:5px; }
+.c-chip.ativo .tpr-cnt{ opacity:.85; }
+
+.tpr-wrap{ overflow-x:auto; }
+.tpr-tab{ width:100%; border-collapse:collapse; font-size:13px; }
+.tpr-tab th{
+  position:sticky; top:0; z-index:3;
+  padding:9px 16px; background:var(--bg3); text-align:left;
+  font-family:var(--font-mono); font-size:10px; font-weight:600;
+  text-transform:uppercase; letter-spacing:.07em; color:var(--text4);
+  border-bottom:1px solid var(--border); white-space:nowrap;
+}
+.tpr-tab th.n{ text-align:right; }
+
+/* faixa do modelo — sticky logo abaixo do cabeçalho */
+.tpr-grupo td{
+  position:sticky; top:32px; z-index:2;
+  padding:10px 16px 9px; background:var(--bg3); cursor:pointer; user-select:none;
+  border-top:1px solid var(--border2); border-bottom:1px solid var(--border);
+}
+.tpr-tab tbody tr.tpr-grupo:first-child td{ border-top:none; }
+.tpr-grupo:hover td{ background:var(--bg4); }
+.tpr-seta{ display:inline-block; width:12px; color:var(--text4); font-size:9px; margin-right:6px; transition:transform .15s; }
+.tpr-grupo.fechado .tpr-seta{ transform:rotate(-90deg); }
+.tpr-nome{ font-size:13.5px; font-weight:700; color:var(--text); letter-spacing:-.01em; }
+.tpr-cores{ display:inline-flex; gap:4px; margin-left:12px; vertical-align:middle; }
+.tpr-dot{ width:13px; height:13px; border-radius:50%;
+  border:1px solid rgba(0,0,0,.22); box-shadow:inset 0 1px 1px rgba(255,255,255,.25); }
+:root[data-theme="dark"] .tpr-dot,
+html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
+.tpr-cap{ font-family:var(--font-mono); font-size:10px; color:var(--text4); margin-left:10px; vertical-align:middle; }
+/* chip informativo NEUTRO — não é alerta (cor = significado, nunca decoração) */
+.tpr-varia{ font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--text4); background:var(--bg4); padding:1px 6px; border-radius:var(--radius-pill);
+  margin-left:10px; vertical-align:middle; }
+
+/* sub-linhas de variante (GB / cor) */
+.tpr-lin{ cursor:pointer; }
+.tpr-lin td{ padding:8px 16px; border-bottom:1px solid var(--border); color:var(--text2); }
+.tpr-lin:hover td{ background:var(--bg3); }
+.tpr-lin:hover .tpr-preco.tpr-var{ filter:brightness(1.08); }
+.tpr-gb{ font-family:var(--font-mono); font-size:12px; color:var(--text3); }
+.tpr-gb::before{ content:"↳"; color:var(--text4); margin:0 8px; opacity:.55; }
+.tpr-dot-lin{ width:11px; height:11px; border-radius:50%; display:inline-block; vertical-align:middle;
+  margin:0 7px 0 4px; border:1px solid rgba(0,0,0,.22); }
+.tpr-preco{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
+.tpr-up{ color:var(--text2); }
+.tpr-var{ color:var(--cart); }
+.tpr-warn{ text-align:center; color:var(--warning); font-size:12px; }
+
+.tpr-nota{ padding:11px 16px; border-top:1px solid var(--border); font-size:11px; color:var(--text4); line-height:1.5; }
+.tpr-head-pad{ padding:14px 16px 2px; }
+
+/* painel lateral de detalhe do modelo */
+.tpr-pnl-cores{ display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 14px; }
+.tpr-pnl-cor{ display:inline-flex; align-items:center; gap:7px; font-size:12px; color:var(--text2);
+  background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-pill); padding:3px 11px 3px 7px; }
+.tpr-pnl-nota{ font-size:11.5px; color:var(--text4); margin-top:14px; line-height:1.5; }
+
+@media (max-width:720px){
+  .tpr-grupo td{ position:static; }   /* sticky duplo atrapalha no celular */
+  .tpr-tab th{ position:static; }
+}

@@ -123,7 +123,9 @@ const UI = {
 
   // -- Painel lateral (vira sheet no celular) -----------------------------
   painel({titulo, corpo, onFechar} = {}){
-    const fechar = onFechar || 'document.querySelector(".c-painel-overlay")?.remove()';
+    // Sem aspas duplas: o handler vai dentro de onclick="…" (aspas duplas). Usar
+    // aspas duplas aqui cortava o atributo no meio e quebrava o botao de fechar.
+    const fechar = onFechar || 'UI.fecharPainel()';
     return `<div class="c-painel-overlay" onclick="if(event.target===this){${fechar}}">
       <div class="c-painel">
         <div class="c-painel-head">

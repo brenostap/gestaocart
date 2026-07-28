@@ -1,171 +1,167 @@
 // -- ABA TABELA DE PRECOS ---------------------------------------------------
-// Le de _precos (Supabase). A planilha do Google e a fonte oficial: aqui os
-// precos sao somente leitura, atualizados pelo botao 'Atualizar da planilha'.
+// Le de _precos (Supabase, espelho da planilha oficial). Preco e somente leitura:
+// a fonte e o Google Sheets, atualizado pelo botao 'Atualizar da planilha'.
+//
+// Layout: agrupado por MODELO. Cada modelo vira uma faixa (sticky) com as cores
+// em bolinhas; abaixo, uma sub-linha por GB (ou por GB+cor quando o preco varia
+// por cor — campo `cor` preenchido). Clicar numa linha abre o painel lateral.
 
-let tabelaCat = 'iPhone';
-let tabelaCond = 'Seminovo';
+let tabelaCat = null;                 // categoria ativa (ex.: "iPhone 📱")
+let tabelaCond = null;                // condicao ativa (ex.: "Seminovo")
+let precoFechados = new Set();        // chaves de grupos recolhidos (default: aberto)
 
-function setTabelaCat(c){ tabelaCat = c; if(currentTab==='tabela') renderContent(); }
+function setTabelaCat(c){ tabelaCat = c; tabelaCond = null; if(currentTab==='tabela') renderContent(); }
 function setTabelaCond(c){ tabelaCond = c; if(currentTab==='tabela') renderContent(); }
+function togglePrecoGrupo(k){
+  if(precoFechados.has(k)) precoFechados.delete(k); else precoFechados.add(k);
+  if(currentTab==='tabela') renderContent();
+}
+
+// Nome do modelo pra exibir: "iPhone 14 Pro". A categoria vem com emoji no banco
+// ("iPhone 📱") — limpamos o emoji e so prefixamos se o modelo ja nao comeca com ela.
+function _precoCatLimpa(cat){
+  return String(cat||'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}️]/gu,'').replace(/\s+/g,' ').trim();
+}
+function _precoNomeModelo(p){
+  const cl = _precoCatLimpa(p.categoria);
+  const mod = String(p.modelo||'').trim();
+  if(!cl) return mod;
+  return mod.toLowerCase().startsWith(cl.toLowerCase()) ? mod : (cl+' '+mod);
+}
+// "Azul, Roxo, Preto" -> ['Azul','Roxo','Preto']
+function _precoCores(str){
+  if(Array.isArray(str)) return str.map(s=>String(s).trim()).filter(Boolean);
+  return String(str||'').split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+}
+function _gb(cap){ return cap ? (capacidadeEmGB(cap)||0) : 0; }
+function _precoDot(nome, cls){
+  return `<span class="${cls||'tpr-dot'}" style="background:${corHex(nome)||'var(--text4)'}" title="${escapeHtml(nome)}"></span>`;
+}
 
 function renderTabela(){
   const todos = getTabelaPrecos();
   if(!todos.length){
-    return `<div class="card"><div class="card-title">📋 Tabela de preços</div>
-      <div style="padding:20px;color:var(--text4);font-size:13px">Nenhum preço carregado.</div></div>`;
+    return UI.card({ titulo:'📋 Tabela de preços', corpo: UI.vazio({
+      ico:'🗂️', titulo:'Nenhum preço carregado',
+      texto:'Puxe os preços da planilha oficial no Google Sheets.',
+      acao: UI.btn('↻ Atualizar da planilha', {onclick:'sincronizarPrecos()', variante:'primario', sm:true, id:'btn-sync-precos'})
+    })});
   }
 
-  // -- Cruzamento estoque x tabela ---------------------------------------
-  const cruzado = estoqueItens.map(item => {
-    const titulo = item.produto?.titulo || item.titulo || '';
-    const precoTabela = getPrecoTabela(titulo);
-    const custo = parseFloat(item.valor_estoque||0);
-    const margem = precoTabela ? precoTabela - custo : null;
-    const pct = precoTabela && precoTabela > 0 ? Math.round((margem/precoTabela)*100) : null;
-    return { item, titulo, precoTabela, custo, margem, pct };
-  }).filter(x => x.precoTabela !== null);
-
-  const semTabela = estoqueItens.length - cruzado.length;
-  const capital = estoqueItens.reduce((a,i)=>a+parseFloat(i.valor_estoque||0),0);
-  const valorTabela = cruzado.reduce((a,x)=>a+x.precoTabela,0);
-  const margemTotal = cruzado.reduce((a,x)=>a+x.margem,0);
-  const margemMedia = cruzado.length ? Math.round(cruzado.reduce((a,x)=>a+x.pct,0)/cruzado.length) : 0;
-
-  const kpis = `
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
-      <div class="metric" style="padding:12px">
-        <div class="metric-label">Custo total estoque</div>
-        <div class="metric-value" style="font-size:20px">${brl(capital)}</div>
-        <div class="metric-sub">${estoqueItens.length} unidades</div>
-      </div>
-      <div class="metric" style="padding:12px">
-        <div class="metric-label">Valor pela tabela</div>
-        <div class="metric-value" style="font-size:20px;color:var(--cart)">${brl(valorTabela)}</div>
-        <div class="metric-sub">${cruzado.length} itens mapeados</div>
-      </div>
-      <div class="metric" style="padding:12px">
-        <div class="metric-label">Margem potencial</div>
-        <div class="metric-value" style="font-size:20px;color:var(--green)">${brl(margemTotal)}</div>
-        <div class="metric-sub">se vender tudo na tabela</div>
-      </div>
-      <div class="metric" style="padding:12px">
-        <div class="metric-label">Margem média</div>
-        <div class="metric-value" style="font-size:20px;color:${margemMedia>20?'var(--green)':margemMedia>10?'var(--yellow)':'var(--red)'}">${margemMedia}%</div>
-        <div class="metric-sub">${semTabela} itens sem tabela</div>
-      </div>
-    </div>`;
-
-  // -- Filtros -----------------------------------------------------------
+  // -- Filtros: categoria (com emoji + contador) e condicao ------------------
   const categorias = [...new Set(todos.map(p=>p.categoria))];
+  if(!categorias.includes(tabelaCat)) tabelaCat = categorias[0];
   const condicoes = [...new Set(todos.filter(p=>p.categoria===tabelaCat).map(p=>p.condicao))];
-  if(!condicoes.includes(tabelaCond) && condicoes.length) tabelaCond = condicoes[0];
+  if(!condicoes.includes(tabelaCond)) tabelaCond = condicoes[0];
 
-  const btn = (ativo, onclick, texto) => `
-    <button onclick="${onclick}" style="padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;
-      border:1px solid ${ativo?'var(--cart)':'var(--border)'};
-      background:${ativo?'var(--cart)':'var(--bg3)'};
-      color:${ativo?'#fff':'var(--text3)'}">${texto}</button>`;
+  const chipsCat = categorias.map(c =>
+    `<button class="c-chip${c===tabelaCat?' ativo':''}" onclick="setTabelaCat('${escapeKey(c)}')">${escapeHtml(c)}<span class="tpr-cnt">${todos.filter(p=>p.categoria===c).length}</span></button>`).join('');
+  const chipsCond = condicoes.map(cd =>
+    `<button class="c-chip${cd===tabelaCond?' ativo':''}" onclick="setTabelaCond('${escapeKey(cd)}')">${escapeHtml(cd)}</button>`).join('');
+  const filtros = `<div class="tpr-head-pad"><div class="c-toolbar" style="margin-bottom:0">${chipsCat}${UI.sep()}${chipsCond}</div></div>`;
 
-  const filtros = `
-    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${categorias.map(c=>btn(c===tabelaCat, `setTabelaCat('${escapeKey(c)}')`, escapeHtml(c))).join('')}
-      </div>
-      <div style="width:1px;height:20px;background:var(--border)"></div>
-      <div style="display:flex;gap:6px">
-        ${condicoes.map(c=>btn(c===tabelaCond, `setTabelaCond('${escapeKey(c)}')`, escapeHtml(c))).join('')}
-      </div>
-    </div>`;
+  // -- Dados desta combinacao, agrupados por modelo -------------------------
+  const linhas = todos.filter(p => p.categoria===tabelaCat && p.condicao===tabelaCond);
+  const temUpgrade = linhas.some(p => p.preco_upgrade != null);
 
-  // -- Tabela ------------------------------------------------------------
-  const linhas = todos
-    .filter(p => p.categoria===tabelaCat && p.condicao===tabelaCond)
-    .sort((a,b) => a.nome_completo.localeCompare(b.nome_completo,'pt-BR',{numeric:true})
-                || String(a.capacidade||'').localeCompare(String(b.capacidade||''),'pt-BR',{numeric:true}));
+  const grupos = [];
+  linhas.forEach(p => {
+    let g = grupos.find(x => x.modelo === p.modelo);
+    if(!g){ g = {modelo:p.modelo, nome:_precoNomeModelo(p), cores:_precoCores(p.cores), variaCor:false, itens:[]}; grupos.push(g); }
+    if(p.cor) g.variaCor = true;
+    g.itens.push(p);
+  });
 
-  const temCor = linhas.some(p => p.cor);
-  const temUpgrade = linhas.some(p => p.preco_upgrade != null) || tabelaCond === 'Seminovo';
+  const ncols = temUpgrade ? 4 : 3;
+  const corpo = grupos.map(g => {
+    const k = tabelaCat + '|' + g.modelo;
+    const aberto = !precoFechados.has(k);
+    const faixa = `<tr class="tpr-grupo${aberto?'':' fechado'}" onclick="togglePrecoGrupo('${escapeKey(k)}')"><td colspan="${ncols}">
+      <span class="tpr-seta">▾</span>
+      <span class="tpr-nome">${escapeHtml(g.nome)}</span>
+      ${g.cores.length ? `<span class="tpr-cores">${g.cores.map(c=>_precoDot(c)).join('')}</span><span class="tpr-cap">${g.cores.length} cor${g.cores.length>1?'es':''}</span>` : ''}
+      ${g.variaCor ? '<span class="tpr-varia">preço varia por cor</span>' : ''}
+    </td></tr>`;
+    if(!aberto) return faixa;
 
-  const celula = (p, campo) => {
-    const v = p[campo];
-    const cor = campo==='preco_varejo' ? 'var(--cart)' : 'var(--text)';
-    return `<td style="padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);font-weight:700;font-variant-numeric:tabular-nums;color:${v==null?'var(--text4)':cor}">
-      ${v==null ? '—' : brl(v)}</td>`;
-  };
+    const itens = g.itens.slice().sort((a,b) =>
+      _gb(a.capacidade) - _gb(b.capacidade) ||
+      String(a.cor||'').localeCompare(String(b.cor||''),'pt-BR'));
 
-  const corpo = linhas.map(p => `
-    <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600">${escapeHtml(p.nome_completo)}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text3);font-variant-numeric:tabular-nums">${p.capacidade||'—'}</td>
-      ${temCor ? `<td style="padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text3);font-size:12px">${escapeHtml(p.cor||'—')}</td>` : ''}
-      ${temUpgrade ? celula(p,'preco_upgrade') : ''}
-      ${celula(p,'preco_varejo')}
-      <td style="padding:8px 12px;border-bottom:1px solid var(--border);text-align:center">
-        ${p.sujeito_disponibilidade ? '<span title="Sujeito a disponibilidade" style="font-size:11px;color:var(--yellow)">⚠</span>' : ''}
-      </td>
-    </tr>`).join('');
-
-  const th = (txt, align='left', cor='var(--text4)') =>
-    `<th style="padding:8px 12px;text-align:${align};background:var(--bg);border-bottom:1px solid var(--border2);font-size:10px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:.08em">${txt}</th>`;
-
-  // -- Estoque x tabela --------------------------------------------------
-  const estoqueRows = cruzado.sort((a,b)=>(a.pct||0)-(b.pct||0)).slice(0,100).map(({item,titulo,precoTabela,custo,margem,pct}) => {
-    const curto = titulo.replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').replace(/\s*Lacrado\s*$/i,' LAC').trim();
-    const cor = pct<10 ? 'var(--red)' : pct<15 ? 'var(--yellow)' : 'var(--green)';
-    return `<tr style="border-bottom:1px solid var(--border)">
-      <td style="padding:7px 10px;font-size:12px;color:var(--text3)">${escapeHtml(item.serial||'—')}</td>
-      <td style="padding:7px 10px;font-size:12px">${escapeHtml(curto)}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:right;font-variant-numeric:tabular-nums">${brl(custo)}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:right;color:var(--cart);font-weight:600;font-variant-numeric:tabular-nums">${brl(precoTabela)}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:right;color:var(--green);font-variant-numeric:tabular-nums">${brl(margem)}</td>
-      <td style="padding:7px 10px;font-size:12px;text-align:right;font-weight:700;color:${cor}">${pct}%</td>
-    </tr>`;
+    const rows = itens.map(p => {
+      const partes = [];
+      if(p.capacidade) partes.push(`<span class="tpr-gb">${escapeHtml(p.capacidade)}</span>`);
+      if(p.cor) partes.push(`${_precoDot(p.cor,'tpr-dot-lin')}${escapeHtml(p.cor)}`);
+      const label = partes.join(' ') || '<span class="tpr-gb">Único</span>';
+      return `<tr class="tpr-lin" onclick="openPrecoPanel('${escapeKey(tabelaCat)}','${escapeKey(g.modelo)}')">
+        <td>${label}</td>
+        ${temUpgrade ? `<td class="tpr-preco tpr-up">${p.preco_upgrade==null?'—':brl(p.preco_upgrade)}</td>` : ''}
+        <td class="tpr-preco tpr-var">${p.preco_varejo==null?'—':brl(p.preco_varejo)}</td>
+        <td class="tpr-warn">${p.sujeito_disponibilidade?'<span title="Sujeito a disponibilidade">⚠</span>':''}</td>
+      </tr>`;
+    }).join('');
+    return faixa + rows;
   }).join('');
 
-  return `
-    ${kpis}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
-      <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <span>📋 Tabela de preços</span>
-          <span style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:11px;color:${_ultimaSyncPrecos?.status==='erro'?'var(--red)':'var(--text4)'};font-weight:400">
-              ${linhas.length} de ${todos.length} · ${textoUltimaSync()}
-            </span>
-            <button id="btn-sync-precos" onclick="sincronizarPrecos()"
-              style="padding:5px 12px;border-radius:8px;border:1px solid var(--cart);background:var(--bg3);color:var(--cart);font-size:11px;font-weight:700;cursor:pointer">
-              ↻ Atualizar da planilha</button>
-          </span>
-        </div>
-        ${filtros}
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead><tr>
-              ${th('Modelo')}${th('GB')}${temCor?th('Cor'):''}
-              ${temUpgrade?th('Upgrade','right'):''}${th('Varejo','right','var(--cart)')}${th('','center')}
-            </tr></thead>
-            <tbody>${corpo || `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text4)">Nada nesta combinação.</td></tr>`}</tbody>
-          </table>
-        </div>
-        <div style="margin-top:10px;font-size:11px;color:var(--text4)">
-          💡 Os preços vêm da planilha oficial no Google Sheets — edite lá e clique em “Atualizar da planilha” · ⚠ = sujeito a disponibilidade
-        </div>
-      </div>
+  const tabela = `<div class="tpr-wrap"><table class="tpr-tab">
+    <thead><tr>
+      <th>Modelo · GB</th>
+      ${temUpgrade ? '<th class="n">Upgrade</th>' : ''}
+      <th class="n">Varejo</th>
+      <th style="width:44px"></th>
+    </tr></thead>
+    <tbody>${corpo || `<tr><td colspan="${ncols}"><div class="c-vazio"><div class="c-vazio-titulo">Nada nesta combinação</div></div></td></tr>`}</tbody>
+  </table></div>`;
 
-      <div class="card">
-        <div class="card-title" style="display:flex;justify-content:space-between">
-          <span>📦 Estoque × Tabela</span>
-          <span style="font-size:11px;color:var(--text4)">${cruzado.length} mapeados · menor margem primeiro</span>
-        </div>
-        <div style="overflow-x:auto">
-          <table style="width:100%;border-collapse:collapse">
-            <thead><tr style="border-bottom:1px solid var(--border2)">
-              ${th('Etiq')}${th('Produto')}${th('Custo','right')}${th('Tabela','right','var(--cart)')}${th('Margem','right','var(--green)')}${th('%','right')}
-            </tr></thead>
-            <tbody>${estoqueRows}</tbody>
-          </table>
-        </div>
-        ${semTabela>0 ? `<div style="margin-top:8px;font-size:11px;color:var(--text4)">⚠ ${semTabela} itens sem correspondência na tabela</div>` : ''}
-      </div>
-    </div>`;
+  const acao = `<span style="font-size:11px;color:${_ultimaSyncPrecos?.status==='erro'?'var(--red)':'var(--text4)'};font-weight:400">${textoUltimaSync()}</span>`
+    + UI.btn('↻ Atualizar da planilha', {onclick:'sincronizarPrecos()', sm:true, id:'btn-sync-precos'});
+
+  const nota = `<div class="tpr-nota">💡 Preços vêm da planilha oficial no Google Sheets — edite lá e clique em “Atualizar da planilha” · <span style="color:var(--warning)">⚠</span> = sujeito a disponibilidade · bolinhas = cores disponíveis · clique num modelo para ver detalhes</div>`;
+
+  return UI.card({
+    titulo: '📋 Tabela de preços',
+    sub: `${linhas.length} de ${todos.length}`,
+    acao, flush: true,
+    corpo: filtros + tabela + nota
+  });
+}
+
+// -- Painel lateral: detalhe de um modelo -----------------------------------
+function openPrecoPanel(cat, modelo){
+  const itens = getTabelaPrecos()
+    .filter(p => p.categoria===cat && p.modelo===modelo && p.condicao===tabelaCond)
+    .sort((a,b) => _gb(a.capacidade) - _gb(b.capacidade) ||
+                   String(a.cor||'').localeCompare(String(b.cor||''),'pt-BR'));
+  if(!itens.length) return;
+
+  const nome  = _precoNomeModelo(itens[0]);
+  const cores = _precoCores(itens[0].cores);
+  const temUp = itens.some(p => p.preco_upgrade != null);
+  const disp  = itens.some(p => p.sujeito_disponibilidade);
+
+  const chipsCor = cores.length
+    ? `<div class="tpr-pnl-cores">${cores.map(c =>
+        `<span class="tpr-pnl-cor"><span class="tpr-dot-lin" style="margin:0;background:${corHex(c)||'var(--text4)'}"></span>${escapeHtml(c)}</span>`).join('')}</div>`
+    : '';
+
+  const colunas = [{titulo:'Variante'}];
+  if(temUp) colunas.push({titulo:'Upgrade', num:true});
+  colunas.push({titulo:'Varejo', num:true});
+
+  const linhasTab = itens.map(p => {
+    const partes = [];
+    if(p.capacidade) partes.push(escapeHtml(p.capacidade));
+    if(p.cor) partes.push(escapeHtml(p.cor));
+    const cel = [(partes.join(' · ') || 'Único') + (p.sujeito_disponibilidade ? ' <span style="color:var(--warning)" title="Sujeito a disponibilidade">⚠</span>' : '')];
+    if(temUp) cel.push({v: p.preco_upgrade==null?'—':brl(p.preco_upgrade), num:true});
+    cel.push({v: p.preco_varejo==null?'—':`<span style="color:var(--cart);font-weight:700">${brl(p.preco_varejo)}</span>`, num:true});
+    return cel;
+  });
+
+  const corpo = `${chipsCor}
+    ${UI.tabela({colunas, linhas:linhasTab})}
+    ${disp ? `<div class="v-alerta" data-tom="alerta" style="margin-top:12px"><span>⚠ Alguns preços deste modelo estão sujeitos a disponibilidade.</span></div>` : ''}
+    <div class="tpr-pnl-nota">Condição: <b>${escapeHtml(tabelaCond)}</b>. Preço oficial vem do Google Sheets. O histórico de preços aparecerá aqui quando começarmos a registrar as mudanças da planilha.</div>`;
+
+  UI.abrirPainel({ titulo: escapeHtml(nome), corpo });
 }
