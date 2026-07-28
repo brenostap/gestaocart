@@ -88,7 +88,10 @@
 
 /* -- AREA PRINCIPAL ------------------------------------------------------- */
 .main{ min-width:0; display:flex; flex-direction:column; }
-.main .content{ padding:18px 22px 40px; flex:1; }
+/* max-width solta o teto antigo de 1100px (css/styles.css) — em telas largas
+   (ultrawide) a lista de vendas precisa de espaco pra nao esconder colunas.
+   1800px da folga real a tabela sem virar linha longa demais pra ler. */
+.main .content{ padding:18px 22px 40px; flex:1; max-width:1800px; }
 .topbar{
   position:sticky; top:0; z-index:10;
   display:flex; align-items:center; gap:12px;
