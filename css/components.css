@@ -387,7 +387,9 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
    VENDAS — master-detail: linha enxuta (achar) + ficha da venda (entender)
    A linha mostra so o essencial; o detalhe mora na ficha docada do lado.
    ========================================================================= */
-.v-stage{ display:grid; grid-template-columns:minmax(0,1fr) 384px; gap:16px; align-items:start; }
+/* fechada: lista ocupa tudo. aberta: abre a coluna da ficha ao lado. */
+.v-stage{ display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+.v-stage.tem-selecao{ grid-template-columns:minmax(0,1fr) 384px; }
 .v-lista{ min-width:0; }
 .v-ficha-dock{ position:sticky; top:16px; }
 .vf-scrim{ display:none; }
@@ -412,7 +414,7 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .vf-chip[data-tom="ok"]    { color:var(--success); background:var(--success-bg); }
 .vf-chip[data-tom="alerta"]{ color:var(--warning); background:var(--warning-bg); }
 .vf-fechar{
-  display:none; position:absolute; top:12px; right:12px; width:30px; height:30px;
+  display:block; position:absolute; top:12px; right:12px; width:30px; height:30px;
   border:1px solid var(--border2); border-radius:var(--radius-sm); background:var(--bg3);
   color:var(--text3); font-size:14px; cursor:pointer; line-height:1;
 }
@@ -452,16 +454,38 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .vf-cbtn:hover{ color:var(--text); background:var(--bg4); }
 .vf-soon{ font-size:11px; color:var(--text4); font-style:italic; margin-top:7px; }
 
-/* estado vazio da ficha (nada selecionado) */
-.v-ficha-vazia{ text-align:center; padding:40px 22px; color:var(--text3); }
-.v-ficha-vazia::before{ display:none; }
-.vf-vazia-ico{ font-size:26px; margin-bottom:8px; opacity:.7; }
-.vf-vazia-tit{ font-size:14px; font-weight:600; color:var(--text2); margin-bottom:4px; }
-.vf-vazia-txt{ font-size:12px; color:var(--text4); max-width:34ch; margin:0 auto; line-height:1.5; }
+/* -- faixa-resumo do dia (recolhivel, entre os dias na lista) ------------- */
+.est-tabela tr.v-diaband{ cursor:pointer; }
+.est-tabela tr.v-diaband td{ background:var(--bg3); border-top:1px solid var(--border2); padding:10px 14px !important; }
+.est-tabela tr.v-diaband:hover td,
+.est-tabela tr.v-diaband.aberta td{ background:var(--bg4); }
+.est-tabela tr.v-diaband .est-seta{ color:var(--text3); }
+.est-tabela tr.v-diaband.aberta .est-seta{ color:var(--cart); }
+
+.v-dia-head{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.v-dia-cal{ display:flex; align-items:center; gap:7px; min-width:0; }
+.v-dia-data{ font-weight:700; font-size:13px; color:var(--text); text-transform:capitalize; }
+.v-dia-cnt{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); }
+.v-dia-kpis{ display:flex; gap:20px; flex-wrap:wrap; margin-left:auto; }
+.v-dia-kpi{ display:flex; flex-direction:column; line-height:1.25; }
+.v-dia-kpi i{ font-family:var(--font-mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; color:var(--text4); font-style:normal; }
+.v-dia-kpi b{ font-size:13px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+.v-dia-kpi b.ok{ color:var(--success); }
+.v-dia-kpi em{ font-size:10px; color:var(--text4); font-style:normal; }
+
+.v-dia-cols{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px 22px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border2); }
+.v-dia-sec-t{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text4); font-weight:600; margin-bottom:7px; }
+.v-dia-lin{ display:flex; align-items:baseline; gap:8px; padding:3px 0; font-size:12px; }
+.v-dia-lin .nm{ color:var(--text); font-weight:600; }
+.v-dia-lin .mt{ color:var(--text3); font-size:11px; }
+.v-dia-lin .cm{ margin-left:auto; color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.v-dia-lin .cm em{ color:var(--text4); font-weight:400; font-style:normal; font-size:10.5px; }
+.v-dia-vazio{ color:var(--text4); font-size:12px; padding:3px 0; }
+.v-dia-nota{ font-size:10.5px; color:var(--text4); font-style:italic; margin-top:10px; }
 
 /* tablet/celular: uma coluna; a ficha vira sheet que sobe ao selecionar */
 @media (max-width: 960px){
-  .v-stage{ display:block; }
+  .v-stage, .v-stage.tem-selecao{ display:block; }
   .v-ficha-dock{
     position:fixed; left:0; right:0; bottom:0; z-index:65;
     transform:translateY(101%); transition:transform .24s ease; pointer-events:none;
@@ -469,8 +493,6 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .v-stage.tem-selecao .v-ficha-dock{ transform:none; pointer-events:auto; }
   .v-ficha{ border-radius:16px 16px 0 0; border-bottom:none; max-height:88vh; display:flex; flex-direction:column; }
   .vf-body{ max-height:none; }
-  .vf-fechar{ display:block; }
-  .v-ficha-vazia{ display:none; } /* sem selecao, nada de sheet no celular */
   .v-stage.tem-selecao .vf-scrim{
     display:block; position:fixed; inset:0; z-index:64;
     background:rgba(10,14,24,.42); backdrop-filter:blur(2px);
@@ -521,6 +543,17 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .c-grupo-sub{ float:none; }
   /* celula sem conteudo (ex.: Efetivo n/a) nao vira linha fantasma no cartao */
   .c-tabela tbody tr:not(.c-grupo) td:empty{ display:none; }
+
+  /* faixa-resumo do dia: banda de largura cheia (nao vira cartao com rotulos) */
+  .c-tabela tbody tr.v-diaband{ border:none; background:transparent; margin:14px 0 6px; padding:0; }
+  .c-tabela tbody tr.v-diaband td{
+    display:block; text-align:left; background:var(--bg3);
+    border:1px solid var(--border2); border-radius:var(--radius-sm); padding:11px 13px !important;
+  }
+  .c-tabela tbody tr.v-diaband td::before{ content:''; }
+  .est-tabela tr.v-diaband td:first-child{ margin-bottom:0; }
+  .v-dia-kpis{ margin-left:0; margin-top:8px; gap:16px; width:100%; }
+  .v-dia-cols{ grid-template-columns:1fr; }
 
   /* a linha de detalhe ocupa o cartao inteiro */
   .est-detalhe td{ display:block; text-align:left; padding:12px !important; }

@@ -770,7 +770,12 @@ function renderVendas(){
   const th = (col, texto, num) =>
     `<th class="${num?'num ':''}ord" onclick="sortVendas('${col}')">${texto}${seta(col)}</th>`;
 
-  const corpo = rows.map(r => {
+  // colunas visiveis (pra colspan da faixa-resumo do dia)
+  const COLS = 7 + (completo?1:0) + (podeVerValor()?1:0)
+             + (completo&&podeVerMargem()?1:0) + (podeVerMargem()?1:0)
+             + (completo&&podeVerMargem()?1:0);
+
+  const linhaVenda = r => {
     const sel = r.id === vendasSelecionada;
     const mg = r.valor>0 ? Math.round(r.lucro/r.valor*100) : 0;
     return `<tr class="est-linha${sel?' sel':''}" onclick="selecionarVenda(${r.id})">
@@ -787,7 +792,24 @@ function renderVendas(){
       ${podeVerMargem() ? `<td data-rot="Lucro" class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
       ${completo && podeVerMargem() ? `<td data-rot="Margem" class="num">${r.valor>0?mg+'%':'—'}</td>` : ''}
     </tr>`;
-  }).join('');
+  };
+
+  // Ordenado por coluna = lista plana. Ordem cronologica (padrao) = agrupa por
+  // dia com a faixa-resumo do dia (recolhivel) entre os dias.
+  let corpo;
+  if(vendasSortCol){
+    corpo = rows.map(linhaVenda).join('');
+  } else {
+    const grupos = [];
+    let atual = null;
+    rows.forEach(r => {
+      if(!atual || atual.dia !== r.data){ atual = {dia:r.data, rows:[]}; grupos.push(atual); }
+      atual.rows.push(r);
+    });
+    corpo = grupos.map(g =>
+      resumoDiaHTML(g.dia, g.rows, COLS) + g.rows.map(linhaVenda).join('')
+    ).join('');
+  }
 
   const tabela = rows.length
     ? UI.card({ titulo:'Pedidos', sub: rows.length + (rows.length===1?' venda':' vendas'), flush:true,
@@ -800,14 +822,14 @@ function renderVendas(){
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
                       : 'Assim que uma venda for concluída na FoneNinja, ela aparece aqui em até 2 minutos.' }) });
 
-  // Ficha da venda selecionada — docada no desktop, sheet no celular.
+  // Ficha da venda — so aparece quando ha selecao. Fechada, a lista ocupa tudo.
+  // Docada no desktop, sheet no celular; ✕ (ou tocar a linha de novo) fecha.
   const selRow = vendasSelecionada!=null ? rows.find(r => r.id === vendasSelecionada) : null;
-  const ficha  = selRow ? fichaVendaHTML(selRow) : fichaVaziaHTML();
 
   const stage = `<div class="v-stage${selRow?' tem-selecao':''}">
     <div class="v-lista">${tabela}</div>
-    <div class="vf-scrim" onclick="fecharFicha()"></div>
-    <aside class="v-ficha-dock">${ficha}</aside>
+    ${selRow ? `<div class="vf-scrim" onclick="fecharFicha()"></div>
+    <aside class="v-ficha-dock">${fichaVendaHTML(selRow)}</aside>` : ''}
   </div>`;
 
   return cabecalho + kpis + alertas + filtros + stage;
@@ -936,15 +958,104 @@ function fichaVendaHTML(r){
   </div>`;
 }
 
-function fichaVaziaHTML(){
-  return `<div class="v-ficha v-ficha-vazia">
-    <div class="vf-vazia-ico">🧾</div>
-    <div class="vf-vazia-tit">Selecione uma venda</div>
-    <div class="vf-vazia-txt">Clique numa linha pra abrir a ficha — aparelhos, acessórios, pagamento e resumo.</div>
-  </div>`;
+// ── RESUMO DO DIA (faixa recolhivel entre os dias na lista de vendas) ─────
+// Recolhida: peças (total/Cart/Urban) · bruto · lucro · acessorios (bruto/lucro).
+// Aberta: vendas+comissao por vendedor, comissao dos atendentes e quanto entrou
+// por forma de pagamento (cheio + liquido). Comissao de vendedor no valor BASE
+// (R$25/un); a faixa de R$35 e as metas sao mensais (Dashboard).
+function pagFormaInfo(f){
+  const raw = String(f==null?'':f).toLowerCase();
+  if(raw.includes('pix'))                             return ['pix','Pix'];
+  if(raw.includes('créd')||raw.includes('cred'))      return ['credito','Crédito'];
+  if(raw.includes('déb') ||raw.includes('deb'))       return ['debito','Débito'];
+  if(raw.includes('dinh'))                            return ['dinheiro','Dinheiro'];
+  return ['outro', f || 'Outro'];
 }
 
+function resumoDiaHTML(dia, diaRows, COLS){
+  const verV = podeVerValor(), verM = podeVerMargem();
+  const aberto = vendasDiasAbertos.has(dia);
+
+  let pcT=0, pcC=0, pcU=0, bruto=0, lucro=0, acB=0, acL=0;
+  const vendMap={}, atMap={}, pgMap={};
+  diaRows.forEach(r => {
+    pcT += r.nPrincipais;
+    if(r.loja==='cart') pcC += r.nPrincipais; else if(r.loja==='urban') pcU += r.nPrincipais;
+    bruto += r.valor; lucro += r.lucro; acB += r.acessBruto; acL += r.acessLucro;
+    const vk = matchNome(r.vendedor, VO_KEYS);
+    if(vk){ (vendMap[vk] = vendMap[vk] || {v:0, ap:0}); vendMap[vk].v++; vendMap[vk].ap += r.nPrincipais; }
+    const ak = matchNome(r.atendente, AT_KEYS);
+    if(ak){ (atMap[ak] = atMap[ak] || {ab:0, al:0, qt:0}); atMap[ak].ab += r.acessBruto; atMap[ak].al += r.acessLucro; atMap[ak].qt++; }
+    (r.pagamentos||[]).forEach(p => {
+      const [k,label] = pagFormaInfo(p.forma);
+      (pgMap[k] = pgMap[k] || {label, cheio:0, liq:0});
+      pgMap[k].cheio += p.valor; pgMap[k].liq += p.liquido;
+    });
+  });
+
+  const dataLabel = dia
+    ? new Date(dia+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short', day:'2-digit', month:'2-digit'}).replace('.','')
+    : '—';
+  const nV = diaRows.length;
+
+  const kpi = (rot, val, sub, ok) => `<span class="v-dia-kpi"><i>${rot}</i><b${ok?' class="ok"':''}>${val}</b>${sub?`<em>${sub}</em>`:''}</span>`;
+  const kpis = [
+    kpi('peças', pcT, `Cart ${pcC} · Urban ${pcU}`),
+    verV ? kpi('bruto', money(bruto)) : '',
+    verM ? kpi('lucro', money(lucro), '', true) : '',
+    verV ? kpi('acessórios', money(acB), verM ? `lucro ${money(acL)}` : '') : '',
+  ].filter(Boolean).join('');
+
+  let detalhe = '';
+  if(aberto){
+    const vendRows = Object.entries(vendMap)
+      .sort((a,b)=>b[1].ap-a[1].ap)
+      .map(([k,d]) => `<div class="v-dia-lin"><span class="nm">${cap1(k)}</span>
+        <span class="mt">${d.v} venda${d.v!==1?'s':''} · ${d.ap} un</span>
+        ${verM?`<span class="cm">${money(d.ap*25)}</span>`:''}</div>`).join('')
+      || '<div class="v-dia-vazio">—</div>';
+    const atRows = Object.entries(atMap)
+      .sort((a,b)=>b[1].ab-a[1].ab)
+      .map(([k,d]) => `<div class="v-dia-lin"><span class="nm">${cap1(k)}</span>
+        <span class="mt">${verV?money(d.ab):d.qt+' at.'} acess.</span>
+        ${verM?`<span class="cm">${money(d.al*0.25)}</span>`:''}</div>`).join('')
+      || '<div class="v-dia-vazio">—</div>';
+    const ordem = ['pix','credito','debito','dinheiro','outro'];
+    const pgRows = Object.entries(pgMap)
+      .sort((a,b)=>ordem.indexOf(a[0])-ordem.indexOf(b[0]))
+      .map(([,d]) => `<div class="v-dia-lin"><span class="nm">${escapeHtml(d.label)}</span>
+        <span class="cm">${money(d.cheio)}${verM?` <em>líq ${money(d.liq)}</em>`:''}</span></div>`).join('')
+      || '<div class="v-dia-vazio">—</div>';
+
+    detalhe = `<div class="v-dia-cols">
+      <div class="v-dia-sec"><div class="v-dia-sec-t">Vendedores</div>${vendRows}</div>
+      <div class="v-dia-sec"><div class="v-dia-sec-t">Atendentes</div>${atRows}</div>
+      ${verV?`<div class="v-dia-sec"><div class="v-dia-sec-t">Pagamento</div>${pgRows}</div>`:''}
+    </div>
+    ${verM?`<div class="v-dia-nota">Comissão de vendedor no valor base (R$25/un). Faixa de R$35 e metas são mensais — ver Dashboard.</div>`:''}`;
+  }
+
+  return `<tr class="v-diaband${aberto?' aberta':''}" onclick="toggleDiaResumo('${dia}')">
+    <td colspan="${COLS}">
+      <div class="v-dia-head">
+        <div class="v-dia-cal"><span class="est-seta">${aberto?'▾':'▸'}</span>
+          <span class="v-dia-data">${dataLabel}</span>
+          <span class="v-dia-cnt">${nV} venda${nV!==1?'s':''}</span></div>
+        <div class="v-dia-kpis">${kpis}</div>
+      </div>
+      ${detalhe}
+    </td>
+  </tr>`;
+}
+
+
 let _vendasVisiveis = [];
+let vendasDiasAbertos = new Set(); // dias com o resumo expandido
+function toggleDiaResumo(dia){
+  if(vendasDiasAbertos.has(dia)) vendasDiasAbertos.delete(dia);
+  else vendasDiasAbertos.add(dia);
+  if(currentTab==='vendas') renderContent();
+}
 let vendasSelecionada = null; // id da venda com ficha aberta (null = nenhuma)
 let vendasModo = 'compacto'; // 'compacto' | 'completo' — liga as colunas analiticas extras
 function toggleVendasModo(){
