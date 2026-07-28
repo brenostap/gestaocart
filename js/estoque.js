@@ -21,53 +21,12 @@ function estNomeHtml(curto, completo){
 // ESTOQUE V3 -- Vista Agrupada + Lista Expansivel + WhatsApp
 // ===================================================================
 
-// Helpers globais (usados por render, lista e templates WA)
-const CORES_HEX = {
-  'branco': '#f5f5f0',
-  'preto': '#1a1a1a',
-  'cinza espacial': '#3d3d3d',
-  'grafite': '#3d3d3d',
-  'prata': '#d8d8d8',
-  'prateado': '#d8d8d8',
-  'dourado': '#e8c887',
-  'rosa': '#f4b6c2',
-  'azul': '#4a6fa5',
-  'azul pacifico': '#5b8bf5',
-  'azul sierra': '#6b7d9b',
-  'verde': '#7ba88a',
-  'verde alpino': '#5d7a5e',
-  'verde meia noite': '#1a3d2e',
-  'verde-acinzentado': '#6b8074',
-  'vermelho': '#c53030',
-  'amarelo': '#f4d03f',
-  'roxo': '#9b59b6',
-  'roxo profundo': '#5e3a7a',
-  'preto espacial': '#1a1a1a',
-  'meia noite': '#1c1c2e',
-  'meia-noite': '#1c1c2e',
-  'estelar': '#e8d4d0',
-  'ultramarino': '#3b5998',
-  'lavanda': '#c5b8d8',
-  'salvia': '#a8b89c',
-  'titanio natural': '#e5e5dc',
-  'titanio azul': '#4a6fa5',
-  'titanio branco': '#d4d4dc',
-  'titanio preto': '#3d3d3d',
-  'titanio desert': '#c4a575',
-  'titanio laranja cosmico': '#d97044',
-  'laranja cosmico': '#d97044',
-  'laranja': '#e07a3c',
-  'ouro rose': '#dba89a',
-  'preto brilhante': '#0a0a0a',
-  'preto meia noite': '#1c1c2e',
-  'natural': '#e5e5dc'
-};
-
-function corHex(corNome){
-  if(!corNome || corNome === '?') return '#d2d2d7';
-  const key = corNome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  return CORES_HEX[key] || '#d2d2d7';
-}
+// CORES_HEX / corHex viviam aqui, mas COLIDIAM com as declaracoes globais de
+// mesmo nome no config.js \u2014 em <script> classicos e o mesmo escopo global, e
+// "const CORES_HEX" duas vezes vira SyntaxError que derrubava este arquivo
+// inteiro (e, por tabela, Vendas/Estoque/Tabela paravam de abrir). Aqui estavam
+// SEM USO (nenhuma chamada). A versao canonica fica em config.js (bolinhas da
+// aba Tabela de precos). Ver corHex()/CORES_HEX la.
 
 function corPrecisaBorda(corNome){
   const claras = ['branco','estelar','natural','titanio natural','titanio branco','prata','prateado','lavanda','salvia','rosa'];
