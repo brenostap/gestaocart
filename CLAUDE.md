@@ -52,6 +52,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `taxa` = custo real da maquininha; `taxa_extra` = juros repassados ao cliente (é ganho da loja, já embutido no líquido).
 - **Trocas detalhadas** (quais aparelhos o cliente entregou, IMEI/valor) **ainda não são capturadas** — só o total (`upgrade_valor`/`upgrade_qtd`).
 
+## Caderno de ideias
+- `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.
+
 ## Como trabalhar aqui (evita a bagunça de jul/2026)
 - **Um trabalho por conversa**; conversa nova quando o trabalho fecha (mantém o Claude afiado).
 - **Nunca duas sessões editando código ao mesmo tempo** — foi o que causou colisões e git embolado.
