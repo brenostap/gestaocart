@@ -31,7 +31,12 @@
 .d2-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .d2-grid-donut{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:14px}
 @media(max-width:960px){.d2-grid-donut{grid-template-columns:1fr}}
-@media(max-width:720px){.d2-grid-2{grid-template-columns:1fr}}
+@media(max-width:720px){
+  .d2-grid-2{grid-template-columns:1fr}
+  /* donut + legenda lado a lado estouram a largura no celular -> empilha */
+  .d2-donut-wrap{flex-direction:column;align-items:stretch;gap:16px}
+  .d2-donut-wrap .d2-donut{align-self:center}
+}
 
 /* -- Gráfico Vendas do período -------------------------------------------- */
 .d2-tiles{display:flex;gap:10px;margin:4px 0 10px;flex-wrap:wrap}
@@ -107,5 +112,17 @@
 .d2-mg-faixa span{font-size:10px;color:var(--text4)}
 .d2-mg-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px}
 .d2-mg-badge{padding:2px 8px;border-radius:6px;font-weight:700;font-size:11px;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* -- Modelos mais vendidos (ranking) -------------------------------------- */
+.d2-mod-tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.d2-mod-spacer{flex:1;min-width:8px}
+.d2-mod-ord{font-size:10.5px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-right:2px}
+.d2-mod-row{display:grid;grid-template-columns:22px 1fr auto auto;gap:12px;align-items:center;padding:10px 2px;border-top:1px solid var(--border)}
+.d2-mod-row:first-child{border-top:none}
+.d2-mod-pos{font-size:12px;font-weight:700;color:var(--text4);text-align:center;font-variant-numeric:tabular-nums}
+.d2-mod-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:7px;min-width:0}
+.d2-mod-tag{font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:1px 5px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border);flex-shrink:0}
+.d2-mod-un{font-size:13px;font-weight:700;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;min-width:52px}
+.d2-mod-val{font-size:13px;font-weight:700;text-align:right;white-space:nowrap;min-width:74px;font-variant-numeric:tabular-nums}
 
 .d2-live{color:var(--green);font-size:10px;font-weight:600}

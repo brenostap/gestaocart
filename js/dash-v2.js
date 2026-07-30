@@ -10,7 +10,9 @@
 // Cor sempre var(--…). R$ passa por money()/gates de permissão do brief.
 // ============================================================================
 
-function dashV2Ativo(){ try{ return localStorage.getItem('pc_dash_v2')==='1'; }catch(e){ return false; } }
+// v2 agora e o padrao (inclusive no celular). So volta ao antigo se o usuario
+// pediu explicitamente ('0' via botao "↩ Antigo"). Reverter e trocar '!==0' por '===1'.
+function dashV2Ativo(){ try{ return localStorage.getItem('pc_dash_v2')!=='0'; }catch(e){ return true; } }
 function toggleDashV2(){
   try{ localStorage.setItem('pc_dash_v2', dashV2Ativo()?'0':'1'); }catch(e){}
   if(typeof renderContent==='function') renderContent();
@@ -141,6 +143,74 @@ function _d2ModeloVenda(v){
   return arr.map(p=>(p.titulo||'').replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').trim())
     .filter(Boolean).slice(0,2).join(' + ') || '—';
 }
+
+// -- Ranking de modelos vendidos (período + loja do contexto) ---------------
+// Estado local do card. Nomes com prefixo _d2Mod pra não colidir no escopo
+// global (scripts clássicos — ver CLAUDE.md).
+let _d2ModCond='todos', _d2ModOrd='vol';
+
+// Quebra o titulo do FoneNinja ("iPhone 15 128GB Rosa Seminovo") em condição
+// (seminovo/lacrado) + nome de exibição (modelo+GB+cor, sem prefixo/sufixo).
+function _d2ModParse(titulo){
+  const t=String(titulo||'');
+  // Sem marca de lacrado -> tratamos como seminovo (regra do dono).
+  const cond = /lacrad/i.test(t) ? 'lacrado' : 'seminovo';
+  const nome = t.replace(/^\s*iphone\s+/i,'').replace(/\s*(seminovo|lacrado)\s*$/i,'')
+                .replace(/\s+/g,' ').trim() || t.trim() || '—';
+  return {cond, nome};
+}
+
+function _d2ModelosData(){
+  let vs=filterByPeriod(allVendas);
+  if(currentStore!=='ambas') vs=vs.filter(v=>getVendaInfo(v).loja===currentStore);
+  const map={};
+  vs.forEach(v=>{
+    if(v.status==='canceled') return;
+    (v._produtos||[]).filter(p=>isPrincipal(p)).forEach(p=>{
+      const {cond,nome}=_d2ModParse(p.titulo);
+      if(_d2ModCond!=='todos' && cond!==_d2ModCond) return;
+      const key=nome+'|'+cond;
+      if(!map[key]) map[key]={nome, cond, un:0, bruto:0, lucro:0};
+      const q=parseInt(p.quantidade||1)||1;
+      const valor=parseFloat(p.preco||0), custo=parseFloat(p.valor_estoque||0);
+      map[key].un+=q; map[key].bruto+=valor; map[key].lucro+=(valor-custo);
+    });
+  });
+  const arr=Object.values(map);
+  arr.sort((a,b)=> _d2ModOrd==='lucro' ? b.lucro-a.lucro : b.un-a.un);
+  return arr;
+}
+
+function _d2ModelosBody(){
+  const verV=podeVerValor(), verM=podeVerMargem();
+  const chip=(txt,val,cur,fn)=>UI.chip(txt, val===cur, `${fn}('${val}')`);
+  const tools=`<div class="d2-mod-tools">
+    ${chip('Todos','todos',_d2ModCond,'d2ModCond')}
+    ${chip('Seminovo','seminovo',_d2ModCond,'d2ModCond')}
+    ${chip('Lacrado','lacrado',_d2ModCond,'d2ModCond')}
+    <span class="d2-mod-spacer"></span>
+    ${verM?`<span class="d2-mod-ord">ordenar</span>`+chip('Volume','vol',_d2ModOrd,'d2ModOrd')+chip('Lucro','lucro',_d2ModOrd,'d2ModOrd'):''}
+  </div>`;
+  const arr=_d2ModelosData();
+  if(!arr.length) return tools+UI.vazio({titulo:'Sem aparelhos no período', texto:'Quando entrarem vendas de aparelhos, o ranking aparece aqui.'});
+  const top=arr.slice(0,12);
+  // Só o lacrado leva selo; sem selo = seminovo (regra do dono).
+  const rows=top.map((x,i)=>{
+    const tag = x.cond==='lacrado' ? '<span class="d2-mod-tag">Lacrado</span>' : '';
+    const val = verM ? `<span style="color:var(--green)">${brl(x.lucro)}</span>` : (verV?money(x.bruto):'');
+    return `<div class="d2-mod-row">
+      <div class="d2-mod-pos">${i+1}</div>
+      <div class="d2-mod-name">${UI.esc(x.nome)}${tag}</div>
+      <div class="d2-mod-un">${x.un} un</div>
+      <div class="d2-mod-val">${val}</div>
+    </div>`;
+  }).join('');
+  return tools+rows;
+}
+
+function d2ModCond(c){ _d2ModCond=c; _d2ModRefresh(); }
+function d2ModOrd(o){ _d2ModOrd=o; _d2ModRefresh(); }
+function _d2ModRefresh(){ const el=document.getElementById('d2-mod-box'); if(el) el.innerHTML=_d2ModelosBody(); }
 
 // ===========================================================================
 // RENDER
@@ -281,6 +351,10 @@ function renderDashV2(){
     ${UI.card({titulo:'Atendentes', sub:'acessórios · comissão', corpo:_d2RankRows(atends)})}
   </div>`;
 
+  // -- Modelos mais vendidos (ranking) -------------------------------------
+  const modelosCard=UI.card({titulo:'Modelos mais vendidos', sub:'no período', corpo:
+    `<div id="d2-mod-box">${_d2ModelosBody()}</div>`});
+
   // -- Resultado (cascata recolhível) --------------------------------------
   const resRow=(k,v,neg)=>`<div class="d2-res-row${neg?' neg':''}"><span class="k">${k}</span><span class="v">${neg?'− ':''}${v}</span></div>`;
   const resultado = verM ? UI.card({corpo:`<details class="d2-cascata">
@@ -309,5 +383,5 @@ function renderDashV2(){
     UI.tabela({colunas:[{titulo:'Data'},{titulo:'Cód'},{titulo:'Aparelho'},{titulo:'Valor total',num:true},{titulo:'Lucro',num:true}], linhas,
       vazio:UI.vazio({titulo:'Sem vendas no período', texto:'As vendas do FoneNinja aparecem aqui assim que entram.'})})});
 
-  return header+kpis+chartCard+rowDonut+rankRow+resultado+salesCard;
+  return header+kpis+chartCard+rowDonut+rankRow+modelosCard+resultado+salesCard;
 }
