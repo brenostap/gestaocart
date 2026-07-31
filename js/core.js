@@ -56,6 +56,18 @@ const VO_KEYS = ['david','isa','mel','pietra','maria'];
 // lugar da luana), maria (hibrida: atende acess quando e a atendente)
 const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','gabi','maria'];
 
+// Listas [rotulo, chave] para RANKING e BONUS -- derivadas do cadastro (FUNC em config.js).
+// NUNCA escrever nomes a mao nas telas: em jul/2026 o Leo (top 1 do mes) e a Gabi ficaram
+// de fora de 4 arrays hardcoded no dashboard, e o bonus de meta saiu R$1.000 menor que a folha.
+// Quem entra/sai do FUNC passa a aparecer sozinho. Quem saiu (cargo "(saiu)") fica fora.
+// Confere com o conjunto que a folha (equipe.js) paga.
+const AT_LABELS_ALL = FUNC
+  .filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !/\(saiu\)/i.test(f.cargo||''))
+  .map(f => [f.ap, f.atKey]);
+const VO_LABELS_ALL = FUNC
+  .filter(f => f.voKey && VO_KEYS.includes(f.voKey) && !/\(saiu\)/i.test(f.cargo||''))
+  .map(f => [f.ap, f.voKey]);
+
 // === Regras novas a partir de junho/2026 (NAO retroativas) ===
 // Tiers de meta coletiva e classificador de acessorio mudaram em jun/2026.
 // Meses anteriores (abr/mai) mantem o regime antigo para nao alterar fechamentos pagos.

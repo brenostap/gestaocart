@@ -295,7 +295,7 @@ function renderDash(){
   function calcCommVoDash(units){ return units<=80 ? units*25 : 80*25+(units-80)*35; }
 
   // Vendedores -- SEM Gustavo (vai para "Loja")
-  const VO_LABELS=[['Isa','isa'],['Mel','mel'],['David','david'],['Pietra','pietra']].sort((a,b)=>(m.voMap[b[1]]?.units||0)-(m.voMap[a[1]]?.units||0));
+  const VO_LABELS=VO_LABELS_ALL.slice().sort((a,b)=>(m.voMap[b[1]]?.units||0)-(m.voMap[a[1]]?.units||0));
   const voRows=VO_LABELS.map(([n,k])=>{
     const units=m.voMap[k]?.units||0;
     const comm=calcCommVoDash(units);
@@ -328,7 +328,7 @@ function renderDash(){
 
   // Atendentes
   function calcMetaAt(b){if(b>=10000)return{nivel:3,bonus:1000,label:'R$10k ✅'};if(b>=6000)return{nivel:2,bonus:300,label:'R$6k ✅'};if(b>=4000)return{nivel:1,bonus:100,label:'R$4k ✅'};return{nivel:0,bonus:0,label:''};}
-  const AT_LABELS=[['Vitinho','vitinho'],['Davi','davi'],['Anne','anne'],['Pietra','pietra'],['Denilson','denilson']].sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
+  const AT_LABELS=AT_LABELS_ALL.slice().sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
   const atRows=AT_LABELS.map(([n,k])=>{
     const bruto=m.atMap[k]?.brutoAcess||0;
     const comm=m.atMap[k]?.la*0.25||0;

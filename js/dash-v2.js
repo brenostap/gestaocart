@@ -247,7 +247,7 @@ function renderDashV2(){
   const bonusMetaColetiva=(metaDevBatida?.bonus||0)+(metaAcBatida?.bonus||0);
   const calcBonusMetaAt=b=>b>=10000?1000:b>=6000?300:b>=4000?100:0;
   let totalBonusMetaAt=0;
-  ['vitinho','davi','anne','pietra','denilson'].forEach(k=>{ totalBonusMetaAt+=calcBonusMetaAt(m.atMap[k]?.brutoAcess||0); });
+  AT_LABELS_ALL.forEach(([,k])=>{ totalBonusMetaAt+=calcBonusMetaAt(m.atMap[k]?.brutoAcess||0); });
   const totalBonusMetas=bonusMetaColetiva+totalBonusMetaAt;
   const liqReal=m.liq-m.anneBonus-custosMes;
   const liqComMetas=liqReal-totalBonusMetas;
@@ -337,12 +337,12 @@ function renderDashV2(){
 
   // -- Ranking: Vendedores | Atendentes ------------------------------------
   const calcCommVo=u=>u<=80?u*25:80*25+(u-80)*35;
-  const vends=[['Isa','isa'],['Mel','mel'],['David','david'],['Pietra','pietra']].map(([n,k])=>{
+  const vends=VO_LABELS_ALL.map(([n,k])=>{
     const u=m.voMap[k]?.units||0;
     return {nome:n, u, res:`${u} un`, com: verM?brl(calcCommVo(u)):'—'};
   }).sort((a,b)=>b.u-a.u);
   const vendItems=vends.concat([{nome:'Loja (casa)', loja:true, res:`${m.lojaUnits||0} un`, com:'—'}]);
-  const atends=[['Vitinho','vitinho'],['Davi','davi'],['Anne','anne'],['Pietra','pietra'],['Denilson','denilson']].map(([n,k])=>{
+  const atends=AT_LABELS_ALL.map(([n,k])=>{
     const b=m.atMap[k]?.brutoAcess||0, com=(m.atMap[k]?.la||0)*0.25;
     return {nome:n, b, res: verV?brl(b):'—', com: verM?brl(com):'—'};
   }).sort((a,b)=>b.b-a.b);
