@@ -115,6 +115,7 @@ function renderContent(){
   if(!c)return;
   if(currentTab==='dash')c.innerHTML=(typeof renderDashV2==='function'&&typeof dashV2Ativo==='function'&&dashV2Ativo())?renderDashV2():renderDash();
   else if(currentTab==='vendas')c.innerHTML=renderVendas();
+  else if(currentTab==='compras')c.innerHTML=renderCompras();
   else if(currentTab==='estoque')c.innerHTML=renderEstoque();
   else if(currentTab==='custos')c.innerHTML=renderCustos();
   else if(currentTab==='equipe')c.innerHTML=renderEquipe();

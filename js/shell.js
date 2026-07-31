@@ -7,6 +7,7 @@
 const ICO = {
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
+  compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
   estoque:   '<svg viewBox="0 0 24 24"><path d="M21 8.5v7a2 2 0 0 1-1 1.7l-7 3.9a2 2 0 0 1-2 0l-7-3.9a2 2 0 0 1-1-1.7v-7a2 2 0 0 1 1-1.7l7-3.9a2 2 0 0 1 2 0l7 3.9a2 2 0 0 1 1 1.7Z"/><path d="m3.5 7.5 8.5 4.8 8.5-4.8M12 21v-8.7"/></svg>',
   movs:      '<svg viewBox="0 0 24 24"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3"/></svg>',
   equipe:    '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.6M18 20a6.4 6.4 0 0 0-2-4.6"/></svg>',
@@ -19,6 +20,7 @@ const NAV = [
   { grupo:'Operação',  itens:[
     {id:'dash',    label:'Dashboard'},
     {id:'vendas',  label:'Vendas'},
+    {id:'compras', label:'Compras'},
     {id:'estoque', label:'Estoque'},
     {id:'movs',    label:'Movimentações'},
   ]},
@@ -40,7 +42,7 @@ const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 // a fase de perfis chegar, basta papelAtual() passar a ler o perfil real.
 // ---------------------------------------------------------------------------
 const MATRIZ_ACESSO = {
-  socio:     ['dash','vendas','estoque','movs','equipe','tabela','custos','fechamento'],
+  socio:     ['dash','vendas','compras','estoque','movs','equipe','tabela','custos','fechamento'],
   gerente:   ['dash','vendas','estoque','movs','equipe'],
   vendedor:  ['dash','vendas','estoque'],
   atendente: ['dash','vendas','estoque'],
