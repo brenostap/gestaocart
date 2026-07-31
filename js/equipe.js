@@ -5,14 +5,49 @@ let _dividasCache = {};
 function getEquipeExtra(id){
   return _funcConfigCache[id] || {};
 }
+// Grava o contato no Supabase (upsert pela PK id) e devolve uma Promise.
+// IMPORTANTE: as chaves de `data` tem que ser os NOMES DAS COLUNAS
+// (pix, telefone, email, data_inicio, obs). Ate jul/2026 o codigo mandava
+// tel/dataInicio, o PostgREST rejeitava, e o erro morria num catch mudo --
+// por isso a tabela ficou vazia desde que foi criada. Se falhar, agora estoura.
 function setEquipeExtra(id, data){
-  _funcConfigCache[id] = data;
-  fetch(SB_URL+'/rest/v1/funcionarios_config', {
+  _funcConfigCache[id] = { ...(_funcConfigCache[id]||{}), ...data, id };
+  return fetch(SB_URL+'/rest/v1/funcionarios_config', {
     method: 'POST',
     headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_TOKEN,
       'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
     body: JSON.stringify({ id, ...data, updated_at: new Date().toISOString() })
-  }).catch(e => console.error('setEquipeExtra erro:', e));
+  }).then(async r => {
+    if(!r.ok){
+      const txt = await r.text().catch(() => '');
+      console.error('setEquipeExtra HTTP '+r.status, txt);
+      throw new Error('HTTP '+r.status+(txt?' — '+txt.slice(0,180):''));
+    }
+    return true;
+  });
+}
+
+// Escapa para uso DENTRO de atributo HTML. O escapeHtml() do estoque.js so
+// trata & < > -- aspas passariam e quebrariam value="..." agora que o campo
+// e digitado pelo usuario.
+function escAttr(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Contato efetivo: o que esta salvo no Supabase manda; FUNC (config.js) e o
+// fallback. Da pra editar pela tela sem mexer no codigo, e nada quebra se a
+// tabela estiver vazia.
+function funcContato(f){
+  const e = getEquipeExtra(f.id) || {};
+  const pick = (a, b) => (a != null && a !== '') ? a : (b || '');
+  return {
+    pix:         pick(e.pix,         f.pix),
+    telefone:    pick(e.telefone,    ''),
+    email:       pick(e.email,       f.email),
+    data_inicio: pick(e.data_inicio, ''),
+    obs:         pick(e.obs,         '')
+  };
 }
 function getDividas(id){
   return _dividasCache[id] || [];
@@ -718,24 +753,40 @@ function renderFuncCard(id, lAcessTotal){
     }
   }
 
-  // -- PIX / Contato ------------------------------------------------------------
-  const pixHtml = f.pix ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-radius:10px;margin-bottom:8px">
-      <div>
-        <div style="font-size:10px;color:var(--text4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">PIX</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${f.pix}</div>
+  // -- Contato: leitura x edicao -------------------------------------------------
+  // Valores vem do Supabase quando existem, senao do FUNC (config.js). Editavel
+  // pela tela -- sao campos de cadastro puro, nenhum entra em conta de fechamento.
+  const ct = funcContato(f);
+  const boxCt = (rot, val, copiavel) => !val ? '' : `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--bg3);border-radius:10px;margin-bottom:8px">
+      <div style="min-width:0">
+        <div style="font-size:10px;color:var(--text4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">${rot}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);word-break:break-word;white-space:pre-wrap">${escapeHtml(val)}</div>
       </div>
-      <button onclick="navigator.clipboard.writeText('${f.pix}');this.textContent='✅';setTimeout(()=>this.textContent='Copiar',2000)"
-        style="padding:5px 12px;background:rgba(91,139,245,.1);border:1px solid rgba(91,139,245,.25);border-radius:7px;color:var(--cart);font-size:11px;font-weight:600;cursor:pointer">Copiar</button>
-    </div>` : '';
+      ${copiavel ? `<button class="c-btn c-btn-sm" data-copy="${escAttr(val)}" onclick="copiarCampo(this)" style="flex:none">Copiar</button>` : ''}
+    </div>`;
 
-  const telHtml = f.telefone ? `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-radius:10px;margin-bottom:8px">
-      <div>
-        <div style="font-size:10px;color:var(--text4);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Telefone</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${f.telefone}</div>
-      </div>
-    </div>` : '';
+  const contatoLeitura = (ct.pix||ct.telefone||ct.email||ct.data_inicio||ct.obs)
+    ? boxCt('PIX', ct.pix, true) + boxCt('Telefone', ct.telefone, true)
+      + boxCt('E-mail', ct.email, true) + boxCt('Início', ct.data_inicio, false)
+      + boxCt('Observações', ct.obs, false)
+    : `<div style="padding:12px 14px;background:var(--bg3);border-radius:10px;font-size:12px;color:var(--text3)">Sem dados de contato — use <b>Editar</b> para preencher.</div>`;
+
+  const contatoEdicao = `
+    <div style="display:grid;gap:10px">
+      ${editField('PIX',           'pix_'+f.id,    escAttr(ct.pix))}
+      ${editField('Telefone',      'tel_'+f.id,    escAttr(ct.telefone))}
+      ${editField('E-mail',        'email_'+f.id,  escAttr(ct.email), 'email')}
+      ${editField('Início',        'inicio_'+f.id, escAttr(ct.data_inicio), 'date')}
+      ${editField('Observações',   'obs_'+f.id,    escapeHtml(ct.obs), 'textarea')}
+    </div>`;
+
+  const btnsContato = equipeEditMode
+    ? `<div style="display:flex;gap:8px">
+         <button id="btn-salvar-${f.id}" class="c-btn c-btn-sm primario" onclick="saveEquipeExtra('${f.id}')">Salvar</button>
+         <button class="c-btn c-btn-sm" onclick="toggleEquipeEdit('${f.id}')">Cancelar</button>
+       </div>`
+    : `<button class="c-btn c-btn-sm" onclick="toggleEquipeEdit('${f.id}')">Editar</button>`;
 
   // -- Fechamento --------------------------------------------------------------
   const mesNomeAtual = mesesNomes[new Date().getMonth()]+' '+new Date().getFullYear();
@@ -812,9 +863,11 @@ function renderFuncCard(id, lAcessTotal){
 
       <!-- CONTATO -->
       <div>
-        <div style="font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Contato</div>
-        ${pixHtml}${telHtml}
-        ${f.email?`<div style="padding:10px 14px;background:var(--bg3);border-radius:10px;font-size:12px;color:var(--text3)">${f.email}</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:.08em">Contato</div>
+          ${btnsContato}
+        </div>
+        ${equipeEditMode ? contatoEdicao : contatoLeitura}
       </div>
 
     </div>`;
@@ -826,16 +879,44 @@ function editField(label, id, val, type='text'){
   return `<div><div style="font-size:11px;color:var(--text3);margin-bottom:4px">${label}</div><input id="${id}" type="${type}" value="${val}" style="width:100%;padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;outline:none"></div>`;
 }
 
+function toggleEquipeEdit(id){
+  equipeOpenId=id;
+  equipeEditMode=!equipeEditMode;
+  document.getElementById('content').innerHTML=renderEquipe();
+}
+
+function copiarCampo(btn){
+  navigator.clipboard.writeText(btn.dataset.copy||'');
+  const antes=btn.textContent;
+  btn.textContent='✅';
+  setTimeout(()=>{btn.textContent=antes;},2000);
+}
+
 function saveEquipeExtra(id){
   const f=FUNC.find(x=>x.id===id);
+  if(!f) return;
+  // '' e valor valido (limpar o campo apaga de verdade) -- por isso ?? e nao ||.
+  const campo=k=>document.getElementById(k+'_'+id)?.value?.trim();
   const cur=getEquipeExtra(id);
-  cur.tel=document.getElementById('tel_'+id)?.value||cur.tel||'';
-  cur.email=document.getElementById('email_'+id)?.value||cur.email||f.email||'';
-  cur.dataInicio=document.getElementById('inicio_'+id)?.value||cur.dataInicio||'';
-  cur.obs=document.getElementById('obs_'+id)?.value||cur.obs||'';
-  setEquipeExtra(id,cur);
-  equipeEditMode=false;
-  document.getElementById('content').innerHTML=renderEquipe();
+  const dados={
+    pix:         campo('pix')    ?? cur.pix         ?? f.pix   ?? '',
+    telefone:    campo('tel')    ?? cur.telefone    ?? '',
+    email:       campo('email')  ?? cur.email       ?? f.email ?? '',
+    data_inicio: campo('inicio') ?? cur.data_inicio ?? '',
+    obs:         campo('obs')    ?? cur.obs         ?? ''
+  };
+  const btn=document.getElementById('btn-salvar-'+id);
+  if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
+  setEquipeExtra(id,dados)
+    .then(()=>{
+      equipeEditMode=false;
+      document.getElementById('content').innerHTML=renderEquipe();
+    })
+    .catch(err=>{
+      if(btn){ btn.disabled=false; btn.textContent='Salvar'; }
+      alert('Não foi possível salvar as alterações de '+f.ap+'.\n\n'+err.message
+            +'\n\nNada foi perdido — os campos continuam preenchidos na tela.');
+    });
 }
 
 function addDivida(id){
