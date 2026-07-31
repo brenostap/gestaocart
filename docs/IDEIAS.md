@@ -27,6 +27,31 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - Código: `renderCompras`/`comprasDetalheHTML`/`alternarCompra` em `js/compras.js` (arquivo novo). **Carga sob demanda**: cabeçalhos `compras` (janela 6m) + contagem leve de `compra_produtos` no 1º open; itens completos só ao expandir. Reusa `.est-detalhe`/`.est-linha.aberta` (Estoque) e `.vf-item` (ficha de Vendas) → zero CSS novo.
 - 💡 Cruzar com Estoque (`ultimo_fornecedor`) pra ver o que de cada compra ainda está parado/vendido.
 
+## Tela de Custos
+- ✅ **Duas vistas (31/jul/2026)**: a tela deixou de ser tabela plana.
+  - **Mês** — KPIs (total · vs mês anterior · maior área), cards **Cart / Urban / Compartilhado**
+    (valor próprio + o efetivo com rateio), *Resultado após custos*, **Faltando lançar** e uma
+    **seção por área** com barra de participação e %. Dentro da área, uma linha por **grupo**
+    (mesma descrição + loja); a linha **expande** e mostra cada lançamento com data, obs e
+    editar/remover. Ordenado por valor.
+  - **vs mês anterior** — barra divergente por área (linha central = mês passado), `de → para`,
+    Δ em R$ e %, ordenado da maior alta pra maior queda + leitura em texto.
+  - Código: `renderCustos`/`custoGrupoHTML`/`custoAreaHTML`/`custoComparativoHTML`/`custoFaltandoHTML`
+    em `js/custos.js`; classes `.cst-*` em `components.css`. Referência: prints do projeto de custos.
+- ✅ **Faltando lançar (31/jul/2026)**: o mês passado vira checklist — o que existia lá e não
+  apareceu aqui, com botão **lançar** que abre o modal já preenchido (`repetirCusto`). Enquanto
+  houver item na lista, o KPI "vs mês anterior" **perde o verde e fica âmbar**: queda com custo
+  por lançar não é economia.
+  - Casamento entre meses por `custoChaveGrupo` = descrição normalizada (sem acento/pontuação e
+    **sem o que está entre parênteses**) + loja. É o que faz "Salário Leo (20 dias)" casar com
+    "Salário Leo". ⚠ Renomear um custo quebra o par (vira "novo" + "faltando").
+- 💡 Marcar custo **recorrente** (aluguel, contador, Empire) e gerar/cobrar sozinho no mês novo,
+  em vez de depender do checklist.
+- 💡 Subgrupos dentro da área (ex.: "Juros de capital" juntando os 4 empréstimos) — hoje cada
+  descrição diferente é uma linha.
+- 💡 Média dos últimos 3 meses ao lado do mês passado, pra não comparar com um mês atípico.
+- 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
+
 ## Dashboard
 - ✅ **Modelos mais vendidos (30/jul/2026)**: card no `renderDashV2` (dash-v2.js) — ranking por modelo+GB+cor, filtro Seminovo/Lacrado/Todos, ordena por Volume/Lucro, usa período+loja do contexto e respeita `money()`/permissões. Selo só no Lacrado (sem selo = seminovo). Parsa o `titulo` do FoneNinja (~98,5% identificável). CSS `.d2-mod-*` em dash-v2.css.
 - 💡 Quando `venda_trocas` encher: quadro de trocas (o que mais entra de upgrade, valor médio) e cruzar com o modelo vendido. **(31/jul: já encheu — 1.010 vendas cobertas, julho 100%.)**

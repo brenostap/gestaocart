@@ -644,3 +644,142 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .tpr-grupo td{ position:static; }   /* sticky duplo atrapalha no celular */
   .tpr-tab th{ position:static; }
 }
+
+/* ============================================================================
+   CUSTOS — seções por área (vista do mês) e comparativo com o mês anterior
+   A tela deixou de ser uma tabela plana: cada área é um card com barra de
+   participação e, dentro dele, uma linha por GRUPO (mesma descrição + loja).
+   A linha expande para os lançamentos individuais, onde ficam editar/remover.
+   ========================================================================= */
+
+/* alternador Mês / vs mês anterior, no cabeçalho da página */
+.cst-vista{ display:inline-flex; gap:6px; margin-right:8px; }
+
+/* -- cabeçalho da área ---------------------------------------------------- */
+.cst-area-tot{
+  font-size:14.5px; font-weight:700; color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.cst-area-pct{
+  font-family:var(--font-mono); font-size:11px; color:var(--text4);
+  margin-left:7px; vertical-align:baseline;
+}
+.cst-area-barra{ padding:10px 16px 2px; }
+
+/* -- linha de grupo ------------------------------------------------------- */
+.cst-grupo{ border-top:1px solid var(--border); }
+.cst-grupo:first-of-type{ border-top:none; }
+.cst-linha{
+  display:grid; grid-template-columns:1fr auto auto; align-items:center;
+  gap:14px; padding:9px 16px; cursor:pointer;
+  border-left:3px solid transparent; transition:background .12s;
+}
+.cst-linha:hover{ background:var(--bg3); }
+/* identidade da loja — mesmo eixo de cor dos selos .cloja-* */
+.cst-linha[data-loja="cart"]{ border-left-color:var(--cart); }
+.cst-linha[data-loja="urban"]{ border-left-color:var(--urban); }
+
+.cst-desc{ display:flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap; }
+.cst-nome{ font-size:13.5px; font-weight:600; color:var(--text); }
+.cst-tag-mudo{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); }
+.cst-seta{ font-size:11px; color:var(--text4); }
+.cst-grupo.aberto .cst-seta{ color:var(--cart); }
+
+.cst-val{
+  font-size:13.5px; font-weight:650; color:var(--text);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.cst-val.mudo{ color:var(--text3); font-weight:600; }
+
+/* comparação com o mês anterior, à direita */
+.cst-cmp{
+  display:flex; flex-direction:column; align-items:flex-end; gap:1px;
+  min-width:112px; text-align:right;
+}
+.cst-ant{ font-family:var(--font-mono); font-size:10.5px; color:var(--text4); white-space:nowrap; }
+.cst-delta{
+  font-size:12px; font-weight:650; font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.cst-delta.sobe{ color:var(--danger); }   /* mais custo */
+.cst-delta.cai { color:var(--success); }  /* menos custo */
+.cst-delta.igual{ color:var(--text4); font-weight:500; }
+.cst-delta-pct{ font-family:var(--font-mono); font-size:10px; opacity:.75; margin-left:5px; }
+
+/* -- lançamentos do grupo (expandido) ------------------------------------- */
+.cst-itens{ background:var(--bg3); border-top:1px solid var(--border); padding:4px 0; }
+.cst-item{
+  display:grid; grid-template-columns:52px 1fr auto auto; align-items:center;
+  gap:12px; padding:6px 16px;
+}
+.cst-item + .cst-item{ border-top:1px solid var(--border); }
+.cst-item-data{ font-family:var(--font-mono); font-size:11px; color:var(--text4); }
+.cst-item-desc{ font-size:12.5px; color:var(--text2); min-width:0; }
+.cst-item-obs{ display:block; font-size:11px; color:var(--text4); margin-top:1px; }
+.cst-item-val{ font-size:12.5px; color:var(--text); font-variant-numeric:tabular-nums; }
+.cst-item-acoes{ display:flex; gap:2px; }
+
+/* -- bloco "Faltando lançar" ---------------------------------------------- */
+.cst-card-alerta{ border-color:var(--warning); }
+.cst-card-alerta > .c-card-head{ background:var(--warning-bg); border-bottom-color:var(--warning); }
+.cst-card-alerta > .c-card-head .c-card-title,
+.cst-card-alerta > .c-card-head .c-card-sub{ color:var(--warning); }
+.cst-linha.cst-falta{ cursor:default; border-top:1px solid var(--border); }
+.cst-linha.cst-falta:first-child{ border-top:none; }
+.cst-linha.cst-falta:hover{ background:transparent; }
+.cst-falta-mais{ padding:10px 16px; border-top:1px solid var(--border); }
+
+/* -- comparativo por área (barra divergente) ------------------------------ */
+.cst-legenda{
+  display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+  font-size:11.5px; color:var(--text3); margin-bottom:14px;
+}
+.cst-dot{ width:9px; height:9px; border-radius:2px; display:inline-block; margin-right:6px; }
+.cst-dot.sobe{ background:var(--danger); }
+.cst-dot.cai{ background:var(--success); }
+.cst-legenda-mudo{ color:var(--text4); }
+
+.cst-cmp-row{
+  display:grid; grid-template-columns:180px 1fr 118px; align-items:center;
+  gap:16px; padding:9px 0; border-top:1px solid var(--border);
+}
+.cst-cmp-row:first-of-type{ border-top:none; }
+.cst-cmp-lbl{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.cst-cmp-area{ font-size:13px; font-weight:650; color:var(--text); }
+.cst-cmp-de-para{
+  font-family:var(--font-mono); font-size:10.5px; color:var(--text4);
+  font-variant-numeric:tabular-nums;
+}
+/* trilho com a linha central = mês anterior */
+.cst-cmp-track{ position:relative; height:20px; background:var(--bg4); border-radius:var(--radius-sm); }
+.cst-cmp-track::before{
+  content:''; position:absolute; left:50%; top:-2px; bottom:-2px;
+  width:1px; background:var(--border3);
+}
+.cst-cmp-bar{ position:absolute; top:3px; bottom:3px; border-radius:3px; }
+.cst-cmp-bar.sobe{ background:var(--danger); }
+.cst-cmp-bar.cai { background:var(--success); }
+.cst-cmp-delta{
+  text-align:right; font-size:13px; font-weight:650;
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+.cst-cmp-delta.sobe{ color:var(--danger); }
+.cst-cmp-delta.cai { color:var(--success); }
+.cst-cmp-delta span{ display:block; font-family:var(--font-mono); font-size:10.5px; font-weight:500; opacity:.8; }
+.cst-resumo{
+  margin-top:16px; padding-top:14px; border-top:1px solid var(--border);
+  font-size:13px; line-height:1.55; color:var(--text2);
+}
+.cst-resumo b{ color:var(--text); font-weight:650; }
+
+@media (max-width:720px){
+  .cst-linha{ grid-template-columns:1fr auto; gap:8px 12px; }
+  .cst-cmp{
+    grid-column:1 / -1; flex-direction:row; align-items:baseline;
+    justify-content:flex-start; gap:10px; min-width:0;
+  }
+  .cst-item{ grid-template-columns:46px 1fr auto; row-gap:2px; }
+  .cst-item-acoes{ grid-column:2 / -1; justify-content:flex-end; }
+  .cst-cmp-row{ grid-template-columns:1fr auto; gap:4px 12px; }
+  .cst-cmp-track{ grid-column:1 / -1; }
+  .cst-vista{ margin-right:0; }
+}
