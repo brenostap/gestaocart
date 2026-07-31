@@ -64,12 +64,15 @@ async function garantirSalariosDoMes(){
 
   console.log('[salarios] Gerando salários de', anoMes, '...');
 
-  // Gerar IDs unicos baseados em ano+mes+funcionario
-  const anoMesNum = parseInt(anoMes.replace('-',''));
+  // O ID vem do banco (sequence custos_id_seq). Ate jul/2026 era calculado aqui
+  // como anoMes*100 + indice na lista JA FILTRADA -- numa segunda rodada os que
+  // faltavam recebiam IDs ja ocupados, e o ignore-duplicates abaixo descartava a
+  // linha sem reclamar. Leo, Maria e Gabi ficaram meses sem salario lancado por
+  // causa disso. Agora quem garante que nao duplica e o indice unico
+  // (funcionario, data) no banco, nao um ID adivinhado no cliente.
   const novos = SALARIOS_CONFIG
     .filter(s => !salariosMes.find(m => m.funcionario === s.func))
-    .map((s, i) => ({
-      id: anoMesNum * 100 + i + 1,
+    .map(s => ({
       descricao: s.desc,
       valor: s.valor,
       data: primeiroDoMes,
@@ -88,19 +91,25 @@ async function garantirSalariosDoMes(){
       headers: {
         'apikey': SB_KEY, 'Authorization': 'Bearer '+SB_TOKEN,
         'Content-Type': 'application/json',
-        'Prefer': 'resolution=ignore-duplicates'
+        // return=representation: so entra no cache o que o banco REALMENTE gravou.
+        // Antes o cache recebia os 3 que o banco tinha descartado, entao na tela
+        // do mes parecia certo e no banco nao estava.
+        'Prefer': 'resolution=ignore-duplicates,return=representation'
       },
       body: JSON.stringify(novos)
     });
-    if(res.ok){
-      // Adicionar ao cache local
-      novos.forEach(n => _custosCache.unshift({
-        id: n.id, desc: n.descricao, valor: n.valor,
-        data: n.data, area: n.area, loja: n.loja,
-        obs: n.obs, fixo: true, funcionario: n.funcionario
-      }));
-      console.log('[salarios] Gerados', novos.length, 'salários de', anoMes);
+    if(!res.ok){
+      const txt = await res.text().catch(() => '');
+      console.error('[salarios] HTTP '+res.status, txt);
+      return;
     }
+    const criados = await res.json().catch(() => []);
+    (Array.isArray(criados) ? criados : []).forEach(n => _custosCache.unshift({
+      id: n.id, desc: n.descricao, valor: n.valor,
+      data: n.data, area: n.area, loja: n.loja,
+      obs: n.obs, fixo: true, funcionario: n.funcionario
+    }));
+    console.log('[salarios] Gravados', (criados||[]).length, 'de', novos.length, 'salários de', anoMes);
   } catch(e){ console.error('[salarios] Erro:', e); }
 }
 

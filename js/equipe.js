@@ -356,7 +356,6 @@ function renderEquipe(){
     {id:'david',  nome:'David',   sal:sal.david,   comm:calcCommVoF('david'),   bonus5:0, bonusMeta:0},
     {id:'isa',    nome:'Isa',     sal:sal.isa,     comm:calcCommVoF('isa'),     bonus5:0, bonusMeta:0},
     {id:'mel',    nome:'Mel',     sal:sal.mel,     comm:calcCommVoF('mel'),     bonus5:0, bonusMeta:0},
-    {id:'pietra', nome:'Pietra',  sal:sal.pietra,  comm:calcCommVoF('pietra')+calcCommAtF('pietra'), bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['pietra']?.brutoAcess||0)},
     {id:'anne',   nome:'Anne',    sal:sal.anne,    comm:Math.round((m2.atMap['anne']?.la||0)*0.25),  bonus5:Math.round(m2.lAcess*0.05), bonusMeta:calcBonusAtF(m2.atMap['anne']?.brutoAcess||0)},
     {id:'davi',   nome:'Davi',    sal:sal.davi,    comm:calcCommAtF('davi'),    bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['davi']?.brutoAcess||0)},
     {id:'vitinho',nome:'Vitinho', sal:sal.vitinho, comm:calcCommAtF('vitinho'), bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['vitinho']?.brutoAcess||0)},
@@ -370,8 +369,9 @@ function renderEquipe(){
   // Bonus coletivo pago CHEIO para cada colaborador (uma vez por pessoa).
   const totalColetivoF=pessoas.length*bonusColF;
   const totalBonusMetaIndF=pessoas.reduce((a,p)=>a+p.bonusMeta,0);
-  const voTotF=['david','isa','mel','pietra','maria'].reduce((a,k)=>a+calcCommVoF(k),0);
-  const atTotF=['anne','davi','vitinho','denilson','pietra','leo','gabi','maria'].reduce((a,k)=>a+calcCommAtF(k),0);
+  // Pietra saiu em 15/06/2026 -- fora da folha e dos totais (mesma convencao da Luana).
+  const voTotF=['david','isa','mel','maria'].reduce((a,k)=>a+calcCommVoF(k),0);
+  const atTotF=['anne','davi','vitinho','denilson','leo','gabi','maria'].reduce((a,k)=>a+calcCommAtF(k),0);
   // atTotF ja embute os 5% da Anne (via calcCommAtF); nao descontar de novo a parte.
   const liqFinal=m2.lucro-voTotF-atTotF-custosMesFech-totalBonusMetaIndF-totalColetivoF;
 
@@ -446,7 +446,6 @@ function gerarResumoEquipe(){
     {id:'david',  nome:'David',   sal:sal.david,   comm:cvF('david'),   bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
     {id:'isa',    nome:'Isa',     sal:sal.isa,     comm:cvF('isa'),     bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
     {id:'mel',    nome:'Mel',     sal:sal.mel,     comm:cvF('mel'),     bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
-    {id:'pietra', nome:'Pietra',  sal:sal.pietra,  comm:cvF('pietra')+caF('pietra'), bonus5:0,            bonusMeta:bmF(m.atMap['pietra']?.brutoAcess||0),    tipo:'ambos'},
     {id:'anne',   nome:'Anne',    sal:sal.anne,    comm:Math.round((m.atMap['anne']?.la||0)*0.25), bonus5:Math.round(m.lAcess*0.05), bonusMeta:bmF(m.atMap['anne']?.brutoAcess||0), tipo:'presencial'},
     {id:'davi',   nome:'Davi',    sal:sal.davi,    comm:caF('davi'),    bonus5:0,                         bonusMeta:bmF(m.atMap['davi']?.brutoAcess||0),      tipo:'presencial'},
     {id:'vitinho',nome:'Vitinho', sal:sal.vitinho, comm:caF('vitinho'), bonus5:0,                         bonusMeta:bmF(m.atMap['vitinho']?.brutoAcess||0),   tipo:'presencial'},
