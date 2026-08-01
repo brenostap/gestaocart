@@ -117,6 +117,8 @@ function fechAbaPessoa(p, fech, ant){
   if(p.sal > 0) L.push(['Salário', fechMo(p.sal),
     p.salOrigem === 'custos' ? 'lançamento em Custos: ' + p.salDesc
                              : '⚠ sem lançamento em Custos no mês — valor da tabela de salários']);
+  p.extras.forEach(e => L.push([e.desc, fechMo(e.valor),
+    'lançamento em Custos' + (e.obs ? ' · ' + e.obs : '')]));
   if(p.commVo > 0 || p.ehVendedor) L.push(['Comissão de vendedor', fechMo(p.commVo),
     p.units + ' aparelhos · ' + brl(VO_CURVA.base) + '/un até ' + VO_CURVA.corte
     + ' un, ' + brl(VO_CURVA.bonus) + '/un acima']);
@@ -229,24 +231,24 @@ function fechAbaGeral(fech, ant){
   const ranking = fech.pessoas.slice().sort((a,b) => b.total - a.total);
   L.push(['FOLHA — TODOS LADO A LADO (ordenado por total)']);
   L.push(['#', 'Pessoa', 'Cargo', 'Aparelhos', 'Bruto acess.', 'Lucro acess.',
-          'Salário', 'Comissão', '5% acess.', 'Meta indiv.', 'Meta coletiva', 'TOTAL']);
+          'Salário', 'Extras', 'Comissão', '5% acess.', 'Meta indiv.', 'Meta coletiva', 'TOTAL']);
   ranking.forEach((p, i) => L.push([
     fechNu(i+1), p.nome, p.cargo || '',
     fechNu(p.units), fechMo(p.brutoAcess), fechMo(p.la),
-    fechMo(p.sal), fechMo(p.comm), fechMo(p.bonus5),
+    fechMo(p.sal), fechMo(p.extrasTot), fechMo(p.comm), fechMo(p.bonus5),
     fechMo(p.bonusMeta), fechMo(p.bonusCol), fechMo(p.total)
   ]));
   L.push(['', 'TOTAL', '',
     fechNu(ranking.reduce((a,p) => a+p.units, 0)),
     fechMo(ranking.reduce((a,p) => a+p.brutoAcess, 0)),
     fechMo(ranking.reduce((a,p) => a+p.la, 0)),
-    fechMo(t.sal), fechMo(t.comm), fechMo(t.bonus5),
+    fechMo(t.sal), fechMo(t.extras), fechMo(t.comm), fechMo(t.bonus5),
     fechMo(t.bonusMeta), fechMo(t.bonusCol), fechMo(t.folha)]);
   vazio();
 
   L.push(['RESULTADO']);
   L.push(['Lucro das vendas no mês', fechMo(fech.base.lucro), 'já líquido da taxa de cartão']);
-  L.push(['(-) Folha completa', fechMo(-t.folha), 'salário + comissão + bônus']);
+  L.push(['(-) Folha completa', fechMo(-t.folha), 'salário + extras + comissão + bônus']);
   L.push(['(-) Demais custos do mês', fechMo(-t.custosForaFolha), 'Custos, exceto a área Funcionários']);
   L.push(['= Resultado após folha e custos', fechMo(t.liquido), '']);
   vazio();
@@ -271,7 +273,7 @@ function fechAbaGeral(fech, ant){
 
   const ws = XLSX.utils.aoa_to_sheet(L);
   ws['!cols'] = [{wch:5},{wch:14},{wch:22},{wch:11},{wch:14},{wch:14},
-                 {wch:12},{wch:12},{wch:12},{wch:12},{wch:13},{wch:13}];
+                 {wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:13},{wch:13}];
   return ws;
 }
 

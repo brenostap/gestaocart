@@ -120,6 +120,12 @@ ctx.__fx.custos = [
   { id:'sg', desc:'Salário Gabi', valor:1161, data:'2026-07-01',
     area:'funcionario', loja:'ambas', fixo:true, funcionario:'gabi' },
   { id:'a1', desc:'Aluguel', valor:9000, data:'2026-07-05', area:'aluguel', loja:'ambas' },
+  // Extras nominais (fixo:false + funcionario): hora extra e ajuste de meta
+  { id:'e1', desc:'Horas extras (18h33)', valor:284, data:'2026-07-31',
+    area:'funcionario', loja:'ambas', fixo:false, funcionario:'anne', obs:'banco de horas' },
+  { id:'e2', desc:'Ajuste meta individual', valor:700, data:'2026-07-31',
+    area:'funcionario', loja:'ambas', fixo:false, funcionario:'davi',
+    obs:'faltaram R$40 para R$10k — arredondado pelo dono' },
 ];
 R('ajustesAcessorios = __fx.ajustes; _custosCache = __fx.custos;');
 
@@ -240,6 +246,27 @@ fech.pessoas.slice(0,3).forEach(p => {
 });
 ok(R('fechamentoMesMenos("2026-01", 2)') === '2025-11', 'fechamentoMesMenos vira o ano');
 ok(R('fechamentoMesMenos("2026-07", 0)') === '2026-07', 'n=0 devolve o próprio mês');
+
+// -- 9c. extras nominais (hora extra, ajuste de meta) -----------------------
+sec('extras lançados em Custos entram na folha como linha própria');
+const anneX = fech.pessoas.find(p => p.id === 'anne');
+const daviX = fech.pessoas.find(p => p.id === 'davi');
+ok(anneX.extras.length === 1 && anneX.extrasTot === 284,
+   `Anne: 1 extra de ${brl(anneX.extrasTot)} (${anneX.extras[0].desc})`);
+ok(daviX.extras.length === 1 && daviX.extrasTot === 700,
+   `Davi: 1 extra de ${brl(daviX.extrasTot)} (${daviX.extras[0].desc})`);
+ok(daviX.total === daviX.sal + 700 + daviX.comm + daviX.bonusMeta + daviX.bonusCol,
+   `total de Davi inclui o extra (${brl(daviX.total)})`);
+ok(daviX.sal === 2250, 'o extra NÃO é somado no salário (fica em linha separada)');
+ok(fech.totais.extras === 984, `total de extras da folha ${brl(fech.totais.extras)}`);
+ok(fech.pessoas.filter(p => p.extrasTot === 0).every(p => p.extras.length === 0),
+   'quem não tem extra continua com a lista vazia');
+const telaX = html('renderEquipe()');
+ok(telaX.includes('Extras'), 'coluna "Extras" aparece na tabela quando há extra no mês');
+ok(telaX.includes(brl(daviX.total)), `tabela mostra o total novo de Davi ${brl(daviX.total)}`);
+const cardX = html('renderFuncCard("davi", 0)');
+ok(cardX.includes('Ajuste meta individual'), 'card de Davi mostra a descrição do extra');
+ok(cardX.includes(brl(daviX.total)), 'card de Davi bate com a folha');
 
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');

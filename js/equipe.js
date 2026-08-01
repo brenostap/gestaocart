@@ -197,21 +197,35 @@ function fechamentoPessoas(){
   );
 }
 
-// Salario do mes: vem do LANCAMENTO em Custos, nao da constante SALARIOS.
-// A constante tem o valor cheio; a folha real tem ferias, proporcional de quem
-// entrou no meio do mes, desconto. Em jul/2026 a constante diria Vitinho 2.250
-// e Gabi 2.250, quando o pago foi 2.750 (ferias) e 1.161 (proporcional).
-// Sem lancamento (custos ainda carregando, ou mes sem folha gerada) cai na
-// constante e avisa -- melhor um numero marcado como estimado que um zero mudo.
-function salarioFechamento(id){
+// O que a pessoa recebe FORA do que sai de venda: salario + extras do mes.
+// Tudo vem dos LANCAMENTOS em Custos da area 'funcionario' com o campo
+// `funcionario` preenchido -- nunca da constante SALARIOS.
+//
+//   fixo=true  -> o salario do mes (ferias, proporcional de quem entrou no meio
+//                 do mes, desconto). Em jul/2026 a constante diria Vitinho
+//                 2.250 e Gabi 2.250; o pago foi 2.750 e 1.161.
+//   fixo=false -> extras nominais: hora extra, ajuste de meta, vale. Cada um
+//                 entra na folha como LINHA PROPRIA, com a descricao -- e o que
+//                 faz o documento de prova dizer por que aquele valor existe,
+//                 em vez de inchar o salario sem explicacao.
+//
+// Sem lancamento de salario (custos ainda carregando, ou mes sem folha gerada)
+// cai na constante e avisa -- melhor um numero marcado como estimado que um
+// zero mudo.
+function remuneracaoFixa(id){
   const lancs = filterCustoPeriod(getCustos())
     .filter(c => c.area==='funcionario' && c.funcionario===id);
-  if(lancs.length) return {
-    valor: lancs.reduce((a,c)=>a+parseFloat(c.valor||0),0),
+  const salLancs = lancs.filter(c => c.fixo);
+  const extras = lancs.filter(c => !c.fixo).map(c => ({
+    desc: c.desc || 'extra', valor: parseFloat(c.valor||0), obs: c.obs || ''
+  }));
+  if(salLancs.length) return {
+    valor: salLancs.reduce((a,c) => a+parseFloat(c.valor||0), 0),
     origem: 'custos',
-    desc: lancs.map(c=>c.desc).join(' · ')
+    desc: salLancs.map(c => c.desc).join(' · '),
+    extras
   };
-  return { valor: SALARIOS[id]||0, origem:'constante', desc:'' };
+  return { valor: SALARIOS[id]||0, origem:'constante', desc:'', extras };
 }
 
 // Distribui um total INTEIRO entre as linhas, proporcional ao valor cru, pelo
@@ -260,9 +274,10 @@ function fechamentoEquipe(){
     const bonus5     = f.bonus ? Math.round(m.lAcess * 0.05) : 0;
     const meta       = metaAtendente(brutoAcess);
     const bonusMeta  = at ? meta.bonus : 0;
-    const sal        = salarioFechamento(f.id);
-    if(sal.origem === 'constante' && sal.valor > 0) avisos.push(
-      'Salário de '+f.ap+' não tem lançamento em Custos no período — usando o valor da tabela ('+brl(sal.valor)+').');
+    const rem        = remuneracaoFixa(f.id);
+    const extrasTot  = rem.extras.reduce((a,e) => a+e.valor, 0);
+    if(rem.origem === 'constante' && rem.valor > 0) avisos.push(
+      'Salário de '+f.ap+' não tem lançamento em Custos no período — usando o valor da tabela ('+brl(rem.valor)+').');
 
     // -- Linhas de venda -----------------------------------------------------
     // Vendedor: a curva de 80 un vale para o mes, entao a comissao da venda e o
@@ -285,10 +300,11 @@ function fechamentoEquipe(){
       id:f.id, nome:f.ap, nomeCompleto:f.nome, cargo:f.cargo, tipo:f.tipo,
       voKey:f.voKey||null, atKey:f.atKey||null, ehVendedor:!!vo, ehAtendente:!!at,
       units, pedidos, la, brutoAcess, qtAcess,
-      sal:sal.valor, salOrigem:sal.origem, salDesc:sal.desc,
+      sal:rem.valor, salOrigem:rem.origem, salDesc:rem.desc,
+      extras:rem.extras, extrasTot,
       commVo, commAt, comm:commVo+commAt,
       bonus5, bonusMeta, bonusCol, meta,
-      total: sal.valor + commVo + commAt + bonus5 + bonusMeta + bonusCol,
+      total: rem.valor + extrasTot + commVo + commAt + bonus5 + bonusMeta + bonusCol,
       linhasVo, linhasAt,
     };
   });
@@ -302,7 +318,8 @@ function fechamentoEquipe(){
     .reduce((a,c) => a + parseFloat(c.valor||0), 0);
 
   const totais = {
-    sal:soma('sal'), comm:soma('comm'), commVo:soma('commVo'), commAt:soma('commAt'),
+    sal:soma('sal'), extras:soma('extrasTot'),
+    comm:soma('comm'), commVo:soma('commVo'), commAt:soma('commAt'),
     bonus5:soma('bonus5'), bonusMeta:soma('bonusMeta'), bonusCol:soma('bonusCol'),
     folha:soma('total'), custosForaFolha,
   };
@@ -522,6 +539,12 @@ function renderEquipe(){
   // MESMO objeto. Nao recalcular nada aqui.
   const fech=fechamentoEquipe();
   const {pessoas,totais,bonusCol:bonusColF}=fech;
+  // A coluna de extras (hora extra, ajuste de meta) so aparece nos meses que
+  // tem extra -- mes normal continua com a tabela enxuta, que e a regra no
+  // celular. O title conta de onde veio cada um.
+  const temExtras=pessoas.some(p=>p.extrasTot!==0);
+  const thNum=(t,cor)=>'<th style="text-align:right;padding:6px 8px;color:'+(cor||'var(--text4)')
+    +';font-weight:'+(cor?'700':'600')+';font-size:10px;text-transform:uppercase;letter-spacing:.05em">'+t+'</th>';
 
   const tabelaFechamento=`
     <div class="card" style="margin-top:14px">
@@ -537,11 +560,12 @@ function renderEquipe(){
           <thead>
             <tr style="border-bottom:1px solid var(--border2)">
               <th style="text-align:left;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Pessoa</th>
-              <th style="text-align:right;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Salário</th>
-              <th style="text-align:right;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Comissão</th>
-              <th style="text-align:right;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">5% Acess</th>
-              <th style="text-align:right;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Bônus meta</th>
-              <th style="text-align:right;padding:6px 8px;color:var(--cart);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Total</th>
+              ${thNum('Salário')}
+              ${temExtras?thNum('Extras'):''}
+              ${thNum('Comissão')}
+              ${thNum('5% Acess')}
+              ${thNum('Bônus meta')}
+              ${thNum('Total','var(--cart)')}
             </tr>
           </thead>
           <tbody>
@@ -549,6 +573,7 @@ function renderEquipe(){
               <tr style="border-bottom:1px solid var(--border)">
                 <td style="padding:8px 8px;font-weight:600;color:var(--text)">${p.nome}</td>
                 <td style="padding:8px 8px;text-align:right;color:var(--text3)">${p.sal>0?brl(p.sal):'—'}</td>
+                ${temExtras?`<td style="padding:8px 8px;text-align:right;color:var(--purple)" title="${escAttr(p.extras.map(e=>e.desc+' '+brl(e.valor)).join(' · '))}">${p.extrasTot?'+'+brl(p.extrasTot):'—'}</td>`:''}
                 <td style="padding:8px 8px;text-align:right;color:var(--text2)">${p.comm>0?brl(p.comm):'—'}</td>
                 <td style="padding:8px 8px;text-align:right;color:var(--green)">${p.bonus5>0?brl(p.bonus5):'—'}</td>
                 <td style="padding:8px 8px;text-align:right;color:var(--yellow)">${p.bonusMeta>0?'+'+brl(p.bonusMeta):'—'}</td>
@@ -558,13 +583,13 @@ function renderEquipe(){
           <tfoot>
             <tr style="border-top:2px solid var(--border2)">
               <td style="padding:8px 8px;font-weight:700;color:var(--text)">Total folha</td>
-              <td colspan="4" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
+              <td colspan="${temExtras?5:4}" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
                 ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`:''}
               </td>
               <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totais.folha)}</td>
             </tr>
             <tr>
-              <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa e demais custos</td>
+              <td colspan="${temExtras?6:5}" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa e demais custos</td>
               <td style="padding:6px 8px;text-align:right;font-weight:700;font-size:13px;color:${totais.liquido>0?'var(--green)':'var(--red)'}">${brl(totais.liquido)}</td>
             </tr>
           </tfoot>
@@ -593,6 +618,7 @@ function gerarResumoEquipe(){
     lines.push('Olá, '+p.nome+'! Segue seu resumo:');
     lines.push('');
     if(p.sal>0) lines.push('💼 Salário fixo: *'+brl(p.sal)+'*');
+    p.extras.forEach(e => lines.push('➕ '+e.desc+': *'+brl(e.valor)+'*'));
     if(p.comm>0) lines.push('🏆 Comissões: *'+brl(p.comm)+'*');
     if(p.bonus5>0) lines.push('🎧 Bônus 5% acessórios: *'+brl(p.bonus5)+'*');
     if(p.bonusMeta>0) lines.push('🎯 Bônus meta individual: *'+brl(p.bonusMeta)+'*');
@@ -910,6 +936,7 @@ function renderFuncCard(id, lAcessTotal){
   const mesNomeAtual = mesNomeSel; // periodo da sidebar, nao o mes de hoje
   const linhasFechamento = [
     sal>0 ? ['Salário fixo', brl(sal)] : null,
+    ...(pFech ? pFech.extras.map(e => [e.desc, brl(e.valor)]) : []),
     commAtual>0 ? ['Comissão', brl(commAtual)] : null,
     bonus5Atual>0 ? ['Bônus 5% acessórios', brl(bonus5Atual)] : null,
     bonusMetaAtual>0 ? ['Bônus meta individual', brl(bonusMetaAtual)] : null,
@@ -933,6 +960,7 @@ function renderFuncCard(id, lAcessTotal){
   function montarMsgPerfil(){
     const lines = ['📊 *'+mesNomeAtual+'*','','Olá, '+f.ap+'! Segue seu resumo:',''];
     if(sal>0) lines.push('💼 Salário: *'+brl(sal)+'*');
+    if(pFech) pFech.extras.forEach(e => lines.push('➕ '+e.desc+': *'+brl(e.valor)+'*'));
     if(commAtual>0) lines.push('🏆 Comissão: *'+brl(commAtual)+'*');
     if(bonus5Atual>0) lines.push('🎧 Bônus 5% acess.: *'+brl(bonus5Atual)+'*');
     if(bonusMetaAtual>0) lines.push('🎯 Bônus meta: *'+brl(bonusMetaAtual)+'*');
