@@ -65,10 +65,15 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - ⚠️ A meta de devices conta **APARELHOS**, não número de vendas (confirmado com o dono em
     31/jul/2026, apesar de a mensagem das metas dizer "400 Vendas"). Metas individuais de
     atendente (4k→100 · 6k→300 · 10k→1000) **não mudaram**.
-- 💡 ⭐ **Bônus não entram no resultado do mês.** Custos só tem salário; o "Resultado após custos"
-  desconta só as comissões (`voTot`+`atTot`). Em jul/2026 ficaram **R$ 7.587** de bônus fora
-  (4.000 coletivo + 2.300 meta individual + 1.287 dos 5% da Anne). Decidir se viram lançamento
-  em Custos ou se entram na conta do resultado.
+- ✅ **Bônus viram lançamento em Custos (decidido em 01/ago/2026).** Antes só o salário entrava;
+  o "Resultado após custos" desconta apenas as comissões (`voTot`+`atTot`), então os bônus saíam
+  do caixa sem aparecer em lugar nenhum. Agora são **3 lançamentos por mês** na área `funcionario`:
+  *Bonus meta coletiva* · *Bonus meta individual* · *Bonus 5% acessorios Anne*. Em jul/2026:
+  4.000 + 2.300 + 1.305 = **R$ 7.605**.
+  - ⚠️ **Comissão NÃO entra em Custos** — o resultado já a desconta; lançar seria contar duas vezes.
+  - ⚠️ O valor dos 5% depende do lucro de acessórios, que muda a cada resync fundo. Em jul/2026 o
+    lançamento teve que ser corrigido de 1.287 para 1.305 depois do resync de 45 dias. **Fechar a
+    folha só depois de rodar o resync fundo do mês.**
 - 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
 
 ## Dashboard
@@ -79,7 +84,7 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 🔨 ⭐ **Trocar o lucro do painel para a fórmula A.** Hoje 7 pontos do código somam `v.lucro` (campo da FoneNinja): `render.js` 7/403/433/574, `custos.js` 337/338, `dash-v2.js` 380. Esse campo **erra em ~1 de cada 5 vendas** — em jul/2026 mostrava R$228.933 contra R$238.826 reais (R$9.893 a menos). **Fórmula A (adotada):** `(preço − custo dos itens não-cancelados) + taxa_extra`. Ver [[como-calcular-lucro-de-venda]] na memória para as regras completas (item cancelado, troca, taxa de maquininha é GANHO e não custo).
   - ⚠️ Mudança que toca todas as telas de uma vez — conferir um mês inteiro lado a lado antes de trocar de vez.
 - 💡 **Fórmula B — pelo caixa: `(líquido + troca) − custo`.** Conceitualmente melhor (o preço é referência, o que entra é fato) e bate mais com a FoneNinja (305 de 337 vendas, contra 262 da A). Em jul/2026 dava R$242.917, R$4.092 acima da A. **Por que ficou de fora:** as duas só divergem quando `líquido + troca ≠ valor_total + taxa_extra`, ou seja, quando o registro da venda está inconsistente — e aí a A é mais conservadora por usar só dados internos da própria venda. **NÃO é por causa do `upgrade_valor`**: ele foi validado em 31/jul e está correto (bate com `venda_trocas` em 984 de 1.010 vendas; em julho, 100% das completadas). Revisitar quando as vendas anômalas estiverem limpas.
-- 💡 **Anomalias de julho/2026 pendentes de análise** (11 vendas): recebimento fora do padrão (`40573149` recebeu 197% do valor da venda, `40570274` só 77%), prejuízo (`40551264`, `40564245`, `40587358`), margem ~0 em venda grande (`40584017` R$5.150 → R$31, `40574479` R$4.540 → R$78), margem acima do p99 (`40570372`, `40585200`, `40568109`, `40565662`). Régua: margem normal de venda com aparelho é p25=12% · mediana=18% · p75=27% · p95=56%.
+- 💡 **Anomalias de julho/2026 pendentes de análise** (lista de 31/jul — ⚠️ **revisar**: o resync de 45 dias de 01/ago corrigiu pelo menos a `40573149`, que foi de 197% para 102% do valor recebido. As outras 10 podem ter se resolvido junto): recebimento fora do padrão (`40573149` recebeu 197% do valor da venda, `40570274` só 77%), prejuízo (`40551264`, `40564245`, `40587358`), margem ~0 em venda grande (`40584017` R$5.150 → R$31, `40574479` R$4.540 → R$78), margem acima do p99 (`40570372`, `40585200`, `40568109`, `40565662`). Régua: margem normal de venda com aparelho é p25=12% · mediana=18% · p75=27% · p95=56%.
 - ✅ **Parser de observação comia o vendedor — corrigido (31/jul/2026).** `"Atendente Gabi vendedor David venda cart"` virava `vendedor="cart"`: o trecho "venda cart" contém `vend`, caía no ramo do vendedor e sobrescrevia o nome já encontrado quando a linha da loja vinha DEPOIS. Como "cart" está em `SOCIOS_LOJA`, virava ninguém e o vendedor perdia a comissão **em silêncio**. Correção: `NOME_E_LOJA` (`cart/urban/loja/online`) barra esses tokens como nome, no vendedor e no atendente (`parseObs`, equipe.js). Testado em 6 formatos reais de observação. Em julho valia 1 venda (`40585050`, R$2.880 → +1 un e +R$35 pro David).
 
 ## Sync / Dados (repo phonecar-sync)
