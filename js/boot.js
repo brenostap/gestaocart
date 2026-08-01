@@ -1,4 +1,6 @@
 window.onload=async function(){
+  // Avisa se esta tela esta rodando codigo velho (cache do icone no iOS).
+  iniciarChecagemVersao();
   // Mantém SB_TOKEN sincronizado com a sessão (inclui refresh automático do token).
   sb.auth.onAuthStateChange((_event, session)=>{
     SB_TOKEN = session ? session.access_token : SB_KEY;

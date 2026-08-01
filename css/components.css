@@ -798,3 +798,29 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   padding:7px 0; border-bottom:1px solid var(--border);
 }
 .c-alerta-linha:last-child{ border-bottom:none; padding-bottom:0; }
+
+/* -- Escolha do PDF de fechamento (modal) ------------------------------- */
+.fp-escolha{ display:flex; flex-direction:column; gap:10px; }
+.fp-escolha .c-btn{ justify-content:space-between; width:100%; text-align:left; }
+.fp-escolha .c-btn span{ font-size:var(--fs-caption); opacity:.75; font-weight:400; }
+.fp-escolha-sep{
+  font-size:var(--fs-caption); color:var(--text4); text-align:center;
+  text-transform:uppercase; letter-spacing:.08em; margin-top:4px;
+}
+.fp-escolha-grade{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+@media (max-width:420px){ .fp-escolha-grade{ grid-template-columns:1fr; } }
+
+/* -- Faixa "nova versão" (cache do ícone no iOS serve código velho) ------ */
+.c-faixa-versao{
+  position:fixed; left:0; right:0; bottom:0; z-index:10000;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:var(--yellow-bg); border-top:1px solid var(--yellow);
+  box-shadow:var(--shadow-lg);
+}
+.c-faixa-versao-txt{
+  flex:1; min-width:180px;
+  font-size:var(--fs-caption); line-height:var(--lh-caption); color:var(--ink);
+}
+.c-faixa-versao-txt b{ color:var(--yellow); }
+@media print{ .c-faixa-versao{ display:none !important; } }

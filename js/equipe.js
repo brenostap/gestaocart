@@ -576,7 +576,7 @@ function renderEquipe(){
         <div class="card-title" style="margin:0">📋 Fechamento — ${fech.mesLabel}</div>
         <div style="display:flex;gap:8px">
           ${UI.btn('📊 Planilha',{onclick:'exportarFechamento(this)',variante:'primario',sm:true,titulo:'Arquivo .xlsx com uma aba por colaborador, venda a venda — pra você conferir'})}
-          ${UI.btn('📄 PDF',{onclick:'fechamentoPDF()',sm:true,titulo:'Documento com uma folha por colaborador — pra compartilhar com os sócios'})}
+          ${UI.btn('📄 PDF',{onclick:'fechamentoPDFEscolher()',sm:true,titulo:'Documento com uma folha por colaborador, ou a folha de uma pessoa só'})}
           ${UI.btn('📋 Gerar resumos',{onclick:'gerarResumoEquipe()',sm:true})}
         </div>
       </div>

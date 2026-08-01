@@ -247,7 +247,7 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 - ✅ Guard de colisão de nomes globais (`.git/hooks/pre-commit`).
 - ✅ `_headers` versionado (01/ago/2026) — força revalidação de `js/` e `css/`. Estava só no disco
   desde jul/2026, então nunca tinha sido publicado.
-- 🔨 ⭐ **O ícone na tela de início do iPhone serve versão velha** (confirmado em 01/ago/2026).
+- ✅ ⭐ **O ícone na tela de início do iPhone serve versão velha** (resolvido em 01/ago/2026).
   O dono abre o painel por um ícone adicionado à tela de início; isso roda num **WebView standalone
   do iOS, com cache próprio, separado do Safari**, que na prática **ignora o `must-revalidate`** —
   inclusive para o próprio `index.html`. Conferido: servidor manda `max-age=0, must-revalidate` com
@@ -255,11 +255,12 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
   privado funcionava e pelo ícone não**. Contorno de hoje: remover o ícone e adicionar de novo.
   - ⚠️ **Não é só chatice — é risco de número errado.** Fechar a folha olhando uma versão velha do
     painel é decisão financeira em cima de dado velho. Já aconteceu duas vezes na mesma tarde.
-  - **Correção proposta (a fazer):** `?v=<versão>` em todo `<script>`/`<link>` do `index.html`
-    (fonte única da versão) + uma checagem no boot que busca o `index.html` com `cache:'no-store'`,
-    compara a versão com a que está rodando e, se diferir, mostra uma faixa
-    *"Nova versão — toque para atualizar"* que recarrega com URL nova (`?r=<timestamp>`), que é o
-    que o WebView não consegue servir do cache. Sem build: o `?v=` é bumpado no mesmo commit.
+  - **Feito:** `?v=<versão>` em todo `<script>`/`<link>` local do `index.html` (fonte única) +
+    `js/versao.js`, que no boot e ao voltar pro app busca o `index.html` com `cache:'no-store'`,
+    lê o `?v=` de lá e, se diferir do que está rodando, mostra a faixa *"Nova versão"*. Atualizar
+    recarrega com `?r=<timestamp>` — endereço inédito é o que o WebView não tem em cache.
+    A versão sai da URL do próprio `<script>` (`document.currentScript`), então **não há constante
+    duplicada**. ⚠️ Só funciona se o `?v=` for bumpado no commit — está no CLAUDE.md.
   - 💡 Alternativa mais automática: `netlify.toml` com um comando que carimba `$COMMIT_REF` no
     `index.html`. Não fiz porque o site hoje **não tem build command** e eu não consigo ler o
     publish dir pela API — mexer nisso às cegas pode derrubar o deploy.

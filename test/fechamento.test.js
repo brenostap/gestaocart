@@ -298,15 +298,41 @@ fech.pessoas.filter(p => p.id !== 'davi').forEach(p =>
 // -- 9e. print.css desfaz o empilhamento de tabela do celular --------------
 // components.css empilha .c-tabela em cartoes abaixo de 720px. Imprimindo do
 // iPhone isso valeria no papel e 250 linhas de venda virariam 250 cartoes.
-sec('print.css devolve a tabela no papel');
+sec('print.css: documento sempre claro e tabela sempre tabela');
 const printCss = fs.readFileSync(path.join(ROOT,'css','print.css'),'utf8');
-const blocoPrint = printCss.slice(printCss.indexOf('@media print'));
-[['.c-tabela{ display:table','tabela volta a ser table'],
- ['.c-tabela td{','td volta a ser table-cell'],
- ['display:table-cell','display:table-cell presente'],
- ['.c-tabela thead{ display:table-header-group','cabeçalho repete em cada folha'],
- ["content:none !important",'rótulo ::before do modo celular some'],
- ['break-after:page','quebra de página por pessoa'],
+// indexOf('@media print') pegaria a MENÇÃO num comentário lá em cima; o corte
+// tem que ser na abertura do bloco.
+const _iPrint = printCss.indexOf('@media print{');
+const blocoPrint = printCss.slice(_iPrint);
+const foraDoPrint = printCss.slice(0, _iPrint);
+
+// O tema claro do documento tem que valer SEMPRE, nao so em @media print: o
+// iPhone reaproveita o raster da camada acelerada e imprimia os tokens escuros
+// (blocos pretos #0f1420 e circulo azul #5b8bf5 no PDF de 01/ago/2026).
+[['.fp-doc{', 'o bloco de tokens vive em .fp-doc'],
+ ['--bg:#ffffff', 'fundo claro'],
+ ['--cart:#3b6fd6', 'azul claro (o escuro #5b8bf5 era o do círculo sujo)'],
+ ['--text:#1a1f36', 'texto escuro'],
+].forEach(([t,msg]) => ok(foraDoPrint.includes(t), msg + ' — fora do @media print'));
+ok(!blocoPrint.includes('--bg:#ffffff'),
+   'os tokens NÃO estão só dentro de @media print (era a causa do PDF sujo)');
+// sem comentários: o próprio arquivo explica por que a propriedade saiu
+const printSemComentario = printCss.replace(/\/\*[\s\S]*?\*\//g, '');
+ok(!/-webkit-overflow-scrolling:\s*touch/.test(printSemComentario),
+   'sem -webkit-overflow-scrolling:touch (promovia o overlay a camada acelerada)');
+
+// A tabela nao pode empilhar em cartao (components.css faz isso abaixo de 720px)
+[['.fp-doc .c-tabela{ display:table', 'tabela é table em qualquer largura'],
+ ['.fp-doc .c-tabela td{', 'td é table-cell'],
+ ['.fp-doc .c-tabela thead{ display:table-header-group', 'cabeçalho repete'],
+ ['content:none !important', 'rótulo ::before do modo celular some'],
+].forEach(([t,msg]) => ok(foraDoPrint.includes(t), msg));
+
+// E no papel: quebra por pessoa, nada de camada composta
+[['break-after:page', 'quebra de página por pessoa'],
+ ['position:static !important', 'overlay sai de position:fixed'],
+ ['-webkit-overflow-scrolling:auto', 'scroll acelerado desligado'],
+ ['print-color-adjust:exact', 'fundos saem no papel'],
 ].forEach(([t,msg]) => ok(blocoPrint.includes(t), msg));
 ok(/@page\{[^}]*size:A4/.test(blocoPrint.replace(/\s/g,'')), 'papel A4 com margem');
 
@@ -361,6 +387,17 @@ ok(telaAviso.includes('Confira antes de fechar a folha'),
    'o aviso aparece NA TELA, não só no arquivo exportado');
 
 R('_custosCache = __fx.custos;'); // devolve o estado do fixture
+
+// -- 9g. seletor de PDF individual ------------------------------------------
+sec('seletor: documento completo ou a folha de uma pessoa');
+let modalHtml = '';
+const criarOrig = ctx.document.createElement;
+ctx.document.body.insertAdjacentHTML = (_pos, h) => { modalHtml = h; };
+R('fechamentoPDFEscolher()');
+ok(modalHtml.includes('Documento completo'), 'oferece o documento inteiro');
+fech.pessoas.forEach(p => ok(modalHtml.includes(`fechamentoPDF('${p.id}')`),
+  `oferece a folha individual de ${p.nome}`));
+ok(modalHtml.includes(brl(fech.pessoas[0].total)), 'mostra o total de cada um no botão');
 
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');

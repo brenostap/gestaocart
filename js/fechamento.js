@@ -569,6 +569,30 @@ function fechamentoPDF(so){
 
 function fechFecharPDF(){ document.querySelector('.fp-overlay')?.remove(); }
 
+// Escolher o que gerar: documento inteiro ou a folha de uma pessoa. O botao no
+// card da pessoa ja abre a dela direto; este menu existe para nao ter que
+// entrar e sair de 10 cards quando o dono quer os individuais em sequencia.
+function fechamentoPDFEscolher(){
+  const fech = fechamentoEquipe();
+  if(!fech.pessoas.length){
+    alert('Nenhum colaborador na folha deste período.');
+    return;
+  }
+  const pessoas = fech.pessoas.slice().sort((a,b) => b.total - a.total);
+  const corpo = `
+    <div class="fp-escolha">
+      ${UI.btn('📄 Documento completo <span>' + fech.mesLabel + ' · '
+        + pessoas.length + ' pessoas + geral</span>',
+        {onclick:'UI.fecharModal();fechamentoPDF()', variante:'primario'})}
+      <div class="fp-escolha-sep">ou a folha de uma pessoa só</div>
+      <div class="fp-escolha-grade">
+        ${pessoas.map(p => UI.btn(UI.esc(p.nome) + '<span>' + brl(p.total) + '</span>',
+          {onclick:`UI.fecharModal();fechamentoPDF('${p.id}')`})).join('')}
+      </div>
+    </div>`;
+  UI.abrirModal({titulo:'📄 Gerar PDF — ' + fech.mesLabel, corpo});
+}
+
 // -- Acao do botao ----------------------------------------------------------
 function exportarFechamento(btn){
   const rotulo = btn ? btn.innerHTML : null;

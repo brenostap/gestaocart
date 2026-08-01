@@ -6,9 +6,12 @@
    ========================================================================= */
 
 /* -- Preview na tela ------------------------------------------------------ */
+/* Sem -webkit-overflow-scrolling:touch de proposito: e legado (o iOS 13+ ja rola
+   suave sozinho) e promove o overlay a camada acelerada -- o gatilho do raster
+   sujo que apareceu na impressao. */
 .fp-overlay{
   position:fixed; inset:0; z-index:9998;
-  background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  background:var(--bg); overflow-y:auto;
 }
 .fp-bar{
   position:sticky; top:0; z-index:2;
@@ -19,7 +22,32 @@
 .fp-bar-tit{ font-size:var(--fs-caption); color:var(--text3); min-width:0;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .fp-bar-acoes{ display:flex; gap:8px; flex:none; }
-.fp-doc{ max-width:920px; margin:0 auto; padding:18px 14px 64px; }
+/* O documento é SEMPRE claro, na tela e no papel — é uma folha, não uma tela.
+   Não é preferência estética: virar o tema só dentro de @media print quebrou no
+   iPhone (01/ago/2026). O overlay é position:fixed com scroll acelerado, o
+   WebKit promove isso a camada composta e, ao imprimir, REAPROVEITA o raster já
+   pintado com os tokens escuros — saíam blocos pretos (#0f1420, o --bg escuro)
+   por cima das colunas e um círculo azul (#5b8bf5, o --cart escuro) no meio da
+   tabela. Sem tema escuro para rasterizar, não há o que reaproveitar errado.
+   São os mesmos valores do :root (theme.css); nenhuma cor literal nova. */
+.fp-doc{
+  max-width:920px; margin:0 auto; padding:18px 14px 64px;
+
+  --bg:#ffffff; --bg2:#ffffff; --bg3:#f6f9fc; --bg4:#eef2f7;
+  --card:#ffffff; --glass:#ffffff;
+  --border:#e2e6ec; --border2:#d5dbe4; --border3:#c1c9d2;
+  --ink:#1a1f36; --text:#1a1f36; --text2:#424770;
+  --text3:#5b6475; --text-secondary:#5b6475; --text4:#9aa3b2; --text-muted:#9aa3b2;
+  --cart:#3b6fd6; --cart2:#2b57ad; --cart-blue:#3b6fd6;
+  --urban:#F39200; --urban2:#c47600;
+  --success:#0a7c3e; --warning:#b54708; --danger:#b42318; --process:#5b53e8;
+  --green:#0a7c3e; --green2:#0d9647; --red:#b42318;
+  --yellow:#b54708; --purple:#5b53e8; --blue:#3b6fd6;
+  --shadow-sm:none; --shadow-md:none; --shadow-lg:none; --shadow-xl:none;
+
+  background:#ffffff; color:var(--ink);
+  border-radius:var(--radius-card);
+}
 
 /* -- Uma "pagina" por pessoa ---------------------------------------------- */
 .fp-pagina + .fp-pagina{ margin-top:26px; padding-top:26px; border-top:1px dashed var(--border2); }
@@ -43,6 +71,25 @@
 .fp-total-val{ font-family:var(--font-mono); font-size:var(--fs-title);
   font-weight:700; color:var(--cart); font-variant-numeric:tabular-nums; }
 
+/* No documento a tabela é SEMPRE tabela — na tela e no papel.
+   components.css empilha .c-tabela em cartões abaixo de 720px, e o UI.tabela não
+   emite `data-rot`, então no celular o preview virava uma pilha de números sem
+   rótulo nenhum ("1 / Anne / — / R$10.805 / …"). Além de ilegível, mentia: o que
+   ia sair impresso era uma tabela. Preview tem que ser igual ao papel; quem não
+   couber, rola de lado. */
+.fp-doc .c-tabela-wrap{ overflow-x:auto; }
+.fp-doc .c-tabela{ display:table; width:100%; }
+.fp-doc .c-tabela thead{ display:table-header-group; }
+.fp-doc .c-tabela tbody{ display:table-row-group; }
+.fp-doc .c-tabela tr{ display:table-row; }
+.fp-doc .c-tabela td{
+  display:table-cell; width:auto;
+  padding:5px 8px; border:0; border-bottom:1px solid var(--border);
+}
+.fp-doc .c-tabela td::before{ content:none !important; }
+.fp-doc .c-tabela tbody tr{ margin:0; padding:0; border:0; border-radius:0; background:none; }
+.fp-doc .c-tabela tbody tr td:first-child{ background:none; font-weight:400; }
+
 .fp-sec{ margin-top:16px; }
 .fp-sec-tit{
   font-size:var(--fs-caption); font-weight:700; color:var(--text4);
@@ -59,26 +106,25 @@
 @media print{
   /* Só o documento vai pro papel */
   body > *:not(.fp-overlay){ display:none !important; }
-  .fp-overlay{ position:static; overflow:visible; }
   .fp-bar{ display:none !important; }
-  .fp-doc{ max-width:none; padding:0; }
+  .fp-doc{ max-width:none; padding:0; border-radius:0; }
 
-  /* Tema CLARO no papel, seja qual for o tema da tela. Sao os mesmos valores
-     do :root (theme.css) reaplicados no container -- nenhuma cor literal
-     nova, e os componentes continuam lendo var(--…) normalmente. */
+  /* Nada de camada composta no que vai ser impresso. O iPhone reaproveita o
+     raster da camada acelerada e imprime o que estava pintado nela -- foi o
+     que sujou o PDF de 01/ago/2026. position:fixed, scroll acelerado, sombra,
+     transform e filter sao os gatilhos; aqui todos caem. */
   .fp-overlay{
-    --bg:#ffffff; --bg2:#ffffff; --bg3:#f6f9fc; --bg4:#eef2f7;
-    --card:#ffffff; --glass:#ffffff;
-    --border:#e2e6ec; --border2:#d5dbe4; --border3:#c1c9d2;
-    --ink:#1a1f36; --text:#1a1f36; --text2:#424770;
-    --text3:#5b6475; --text-secondary:#5b6475; --text4:#9aa3b2; --text-muted:#9aa3b2;
-    --cart:#3b6fd6; --cart2:#2b57ad; --cart-blue:#3b6fd6;
-    --urban:#F39200; --urban2:#c47600;
-    --success:#0a7c3e; --warning:#b54708; --danger:#b42318; --process:#5b53e8;
-    --green:#0a7c3e; --green2:#0d9647; --red:#b42318;
-    --yellow:#b54708; --purple:#5b53e8; --blue:#3b6fd6;
-    --shadow-sm:none; --shadow-md:none; --shadow-lg:none; --shadow-xl:none;
-    background:#fff; color:#1a1f36;
+    position:static !important; overflow:visible !important;
+    -webkit-overflow-scrolling:auto !important;
+    transform:none !important; filter:none !important;
+    backdrop-filter:none !important; -webkit-backdrop-filter:none !important;
+    box-shadow:none !important; will-change:auto !important;
+    background:#ffffff !important;
+  }
+  /* Fundos e cores TEM que sair no papel: sem isso o Safari descarta o
+     preenchimento das faixas e o documento perde a hierarquia. */
+  .fp-overlay, .fp-overlay *{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
 
   /* Uma pessoa por folha */
@@ -86,27 +132,10 @@
   .fp-pagina:last-child{ break-after:auto; page-break-after:auto; }
   .fp-pagina + .fp-pagina{ margin-top:0; padding-top:0; border-top:0; }
 
-  /* No celular o design system EMPILHA a tabela em cartoes
-     (components.css, @media max-width:720px). No papel isso nao pode
-     acontecer -- imprimindo do iPhone, 250 linhas de venda viravam 250
-     cartoes. Aqui a tabela volta a ser tabela, seja qual for a largura da
-     tela de onde a impressao saiu. print.css carrega depois de
-     components.css, entao estas regras vencem. */
-  .c-tabela{ display:table; width:100%; }
-  .c-tabela tbody{ display:table-row-group; }
-  .c-tabela tr{ display:table-row; }
-  .c-tabela td{
-    display:table-cell; width:auto;
-    padding:5px 8px; border:0; border-bottom:1px solid var(--border);
-  }
-  .c-tabela td::before{ content:none !important; }
-  .c-tabela tbody tr{ margin:0; padding:0; border:0; border-radius:0; background:none; }
-  .c-tabela tbody tr td:first-child{ font-weight:400; }
-
-  /* A tabela de vendas pode passar de uma folha: o cabecalho repete e a
-     linha nao parte no meio. */
-  .c-tabela-wrap{ overflow:visible !important; }
-  .c-tabela thead{ display:table-header-group; }
+  /* A tabela ja e tabela em qualquer largura (regras de .fp-doc acima, que
+     desfazem o empilhamento do celular). No papel so falta soltar o scroll
+     horizontal, senao o que passa da margem some. */
+  .fp-doc .c-tabela-wrap{ overflow:visible !important; }
   .c-tabela tr, .fp-total, .fp-cab{ break-inside:avoid; page-break-inside:avoid; }
   .fp-sec-tit{ break-after:avoid; page-break-after:avoid; }
 
