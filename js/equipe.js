@@ -952,6 +952,13 @@ function toggleParcela(id,di,pi){
 const brl=n=>'R$'+Math.round(n).toLocaleString('pt-BR');
 const ini=n=>n.split(' ').filter((_,i,a)=>i===0||i===a.length-1).map(w=>w[0]?.toUpperCase()||'').join('');
 
+// "venda cart" / "venda urban" e a LOJA, nao uma pessoa. O trecho contem "vend",
+// entao caia no ramo do vendedor e sobrescrevia o nome ja encontrado quando a
+// linha da loja vinha DEPOIS: "Atendente Gabi vendedor David venda cart" virava
+// vendedor="cart", que cai em SOCIOS_LOJA e vira ninguem -- o David perdia a
+// comissao em silencio (venda 40585050, R$2.880, jul/2026).
+const NOME_E_LOJA = ['cart','urban','loja','online'];
+
 function parseObs(obs){
   if(!obs||!obs.trim()) return{};
   // Normalizar: lowercase, corrigir typos comuns, tratar ponto como separador de campo
@@ -980,7 +987,7 @@ function parseObs(obs){
       if(mv){
         const tokens=mv[1].trim().split(/[\s,]+/);
         const nome=tokens.map(t=>t.replace(/[-:,.]/g,'').trim()).find(t=>t.length>1);
-        if(nome) vendedor=nome;
+        if(nome&&!NOME_E_LOJA.includes(nome)) vendedor=nome;
       }
     }
     if(isAtend){
@@ -989,7 +996,7 @@ function parseObs(obs){
       if(ma){
         const tokens=ma[1].trim().split(/[\s,]+/);
         const nome=tokens.map(t=>t.replace(/[-:,.]/g,'').trim()).find(t=>t.length>1);
-        if(nome) atendente=nome;
+        if(nome&&!NOME_E_LOJA.includes(nome)) atendente=nome;
       }
     }
   });
