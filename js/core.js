@@ -125,6 +125,44 @@ function metasColetivas(ref){
   };
 }
 
+// FONTE UNICA da META INDIVIDUAL do atendente (bruto de acessorios do mes).
+// Estava copiada em 8 lugares como ternario solto (equipe.js x5, render.js x2,
+// dash-v2.js x1). Diferente da meta coletiva, estas faixas nao mudaram desde que
+// existem -- por isso nao tem tabela por mes. Se um dia mudarem, este vira o
+// unico lugar a editar (e a regra de "nunca retroativa" vale igual).
+const META_AT_FAIXAS = [
+  {val:4000,  bonus:100},
+  {val:6000,  bonus:300},
+  {val:10000, bonus:1000},
+];
+// Devolve o estado completo da meta: faixa batida, bonus, proxima faixa e quanto
+// falta. O "faltou X pra faixa de Y" do fechamento sai daqui, nao de conta na tela.
+function metaAtendente(bruto){
+  const b = parseFloat(bruto||0);
+  const batida = META_AT_FAIXAS.filter(f => b >= f.val).pop() || null;
+  const prox   = META_AT_FAIXAS.find(f => b < f.val) || null;
+  return {
+    nivel:     batida ? META_AT_FAIXAS.indexOf(batida)+1 : 0,
+    bonus:     batida ? batida.bonus : 0,
+    faixa:     batida ? batida.val : 0,
+    prox:      prox ? prox.val : null,
+    proxBonus: prox ? prox.bonus : 0,
+    falta:     prox ? prox.val - b : 0,
+  };
+}
+function bonusMetaAtendente(bruto){ return metaAtendente(bruto).bonus; }
+
+// FONTE UNICA da comissao do VENDEDOR por device: R$25/un ate o corte de 80
+// unidades no mes, R$35/un nas seguintes (a curva vale para o mes inteiro, nao
+// so para as unidades extras -- as 80 primeiras continuam a R$25).
+const VO_CURVA = { base:25, bonus:35, corte:80 };
+function comissaoVendedor(units){
+  const u = parseInt(units||0) || 0;
+  return u <= VO_CURVA.corte
+    ? u*VO_CURVA.base
+    : VO_CURVA.corte*VO_CURVA.base + (u-VO_CURVA.corte)*VO_CURVA.bonus;
+}
+
 // Socios -- aparecem nas vendas como vendedor mas NAO sao comissionados
 const SOCIOS = ['breno','gustavo','marcella','marcela','marcelo'];
 

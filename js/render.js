@@ -55,34 +55,57 @@ function calc(){
   let lojaVendas=0,lojaUnits=0;
   v.forEach(x=>{ if(isVendaLoja(x)){lojaVendas++;if(x._produtos&&x._produtos.length>0)lojaUnits+=x._produtos.filter(p=>isPrincipal(p)).length;else lojaUnits+=prPeriod.filter(p=>p.parent_id===x.id).length;} });
 
+  // -- Detalhe por venda ----------------------------------------------------
+  // voMap[k].linhas / atMap[k].linhas guardam a MESMA soma que o agregado, venda
+  // a venda. Sao preenchidos DENTRO do laco que soma -- e o que garante que a
+  // exportacao do fechamento (documento de prova) nunca divirja da tela: nao ha
+  // segunda conta, so a mesma conta guardada em detalhe. Ver js/fechamento.js.
+  const dadosVenda = x => ({
+    id: x.id,
+    data: x.data_saida,
+    cliente: (x.cliente && x.cliente.nome) || '',
+  });
+
   // Vendedores online -- por numero de VENDAS (nao unidades)
   const VO=VO_KEYS; // ['isa','mel','david','pietra'] -- vendedores online oficiais
-  const voMap={};VO.forEach(k=>voMap[k]={vendas:0,units:0});
+  const voMap={};VO.forEach(k=>voMap[k]={vendas:0,units:0,linhas:[]});
   v.forEach(x=>{
     const {vendedor}=getVendaInfo(x);
     const m=matchNome(vendedor,VO);
     if(m){
       voMap[m].vendas++;
       // Usar _produtos se disponivel (apple_id = iPhone), senao qtd_produtos como fallback
-      if(x._produtos&&x._produtos.length>0){
-        voMap[m].units+=x._produtos.filter(p=>isPrincipal(p)).length;
-      } else {
-        voMap[m].units+=prPeriod.filter(p=>p.parent_id===x.id).length;
-      }
+      const un = (x._produtos&&x._produtos.length>0)
+        ? x._produtos.filter(p=>isPrincipal(p)).length
+        : prPeriod.filter(p=>p.parent_id===x.id).length;
+      voMap[m].units+=un;
+      voMap[m].linhas.push({...dadosVenda(x), units:un});
     }
   });
 
   // Atendentes -- destaque no bruto de acessorios
   const AT=AT_KEYS; // atendentes presenciais oficiais
-  const atMap={};AT.forEach(k=>atMap[k]={la:0,qt:0,brutoAcess:0});
-  const vAtend={};
-  v.forEach(x=>{const {atendente}=getVendaInfo(x);const m=matchNome(atendente,AT);if(m)vAtend[x.id]=m;});
+  const atMap={};AT.forEach(k=>atMap[k]={la:0,qt:0,brutoAcess:0,linhas:[]});
+  const vAtend={},vendaPorId={};
+  v.forEach(x=>{vendaPorId[x.id]=x;const {atendente}=getVendaInfo(x);const m=matchNome(atendente,AT);if(m)vAtend[x.id]=m;});
+  // Uma linha por VENDA (nao por acessorio): ~700 itens/mes viram ~250 linhas.
+  const atLinha={};
   ac.forEach(m=>{
     const a=vAtend[m.parent_id];if(!a)return;
     const l=parseFloat(m.preco||0)-parseFloat(m.valor_estoque||0);
     atMap[a].la+=l;
     atMap[a].brutoAcess+=parseFloat(m.preco||0);
     atMap[a].qt++;
+    const chave=a+'#'+m.parent_id;
+    let linha=atLinha[chave];
+    if(!linha){
+      linha={...dadosVenda(vendaPorId[m.parent_id]||{id:m.parent_id}), bruto:0, lucro:0, qt:0};
+      atLinha[chave]=linha;
+      atMap[a].linhas.push(linha); // por referencia: somar abaixo ja atualiza a lista
+    }
+    linha.bruto+=parseFloat(m.preco||0);
+    linha.lucro+=l;
+    linha.qt++;
   });
 
   // Aplicar ajustes manuais de acessorios (correcoes de mes)
@@ -95,13 +118,18 @@ function calc(){
     const k=a.atendente;
     if(!atMap[k]) return;
     const margem=atMap[k].brutoAcess>0 ? atMap[k].la/atMap[k].brutoAcess : 0.5;
-    atMap[k].brutoAcess += parseFloat(a.valor_bruto||0);
-    atMap[k].la += parseFloat(a.valor_bruto||0) * margem;
+    const bruto=parseFloat(a.valor_bruto||0);
+    const lucro=bruto*margem;
+    atMap[k].brutoAcess += bruto;
+    atMap[k].la += lucro;
+    // Entra como linha propria: sem isso a coluna do fechamento nao fecharia com
+    // o total nos meses que tem ajuste manual (ex.: mar/2026).
+    atMap[k].linhas.push({id:null, ajuste:true, desc:a.descricao||'ajuste manual',
+      data:null, cliente:'—', bruto, lucro, qt:0});
   });
 
-  // Comissao correta: >80 unidades -> R$35/un
-  function calcCommVo(units){ return units<=80 ? units*25 : 80*25+(units-80)*35; }
-  const voTot=VO.reduce((a,k)=>a+calcCommVo(voMap[k].units),0);
+  // Comissao do vendedor: fonte unica em core.js (curva de 80 un -> R$35)
+  const voTot=VO.reduce((a,k)=>a+comissaoVendedor(voMap[k].units),0);
   const lojaTot=0; // loja nao tem comissao
   const atTot=AT.reduce((a,k)=>a+atMap[k].la*0.25,0); // 25% lucro acess. por atendente
   const anneBonus=lAcess*0.05; // bonus Anne (5% geral) -- separado das comissoes de vendas
@@ -291,7 +319,7 @@ function renderDash(){
     </div>`;
 
   // -- Vendedores + Atendentes ------------------------------
-  function calcCommVoDash(units){ return units<=80 ? units*25 : 80*25+(units-80)*35; }
+  const calcCommVoDash = comissaoVendedor; // fonte unica em core.js
 
   // Vendedores -- SEM Gustavo (vai para "Loja")
   const VO_LABELS=VO_LABELS_ALL.slice().sort((a,b)=>(m.voMap[b[1]]?.units||0)-(m.voMap[a[1]]?.units||0));
@@ -326,7 +354,8 @@ function renderDash(){
   const voTot=VO_LABELS.reduce((a,[,k])=>a+calcCommVoDash(m.voMap[k]?.units||0),0);
 
   // Atendentes
-  function calcMetaAt(b){if(b>=10000)return{nivel:3,bonus:1000,label:'R$10k ✅'};if(b>=6000)return{nivel:2,bonus:300,label:'R$6k ✅'};if(b>=4000)return{nivel:1,bonus:100,label:'R$4k ✅'};return{nivel:0,bonus:0,label:''};}
+  // faixas em core.js (META_AT_FAIXAS); aqui so o rotulo visual
+  function calcMetaAt(b){const mt=metaAtendente(b);return{nivel:mt.nivel,bonus:mt.bonus,label:mt.nivel?'R$'+(mt.faixa/1000)+'k ✅':''};}
   const AT_LABELS=AT_LABELS_ALL.slice().sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
   const atRows=AT_LABELS.map(([n,k])=>{
     const bruto=m.atMap[k]?.brutoAcess||0;
@@ -366,7 +395,7 @@ function renderDash(){
   const metaDevBatida=metasDevList.filter(x=>m.unPrincipal>=x.qt).pop()||null;
   const metaAcBatida=metasAcList.filter(x=>m.vendaAcess>=x.val).pop()||null;
   const bonusMetaColetiva=(metaDevBatida?.bonus||0)+(metaAcBatida?.bonus||0);
-  function calcBonusMetaAt(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
+  const calcBonusMetaAt = bonusMetaAtendente; // fonte unica em core.js
   const bonusMetaAtMap={};
   AT_LABELS.forEach(([,k])=>{bonusMetaAtMap[k]=calcBonusMetaAt(m.atMap[k]?.brutoAcess||0);});
   const totalBonusMetaAt=Object.values(bonusMetaAtMap).reduce((a,b)=>a+b,0);

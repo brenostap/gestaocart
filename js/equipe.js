@@ -128,11 +128,10 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
     if(!k) return { vendCount:0, units:0, comm:0, rate:25, metaBatida:false, tipo:'online' };
     let vendCount=0,units=0;
     v.forEach(x=>{ const {vendedor}=getVendaInfo(x); const m=matchNome(vendedor,[k]); if(m){vendCount++;units+=contarIphones(x);} });
-    // Meta: acima de 80 unidades -> R$35/un (R$10 bonus por unidade extra)
-    const rateBase=25, rateBonus=35, metaUnits=80;
-    const comm = units<=metaUnits ? units*rateBase : metaUnits*rateBase+(units-metaUnits)*rateBonus;
-    const rate = units>metaUnits ? rateBonus : rateBase;
-    const metaBatida = units>metaUnits;
+    // Curva de comissao: fonte unica em core.js (VO_CURVA / comissaoVendedor)
+    const comm = comissaoVendedor(units);
+    const rate = units>VO_CURVA.corte ? VO_CURVA.bonus : VO_CURVA.base;
+    const metaBatida = units>VO_CURVA.corte;
     return { vendCount, units, comm, rate, metaBatida, tipo:'online' };
   } else if(f.voKey){
     // presencial que tambem vende online (ex: Pietra)
@@ -171,6 +170,184 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
     const bonus=f.bonus?lAcessTotal*0.05:0;
     return { vendCount, unitsVo, commVo, qt, brutoAcess:bruto, lucroAcess:la, comm:la*0.25+bonus+commVo, bonus, tipo:'presencial' };
   }
+}
+
+// ===========================================================================
+// FECHAMENTO — FONTE UNICA da folha do mes
+//
+// Antes os mesmos numeros eram remontados em 3 lugares (a tabela de fechamento
+// e os resumos aqui, e o card individual), cada um com sua copia de cvF/caF/bmF
+// e sua lista de pessoas escrita a mao. Agora existe UM caminho:
+//
+//     calc()  ->  fechamentoEquipe()  ->  tela / resumos / card / exportacao
+//
+// Quem quiser um numero da folha PEDE aqui. E o que sustenta a exportacao como
+// documento de prova: se o arquivo e a tela saem do mesmo objeto, nao ha como
+// discordarem. Nao criar conta de folha fora daqui.
+// ===========================================================================
+
+// Quem entra na folha: derivado do cadastro (FUNC), nunca lista a mao. Quem
+// ganha "(saiu)" no cargo sai sozinho; quem entra aparece sozinho. Mesmo
+// criterio de AT_LABELS_ALL/VO_LABELS_ALL (core.js), entao ranking e folha
+// falam do mesmo conjunto de gente.
+function fechamentoPessoas(){
+  return FUNC.filter(f =>
+    !/\(saiu\)/i.test(f.cargo||'') &&
+    ((f.voKey && VO_KEYS.includes(f.voKey)) || (f.atKey && AT_KEYS.includes(f.atKey)))
+  );
+}
+
+// Salario do mes: vem do LANCAMENTO em Custos, nao da constante SALARIOS.
+// A constante tem o valor cheio; a folha real tem ferias, proporcional de quem
+// entrou no meio do mes, desconto. Em jul/2026 a constante diria Vitinho 2.250
+// e Gabi 2.250, quando o pago foi 2.750 (ferias) e 1.161 (proporcional).
+// Sem lancamento (custos ainda carregando, ou mes sem folha gerada) cai na
+// constante e avisa -- melhor um numero marcado como estimado que um zero mudo.
+function salarioFechamento(id){
+  const lancs = filterCustoPeriod(getCustos())
+    .filter(c => c.area==='funcionario' && c.funcionario===id);
+  if(lancs.length) return {
+    valor: lancs.reduce((a,c)=>a+parseFloat(c.valor||0),0),
+    origem: 'custos',
+    desc: lancs.map(c=>c.desc).join(' · ')
+  };
+  return { valor: SALARIOS[id]||0, origem:'constante', desc:'' };
+}
+
+// Distribui um total INTEIRO entre as linhas, proporcional ao valor cru, pelo
+// metodo do maior resto. A folha paga em reais inteiros (Math.round no total);
+// se as linhas fossem arredondadas uma a uma a coluna fecharia com centavos de
+// diferenca do resumo -- e ai o documento perde a serventia. Aqui a soma da
+// coluna e IGUAL ao total pago, por construcao.
+function distribuirEmInteiros(valores, total){
+  const brutos = valores.map(v => parseFloat(v||0));
+  const out = brutos.map(v => Math.floor(v));
+  let resto = Math.round(total) - out.reduce((a,b)=>a+b,0);
+  const ordem = brutos.map((v,i) => ({i, frac: v-Math.floor(v)}))
+                      .sort((a,b) => b.frac-a.frac);
+  for(let k=0; resto>0 && ordem.length; k++, resto--) out[ordem[k%ordem.length].i]++;
+  return out;
+}
+
+function _fechOrdemData(a,b){ return String(a.data||'').localeCompare(String(b.data||'')); }
+
+// Monta a folha do periodo que estiver no contexto (loja + periodo da sidebar).
+function fechamentoEquipe(){
+  const m = calc();
+  const metas = metasColetivas();
+  const metaDev     = metas.dev.filter(x => m.unPrincipal >= x.qt).pop() || null;
+  const metaDevProx = metas.dev.find(x => m.unPrincipal < x.qt) || null;
+  const metaAc      = metas.acess.filter(x => m.vendaAcess >= x.val).pop() || null;
+  const metaAcProx  = metas.acess.find(x => m.vendaAcess < x.val) || null;
+  // Bonus coletivo e pago CHEIO para cada pessoa (uma vez por pessoa).
+  const bonusCol = (metaDev?.bonus||0) + (metaAc?.bonus||0);
+
+  const avisos = [];
+  if(currentStore !== 'ambas') avisos.push(
+    'Contexto da loja está em "'+currentStore+'" — a folha só considera as vendas dessa loja.');
+
+  const pessoas = fechamentoPessoas().map(f => {
+    const vo = (f.voKey && VO_KEYS.includes(f.voKey)) ? (m.voMap[f.voKey] || null) : null;
+    const at = (f.atKey && AT_KEYS.includes(f.atKey)) ? (m.atMap[f.atKey] || null) : null;
+
+    const units      = vo ? vo.units : 0;
+    const pedidos    = vo ? vo.vendas : 0;
+    const commVo     = comissaoVendedor(units);
+    const la         = at ? at.la : 0;
+    const brutoAcess = at ? at.brutoAcess : 0;
+    const qtAcess    = at ? at.qt : 0;
+    const commAt     = Math.round(la * 0.25);
+    const bonus5     = f.bonus ? Math.round(m.lAcess * 0.05) : 0;
+    const meta       = metaAtendente(brutoAcess);
+    const bonusMeta  = at ? meta.bonus : 0;
+    const sal        = salarioFechamento(f.id);
+    if(sal.origem === 'constante' && sal.valor > 0) avisos.push(
+      'Salário de '+f.ap+' não tem lançamento em Custos no período — usando o valor da tabela ('+brl(sal.valor)+').');
+
+    // -- Linhas de venda -----------------------------------------------------
+    // Vendedor: a curva de 80 un vale para o mes, entao a comissao da venda e o
+    // quanto ELA acrescentou ao acumulado. Soma = comissaoVendedor(total), exato,
+    // e a linha onde a taxa vira R$35 fica visivel.
+    const linhasVo = (vo ? vo.linhas : []).map(l => ({...l})).sort(_fechOrdemData);
+    let acum = 0;
+    linhasVo.forEach(l => {
+      const antes = acum; acum += l.units;
+      l.comissao = comissaoVendedor(acum) - comissaoVendedor(antes);
+      l.taxa = l.units > 0 ? l.comissao / l.units : 0;
+    });
+
+    // Atendente: 25% do lucro da venda, arredondado pelo maior resto.
+    const linhasAt = (at ? at.linhas : []).map(l => ({...l})).sort(_fechOrdemData);
+    const inteiros = distribuirEmInteiros(linhasAt.map(l => l.lucro * 0.25), commAt);
+    linhasAt.forEach((l,i) => { l.comissao = inteiros[i]; });
+
+    return {
+      id:f.id, nome:f.ap, nomeCompleto:f.nome, cargo:f.cargo, tipo:f.tipo,
+      voKey:f.voKey||null, atKey:f.atKey||null, ehVendedor:!!vo, ehAtendente:!!at,
+      units, pedidos, la, brutoAcess, qtAcess,
+      sal:sal.valor, salOrigem:sal.origem, salDesc:sal.desc,
+      commVo, commAt, comm:commVo+commAt,
+      bonus5, bonusMeta, bonusCol, meta,
+      total: sal.valor + commVo + commAt + bonus5 + bonusMeta + bonusCol,
+      linhasVo, linhasAt,
+    };
+  });
+
+  const soma = k => pessoas.reduce((a,p) => a + p[k], 0);
+  // Custos do mes SEM a area 'funcionario': salario e bonus ja estao dentro da
+  // folha (o salario VEM desses lancamentos; os 3 lancamentos de bonus batem com
+  // bonusMeta/bonusCol/bonus5). Somar a area de novo pagaria a folha duas vezes.
+  const custosForaFolha = filterCustoPeriod(getCustos())
+    .filter(c => c.area !== 'funcionario')
+    .reduce((a,c) => a + parseFloat(c.valor||0), 0);
+
+  const totais = {
+    sal:soma('sal'), comm:soma('comm'), commVo:soma('commVo'), commAt:soma('commAt'),
+    bonus5:soma('bonus5'), bonusMeta:soma('bonusMeta'), bonusCol:soma('bonusCol'),
+    folha:soma('total'), custosForaFolha,
+  };
+  // folha ja embute salario + comissao + os 3 bonus. Comissao nao esta em Custos
+  // (lancar seria contar duas vezes -- ver docs/IDEIAS.md).
+  totais.liquido = m.lucro - totais.folha - custosForaFolha;
+
+  return {
+    m, ref:_refAnoMes(), loja:currentStore, geradoEm:new Date(),
+    mesLabel: fechamentoMesLabel(),
+    base: {
+      aparelhos:m.unPrincipal, acessBruto:m.vendaAcess, acessLucro:m.lAcess,
+      vendas:m.cnt, lucro:m.lucro,
+    },
+    metaDev, metaDevProx, metaAc, metaAcProx, bonusCol,
+    pessoas, totais, avisos,
+  };
+}
+
+// Rotulo do periodo em texto ("Julho de 2026"). Um filtro que nao e um mes
+// (semana/hoje/custom/tudo) diz o que e, em vez de mentir um mes.
+function fechamentoMesLabel(){
+  const ref = _refAnoMes();
+  if(!ref) return 'Período selecionado';
+  const [y,mo] = ref.split('-').map(Number);
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                 'Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return nomes[mo-1] + ' de ' + y;
+}
+
+// Fechamento de OUTRO mes pelo MESMO caminho (calc + custos do periodo). Troca
+// o contexto global, mede e restaura -- e como a comparacao com o mes anterior
+// sai sem uma segunda implementacao. Devolve null se o mes nao for resolvivel.
+function fechamentoEquipeRef(anoMes){
+  if(!/^\d{4}-\d{2}$/.test(anoMes||'')) return null;
+  const antes = currentPeriod;
+  try { currentPeriod = anoMes; return fechamentoEquipe(); }
+  finally { currentPeriod = antes; }
+}
+
+function fechamentoMesAnterior(ref){
+  if(!/^\d{4}-\d{2}$/.test(ref||'')) return null;
+  const [y,m] = ref.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m-2, 1));
+  return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
 }
 
 function renderEquipe(){
@@ -302,7 +479,7 @@ function renderEquipe(){
       const saldoDiv=dividas.reduce(function(a,d){const pago=d.parcelas.filter(function(p){return p.paga;}).reduce(function(s,p){return s+p.valor;},0);return a+(d.total-pago);},0);
       const rankMedal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
       const pctBar=Math.round((comm.brutoAcess||0)/maxBruto*100);
-      const metaNivel=comm.brutoAcess>=10000?3:comm.brutoAcess>=6000?2:comm.brutoAcess>=4000?1:0;
+      const metaNivel=metaAtendente(comm.brutoAcess).nivel; // faixas em core.js
       const metaBadge=metaNivel===3?'🏆 R$10k':metaNivel===2?'✅ R$6k':metaNivel===1?'✅ R$4k':'';
       const metaColor=metaNivel>=2?'var(--green)':'var(--cart)';
 
@@ -339,47 +516,19 @@ function renderEquipe(){
 
 
   // -- Tabela de fechamento do mes -----------------------------------------------
-  const m2=calc();
-  // getCustos() em vez de _custosCache: o cache e null enquanto nao carregou
-  const custosMesFech=filterCustoPeriod(getCustos()).reduce((a,c)=>a+parseFloat(c.valor||0),0);
-  const sal=SALARIOS;
-  function calcCommVoF(k){const u=m2.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
-  function calcCommAtF(k){return Math.round((m2.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m2.lAcess*0.05):0);}
-  function calcBonusAtF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
-  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
-  const metaDevF=metasDevL.filter(x=>m2.unPrincipal>=x.qt).pop()||null;
-  const metaAcF=metasAcL.filter(x=>m2.vendaAcess>=x.val).pop()||null;
-  const bonusColF=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
+  // Todos os numeros vem de fechamentoEquipe(): a tela e a exportacao leem o
+  // MESMO objeto. Nao recalcular nada aqui.
+  const fech=fechamentoEquipe();
+  const {pessoas,totais,bonusCol:bonusColF}=fech;
 
-  const pessoas=[
-    {id:'david',  nome:'David',   sal:sal.david,   comm:calcCommVoF('david'),   bonus5:0, bonusMeta:0},
-    {id:'isa',    nome:'Isa',     sal:sal.isa,     comm:calcCommVoF('isa'),     bonus5:0, bonusMeta:0},
-    {id:'mel',    nome:'Mel',     sal:sal.mel,     comm:calcCommVoF('mel'),     bonus5:0, bonusMeta:0},
-    {id:'anne',   nome:'Anne',    sal:sal.anne,    comm:Math.round((m2.atMap['anne']?.la||0)*0.25),  bonus5:Math.round(m2.lAcess*0.05), bonusMeta:calcBonusAtF(m2.atMap['anne']?.brutoAcess||0)},
-    {id:'davi',   nome:'Davi',    sal:sal.davi,    comm:calcCommAtF('davi'),    bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['davi']?.brutoAcess||0)},
-    {id:'vitinho',nome:'Vitinho', sal:sal.vitinho, comm:calcCommAtF('vitinho'), bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['vitinho']?.brutoAcess||0)},
-    {id:'denilson',nome:'Denilson',sal:sal.denilson,comm:calcCommAtF('denilson'),bonus5:0,bonusMeta:calcBonusAtF(m2.atMap['denilson']?.brutoAcess||0)},
-    {id:'leo',    nome:'Leo',     sal:sal.leo,     comm:calcCommAtF('leo'),     bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['leo']?.brutoAcess||0)},
-    {id:'maria',  nome:'Maria',   sal:sal.maria,   comm:calcCommVoF('maria')+calcCommAtF('maria'), bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['maria']?.brutoAcess||0)},
-    {id:'gabi',   nome:'Gabi',    sal:sal.gabi,    comm:calcCommAtF('gabi'),    bonus5:0, bonusMeta:calcBonusAtF(m2.atMap['gabi']?.brutoAcess||0)},
-  ].map(p=>({...p, total:p.sal+p.comm+p.bonus5+p.bonusMeta+bonusColF}));
-
-  const totalColF=pessoas.reduce((a,p)=>a+p.total,0); // ja inclui o bonus coletivo por pessoa
-  // Bonus coletivo pago CHEIO para cada colaborador (uma vez por pessoa).
-  const totalColetivoF=pessoas.length*bonusColF;
-  const totalBonusMetaIndF=pessoas.reduce((a,p)=>a+p.bonusMeta,0);
-  // Pietra saiu em 15/06/2026 -- fora da folha e dos totais (mesma convencao da Luana).
-  const voTotF=['david','isa','mel','maria'].reduce((a,k)=>a+calcCommVoF(k),0);
-  const atTotF=['anne','davi','vitinho','denilson','leo','gabi','maria'].reduce((a,k)=>a+calcCommAtF(k),0);
-  // atTotF ja embute os 5% da Anne (via calcCommAtF); nao descontar de novo a parte.
-  const liqFinal=m2.lucro-voTotF-atTotF-custosMesFech-totalBonusMetaIndF-totalColetivoF;
-
-  const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   const tabelaFechamento=`
     <div class="card" style="margin-top:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title" style="margin:0">📋 Fechamento — ${mesAtual}</div>
-        <button onclick="gerarResumoEquipe()" style="padding:6px 14px;background:rgba(91,139,245,.12);border:1px solid rgba(91,139,245,.3);border-radius:8px;color:var(--cart);font-size:12px;font-weight:600;cursor:pointer">📋 Gerar resumos</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="card-title" style="margin:0">📋 Fechamento — ${fech.mesLabel}</div>
+        <div style="display:flex;gap:8px">
+          ${UI.btn('📊 Exportar fechamento',{onclick:'exportarFechamento(this)',variante:'primario',sm:true,titulo:'Planilha com uma aba por colaborador, venda a venda'})}
+          ${UI.btn('📋 Gerar resumos',{onclick:'gerarResumoEquipe()',sm:true})}
+        </div>
       </div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -410,11 +559,11 @@ function renderEquipe(){
               <td colspan="4" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
                 ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`:''}
               </td>
-              <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totalColF)}</td>
+              <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totais.folha)}</td>
             </tr>
             <tr>
-              <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa</td>
-              <td style="padding:6px 8px;text-align:right;font-weight:700;font-size:13px;color:${liqFinal>0?'var(--green)':'var(--red)'}">${brl(liqFinal)}</td>
+              <td colspan="5" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa e demais custos</td>
+              <td style="padding:6px 8px;text-align:right;font-weight:700;font-size:13px;color:${totais.liquido>0?'var(--green)':'var(--red)'}">${brl(totais.liquido)}</td>
             </tr>
           </tfoot>
         </table>
@@ -427,31 +576,12 @@ function renderEquipe(){
 }
 
 function gerarResumoEquipe(){
-  const m=calc();
-  const mesAtual=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const mesLabel=mesAtual.charAt(0).toUpperCase()+mesAtual.slice(1);
-  const sal=SALARIOS;
-  function cvF(k){const u=m.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
-  function caF(k){return Math.round((m.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m.lAcess*0.05):0);}
-  function bmF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
-  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
-  const metaDevF=metasDevL.filter(x=>m.unPrincipal>=x.qt).pop()||null;
-  const metaAcF=metasAcL.filter(x=>m.vendaAcess>=x.val).pop()||null;
-  const bonusColF=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
-  const bonusColPorPessoa=Math.round(bonusColF); // valor ja e individual por pessoa
-
-  const pessoas=[
-    {id:'david',  nome:'David',   sal:sal.david,   comm:cvF('david'),   bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
-    {id:'isa',    nome:'Isa',     sal:sal.isa,     comm:cvF('isa'),     bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
-    {id:'mel',    nome:'Mel',     sal:sal.mel,     comm:cvF('mel'),     bonus5:0,                         bonusMeta:0,                                        tipo:'online'},
-    {id:'anne',   nome:'Anne',    sal:sal.anne,    comm:Math.round((m.atMap['anne']?.la||0)*0.25), bonus5:Math.round(m.lAcess*0.05), bonusMeta:bmF(m.atMap['anne']?.brutoAcess||0), tipo:'presencial'},
-    {id:'davi',   nome:'Davi',    sal:sal.davi,    comm:caF('davi'),    bonus5:0,                         bonusMeta:bmF(m.atMap['davi']?.brutoAcess||0),      tipo:'presencial'},
-    {id:'vitinho',nome:'Vitinho', sal:sal.vitinho, comm:caF('vitinho'), bonus5:0,                         bonusMeta:bmF(m.atMap['vitinho']?.brutoAcess||0),   tipo:'presencial'},
-    {id:'denilson',nome:'Denilson',sal:sal.denilson,comm:caF('denilson'),bonus5:0,                        bonusMeta:bmF(m.atMap['denilson']?.brutoAcess||0),  tipo:'presencial'},
-    {id:'leo',    nome:'Leo',     sal:sal.leo,     comm:caF('leo'),     bonus5:0,                         bonusMeta:bmF(m.atMap['leo']?.brutoAcess||0),       tipo:'presencial'},
-    {id:'maria',  nome:'Maria',   sal:sal.maria,   comm:cvF('maria')+caF('maria'), bonus5:0,             bonusMeta:bmF(m.atMap['maria']?.brutoAcess||0),     tipo:'ambos'},
-    {id:'gabi',   nome:'Gabi',    sal:sal.gabi,    comm:caF('gabi'),    bonus5:0,                         bonusMeta:bmF(m.atMap['gabi']?.brutoAcess||0),      tipo:'presencial'},
-  ].map(p=>({...p, total:p.sal+p.comm+p.bonus5+p.bonusMeta+bonusColPorPessoa}));
+  // Mesma fonte da tabela e da exportacao -- a mensagem que vai pro colaborador
+  // nao pode sair de uma conta paralela.
+  const fech=fechamentoEquipe();
+  const mesLabel=fech.mesLabel;
+  const pessoas=fech.pessoas;
+  const bonusColPorPessoa=fech.bonusCol;
 
   // Montar mensagem de cada pessoa
   function montarMsg(p){
@@ -535,9 +665,9 @@ function renderFuncCard(id, lAcessTotal){
           });
         }
       });
-      const commVo = units<=80?units*25:80*25+(units-80)*35;
+      const commVo = comissaoVendedor(units);
       const commAt = lucroAcess*0.25;
-      const metaAt = brutoAcess>=10000?1000:brutoAcess>=6000?300:brutoAcess>=4000?100:0;
+      const metaAt = bonusMetaAtendente(brutoAcess);
       const bonusCol = Math.round(lAcessMes*0); // bonus coletivo calculado separado
       return { units, pedidos, brutoAcess:Math.round(brutoAcess), lucroAcess:Math.round(lucroAcess), qtAcess, comm:Math.round(commVo+commAt), commVo:Math.round(commVo), commAt:Math.round(commAt), metaAt, tipo:'ambos' };
 
@@ -549,9 +679,9 @@ function renderFuncCard(id, lAcessTotal){
           pedidos++;
         }
       });
-      const comm = units<=80?units*25:80*25+(units-80)*35;
-      const rate = units>80?35:25;
-      const metaBatida = units>80;
+      const comm = comissaoVendedor(units);
+      const rate = units>VO_CURVA.corte?VO_CURVA.bonus:VO_CURVA.base;
+      const metaBatida = units>VO_CURVA.corte;
       return { units, pedidos, comm, rate, metaBatida, tipo:'online' };
 
     } else {
@@ -565,7 +695,8 @@ function renderFuncCard(id, lAcessTotal){
       });
       const bonus5 = f.bonus ? lAcessMes*0.05 : 0;
       const comm = Math.round(lucroAcess*0.25 + bonus5);
-      const meta = brutoAcess>=10000?{nivel:3,val:1000,label:'R$10k'}:brutoAcess>=6000?{nivel:2,val:300,label:'R$6k'}:brutoAcess>=4000?{nivel:1,val:100,label:'R$4k'}:{nivel:0,val:0,label:''};
+      const _mt = metaAtendente(brutoAcess); // faixas em core.js
+      const meta = {nivel:_mt.nivel, val:_mt.bonus, label:_mt.nivel?'R$'+(_mt.faixa/1000)+'k':''};
       return { brutoAcess:Math.round(brutoAcess), lucroAcess:Math.round(lucroAcess), qtAcess, comm, bonus5:Math.round(bonus5), meta, tipo:'presencial' };
     }
   }
@@ -575,40 +706,21 @@ function renderFuncCard(id, lAcessTotal){
   const mesAtualStr = new Date().toISOString().slice(0,7);
   const dadosAtual = dadosMeses[mesAtualStr] || calcMes(mesAtualStr);
 
-  // -- Mes atual via calc() para consistencia com dashboard -------------------
-  const mCalc = calc();
+  // -- Mes atual: os numeros vem da folha (fechamentoEquipe), nao de conta local.
+  // Antes este bloco tinha a propria versao: usava SALARIOS em vez do lancamento
+  // de Custos, e no caso hibrido (Maria) ignorava a curva de 80 un -- o card
+  // mostrava um total diferente da tabela de fechamento logo abaixo.
+  const fechCard = fechamentoEquipe();
+  const mCalc = fechCard.m;
   const lAcessCalc = mCalc.lAcess || 0;
+  const pFech = fechCard.pessoas.find(p => p.id === f.id) || null;
 
-  // -- Salario fixo ------------------------------------------------------------
-  const salarios = SALARIOS;
-  const sal = salarios[f.id] || 0;
-
-  // -- Bonus coletivo por pessoa -----------------------------------------------
-  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
-  const metaDevF=metasDevL.filter(x=>mCalc.unPrincipal>=x.qt).pop()||null;
-  const metaAcF=metasAcL.filter(x=>mCalc.vendaAcess>=x.val).pop()||null;
-  const bonusColTotal=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
-  const bonusColPP=Math.round(bonusColTotal); // valor ja e individual por pessoa
-
-  // -- Dados do mes atual (via calc() = consistente com dashboard) -------------
-  let commAtual=0, bonusMetaAtual=0, bonus5Atual=0;
-  if(f.tipo==='online'){
-    const u=mCalc.voMap[f.voKey||f.id]?.units||0;
-    commAtual=u<=80?u*25:80*25+(u-80)*35;
-  } else if(f.voKey && f.atKey){
-    const u=mCalc.voMap[f.voKey]?.units||0;
-    const la=mCalc.atMap[f.atKey]?.la||0;
-    const ba=mCalc.atMap[f.atKey]?.brutoAcess||0;
-    commAtual=Math.round(u*25+la*0.25);
-    bonusMetaAtual=ba>=10000?1000:ba>=6000?300:ba>=4000?100:0;
-  } else {
-    const la=mCalc.atMap[f.atKey||f.id]?.la||0;
-    const ba=mCalc.atMap[f.atKey||f.id]?.brutoAcess||0;
-    bonus5Atual=f.bonus?Math.round(lAcessCalc*0.05):0;
-    commAtual=Math.round(la*0.25);
-    bonusMetaAtual=ba>=10000?1000:ba>=6000?300:ba>=4000?100:0;
-  }
-  const totalReceber=sal+commAtual+bonus5Atual+bonusMetaAtual+bonusColPP;
+  const sal             = pFech ? pFech.sal       : 0;
+  const commAtual       = pFech ? pFech.comm      : 0;
+  const bonus5Atual     = pFech ? pFech.bonus5    : 0;
+  const bonusMetaAtual  = pFech ? pFech.bonusMeta : 0;
+  const bonusColPP      = pFech ? pFech.bonusCol  : fechCard.bonusCol;
+  const totalReceber    = pFech ? pFech.total     : 0;
 
   // -- Header ------------------------------------------------------------------
   const tipoLabel = f.tipo==='online'?'Vendedor Online':'Atendente Presencial';
@@ -709,11 +821,9 @@ function renderFuncCard(id, lAcessTotal){
       const ba=mCalc.atMap[f.atKey||f.id]?.brutoAcess||0;
       const la=mCalc.atMap[f.atKey||f.id]?.la||0;
       const qt=mCalc.atMap[f.atKey||f.id]?.qt||0;
-      const metaNivel=ba>=10000?3:ba>=6000?2:ba>=4000?1:0;
-      const metaLabels=['—','R$4k → +R$100','R$6k → +R$300','R$10k → +R$1.000'];
-      const metaProxVal=[4000,6000,10000,null];
-      const proxMeta=metaProxVal[metaNivel];
-      const faltaMeta=proxMeta?Math.max(0,proxMeta-ba):0;
+      const mt=metaAtendente(ba); // faixas em core.js (fonte unica)
+      const metaNivel=mt.nivel, proxMeta=mt.prox;
+      const faltaMeta=Math.max(0,mt.falta);
       const metaBar=proxMeta?Math.min(100,Math.round((ba/proxMeta)*100)):100;
       return `
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">

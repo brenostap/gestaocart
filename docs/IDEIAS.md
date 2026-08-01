@@ -74,10 +74,35 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - ⚠️ O valor dos 5% depende do lucro de acessórios, que muda a cada resync fundo. Em jul/2026 o
     lançamento teve que ser corrigido de 1.287 para 1.305 depois do resync de 45 dias. **Fechar a
     folha só depois de rodar o resync fundo do mês.**
-- 🔨 ⭐ **Exportação do fechamento — documento de prova por colaborador** (decidido em 01/ago/2026,
-  a construir). Botão *Exportar fechamento* na aba Equipe, gerando um arquivo com **uma aba por
-  colaborador**. Serve pra resolver questionamento de comissão: abre a aba da pessoa e mostra venda
-  por venda.
+- ✅ ⭐ **Exportação do fechamento — documento de prova por colaborador** (feito em 01/ago/2026).
+  Botão *Exportar fechamento* na aba Equipe, gerando um `.xlsx` com **uma aba por colaborador**
+  (+ aba Geral). Serve pra resolver questionamento de comissão: abre a aba da pessoa e mostra venda
+  por venda. Código em `js/fechamento.js`; teste em `test/fechamento.test.js`.
+  - **Como ficou a "fonte única":** `calc()` (render.js) passou a guardar o detalhe **por venda**
+    (`voMap[k].linhas` / `atMap[k].linhas`) **dentro do mesmo laço que soma o agregado** — não há
+    segunda conta, é a mesma conta guardada em detalhe. Em cima disso nasceu
+    **`fechamentoEquipe()`** (equipe.js), de onde saem os 4 consumidores: tabela de fechamento,
+    resumos de WhatsApp, card individual e a exportação. Antes eram 3 cópias de `cvF/caF/bmF` +
+    lista de pessoas escrita à mão.
+  - **Formato: `.xlsx` via SheetJS por CDN, carregado só no clique.** O app não tem bundler; um
+    `<script>` fixo custaria ~900KB em toda visita por um botão usado 1×/mês. Carregar sob demanda
+    também não mexe na ordem de carga do `index.html`. `.xlsx` (e não CSV/SpreadsheetML) porque
+    abre limpo no Numbers, Excel e Google Sheets — e o requisito é *uma aba por pessoa*.
+  - **Arredondamento:** a folha paga em reais inteiros. As linhas do atendente são arredondadas pelo
+    **maior resto** (`distribuirEmInteiros`), então Σ da coluna = total pago, exato. A comissão da
+    linha do vendedor é **o quanto ela acrescentou no acumulado** — assim a curva de 80 un fecha
+    exata e a linha onde a taxa vira R$35 fica visível.
+  - **Quem entra na folha** agora vem do cadastro (`FUNC` + `VO_KEYS`/`AT_KEYS`, sem `(saiu)`),
+    igual aos rankings. Ninguém mais some por lista hardcoded.
+  - ⚠️ **Bug corrigido de quebra:** o "Lucro líquido após folha completa" descontava os bônus
+    **duas vezes** desde que eles viraram lançamento em Custos (01/ago) — subtraía a área inteira
+    de Custos *e* os bônus de novo (−R$7.605 a mais em jul/2026). Agora é
+    `lucro − folha − custos fora da área funcionário`.
+  - ⚠️ O card individual mostrava número **diferente** da tabela logo abaixo: usava `SALARIOS` em vez
+    do lançamento, e no caso híbrido (Maria) ignorava a curva de 80 un. Some com a fonte única.
+  - **Faixas de meta individual e curva do vendedor viraram fonte única** em `core.js`
+    (`META_AT_FAIXAS`/`metaAtendente()` e `VO_CURVA`/`comissaoVendedor()`) — estavam copiadas em
+    **14 lugares** entre equipe.js, render.js e dash-v2.js.
   - **Decisões fechadas com o dono:** recurso do painel, todo mês (não entrega única) · **arquivo é
     só do dono**, não vai pra equipe, então pode mostrar custo/lucro/margem sem restrição ·
     **uma linha por venda** (não por acessório — seriam ~700 linhas/mês) · cada aba leva resumo no
@@ -88,14 +113,12 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - ⚠️ **Regra inegociável: o arquivo não pode ter cálculo próprio.** Tem que sair do mesmo `calc()`
     (render.js) e do mesmo `gerarResumoEquipe` (equipe.js) que a tela usa. Se divergirem, o
     documento perde a serventia. Refatorar pra expor o número por venda é ok — duas fontes não.
-  - ⚠️ **O salário tem que vir dos lançamentos de Custos, não da constante `SALARIOS`.** A constante
-    tem o valor cheio; a folha real tem Vitinho R$2.750 (férias) e Gabi R$1.161 (proporcional). Se
-    o arquivo ler a constante, mostra R$2.250 pros dois e não bate com o que foi pago.
-  - ⚠️ Formato do arquivo em aberto — o app não tem build. Avaliar lib via CDN (o Supabase já vem
-    assim) ou outro caminho.
+  - ⚠️ **O salário vem dos lançamentos de Custos, não da constante `SALARIOS`** (`salarioFechamento`).
+    A constante tem o valor cheio; a folha real tem Vitinho R$2.750 (férias) e Gabi R$1.161
+    (proporcional). Sem lançamento no período, cai na constante **e avisa** na aba Geral.
   - 💡 **A aba geral é praticamente a tela de Fechamento**, que hoje é placeholder (`renderFechamento`
-    em shell.js diz "não foi construída"). Vale considerar fazer as duas de uma vez.
-  - **Teste de aceite — julho/2026** (já conferido, inclusive contra a lista manual da equipe):
+    em shell.js diz "não foi construída"). `fechamentoEquipe()` já entrega tudo que ela precisa.
+  - **Teste de aceite — julho/2026** ✅ conferido contra o banco em 01/ago/2026 (bate nos 10):
     Anne 6.643 · Leo 5.786 · Mel 5.125 · Maria 4.694 · Davi 4.615 · David 4.250 · Isa 3.650 ·
     Vitinho 3.169 · Denilson 3.024 · Gabi 2.140 · **total 43.096**. Base: 355 aparelhos ·
     R$38.345 de acessórios (bruto) · R$26.090 de lucro em acessórios · coletiva R$400/pessoa.

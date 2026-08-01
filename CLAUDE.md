@@ -7,6 +7,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - É um **site estático** (HTML + JS puro, sem build). Pra testar local: servir a pasta
   (`python3 -m http.server 8080`) e abrir no navegador — precisa **login Supabase** (é do dono).
 - Deploy: `main` publica (Netlify). Commit na `main` = vai ao ar.
+- **Teste do fechamento** (sem browser, sem rede): `node test/fechamento.test.js`. Carrega os
+  `js/*.js` reais com stubs e prova que tela e exportação saem do **mesmo** `fechamentoEquipe()`.
+  Rodar depois de mexer em comissão, meta, folha ou `calc()`.
 
 ## ⚠️ Arquitetura que quebra fácil (leia antes de mexer em JS)
 - **Sem bundler — `<script>` clássicos, um único escopo global.** Todos os `js/*.js` são
@@ -25,6 +28,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/core.js` `js/data.js` — carga de dados (Supabase via REST; ver `loadFromSupabase`).
 - `js/render.js` — dashboard + **tela de Vendas** (`renderVendas`).
 - `js/estoque.js` `js/tabela.js` `js/custos.js` `js/equipe.js` `js/movimentacoes.js` — as outras telas.
+- `js/fechamento.js` — exportação do fechamento (.xlsx, uma aba por colaborador). **Não calcula
+  nada**: lê `fechamentoEquipe()` (equipe.js), que lê `calc()` (render.js). Se faltar um número,
+  ele nasce em `fechamentoEquipe()`, nunca ali.
 - `js/ui.js` — **kit de componentes** (`UI.card/kpi/badge/tabela/...`). Telas pedem componentes, não escrevem HTML na mão.
 - `js/auth.js` — login + `sbGet(tabela, params, limit)` (wrapper do Supabase REST).
 - `js/shell.js` — navegação, contexto (loja+período), **permissões** (`papelAtual`, `podeVerValor`, `podeVerMargem`).

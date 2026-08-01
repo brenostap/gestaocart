@@ -244,7 +244,7 @@ function renderDashV2(){
   const metaDevBatida=metasDevList.filter(x=>m.unPrincipal>=x.qt).pop()||null;
   const metaAcBatida=metasAcList.filter(x=>m.vendaAcess>=x.val).pop()||null;
   const bonusMetaColetiva=(metaDevBatida?.bonus||0)+(metaAcBatida?.bonus||0);
-  const calcBonusMetaAt=b=>b>=10000?1000:b>=6000?300:b>=4000?100:0;
+  const calcBonusMetaAt=bonusMetaAtendente; // fonte unica em core.js
   let totalBonusMetaAt=0;
   AT_LABELS_ALL.forEach(([,k])=>{ totalBonusMetaAt+=calcBonusMetaAt(m.atMap[k]?.brutoAcess||0); });
   const totalBonusMetas=bonusMetaColetiva+totalBonusMetaAt;
@@ -335,7 +335,7 @@ function renderDashV2(){
     : `<div class="d2-grid-2">${gaugeDev}${gaugeAc||''}</div>`;
 
   // -- Ranking: Vendedores | Atendentes ------------------------------------
-  const calcCommVo=u=>u<=80?u*25:80*25+(u-80)*35;
+  const calcCommVo=comissaoVendedor; // fonte unica em core.js
   const vends=VO_LABELS_ALL.map(([n,k])=>{
     const u=m.voMap[k]?.units||0;
     return {nome:n, u, res:`${u} un`, com: verM?brl(calcCommVo(u)):'—'};
