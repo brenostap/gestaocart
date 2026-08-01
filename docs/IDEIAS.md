@@ -74,7 +74,42 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - ⚠️ O valor dos 5% depende do lucro de acessórios, que muda a cada resync fundo. Em jul/2026 o
     lançamento teve que ser corrigido de 1.287 para 1.305 depois do resync de 45 dias. **Fechar a
     folha só depois de rodar o resync fundo do mês.**
+- 🔨 ⭐ **Exportação do fechamento — documento de prova por colaborador** (decidido em 01/ago/2026,
+  a construir). Botão *Exportar fechamento* na aba Equipe, gerando um arquivo com **uma aba por
+  colaborador**. Serve pra resolver questionamento de comissão: abre a aba da pessoa e mostra venda
+  por venda.
+  - **Decisões fechadas com o dono:** recurso do painel, todo mês (não entrega única) · **arquivo é
+    só do dono**, não vai pra equipe, então pode mostrar custo/lucro/margem sem restrição ·
+    **uma linha por venda** (não por acessório — seriam ~700 linhas/mês) · cada aba leva resumo no
+    topo, metas com o quanto faltou, comparativo com o mês anterior, e a lista de vendas · mais uma
+    **aba geral** com todos lado a lado e ranking.
+  - Colunas: **vendedor** = id · data · cliente · unidades · comissão. **atendente** = id · data ·
+    cliente · bruto de acessórios · lucro · os 25%. A soma da coluna tem que bater com o resumo.
+  - ⚠️ **Regra inegociável: o arquivo não pode ter cálculo próprio.** Tem que sair do mesmo `calc()`
+    (render.js) e do mesmo `gerarResumoEquipe` (equipe.js) que a tela usa. Se divergirem, o
+    documento perde a serventia. Refatorar pra expor o número por venda é ok — duas fontes não.
+  - ⚠️ **O salário tem que vir dos lançamentos de Custos, não da constante `SALARIOS`.** A constante
+    tem o valor cheio; a folha real tem Vitinho R$2.750 (férias) e Gabi R$1.161 (proporcional). Se
+    o arquivo ler a constante, mostra R$2.250 pros dois e não bate com o que foi pago.
+  - ⚠️ Formato do arquivo em aberto — o app não tem build. Avaliar lib via CDN (o Supabase já vem
+    assim) ou outro caminho.
+  - 💡 **A aba geral é praticamente a tela de Fechamento**, que hoje é placeholder (`renderFechamento`
+    em shell.js diz "não foi construída"). Vale considerar fazer as duas de uma vez.
+  - **Teste de aceite — julho/2026** (já conferido, inclusive contra a lista manual da equipe):
+    Anne 6.643 · Leo 5.786 · Mel 5.125 · Maria 4.694 · Davi 4.615 · David 4.250 · Isa 3.650 ·
+    Vitinho 3.169 · Denilson 3.024 · Gabi 2.140 · **total 43.096**. Base: 355 aparelhos ·
+    R$38.345 de acessórios (bruto) · R$26.090 de lucro em acessórios · coletiva R$400/pessoa.
+    Unidades: Mel 115 · David 90 · Isa 70 · Maria 49. Bruto de acessórios: Leo 11.695 ·
+    Anne 10.125 · Davi 9.960 · Gabi 3.315 · Denilson 2.660 · Maria 410 · Vitinho 180.
 - 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
+
+- ✅ **Cruzamento com a lista manual da equipe (01/ago/2026).** A Anne mantém um resumo diário do
+  bruto de acessórios por atendente. Cruzado dia a dia contra o painel em jul/2026: lista R$37.560
+  vs painel R$38.345 (7 pessoas, a lista não inclui a Maria, que é SAC/online). **33 divergências
+  em ~125 células**, das quais 27 são de R$10 a R$150 (ruído de anotação manual). As grandes são
+  **atribuição de atendente, não valor** — ex.: a venda `40555563` (R$330, 06/07) está com o Davi
+  no sistema e a Anne anotou como dela. Nenhuma muda faixa de meta. **Combinar com a equipe que a
+  observação da venda no FoneNinja é a fonte oficial** — é ela que paga a comissão.
 
 ## Custo real do aparelho — assistência por IMEI  🔨 **trabalho de agosto/2026**
 
