@@ -118,12 +118,30 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
     (proporcional). Sem lançamento no período, cai na constante **e avisa** na aba Geral.
   - 💡 **A aba geral é praticamente a tela de Fechamento**, que hoje é placeholder (`renderFechamento`
     em shell.js diz "não foi construída"). `fechamentoEquipe()` já entrega tudo que ela precisa.
-  - **Teste de aceite — julho/2026** ✅ conferido contra o banco em 01/ago/2026 (bate nos 10):
+  - **Teste de aceite — julho/2026** ✅ conferido contra o banco em 01/ago/2026 (bate nos 10).
+    Estes são os valores **pela regra**; o pago em julho ficou **R$45.296** = 43.096 + R$1.500 de
+    hora extra + R$700 do ajuste de meta do Davi (ver "Extras nominais" abaixo):
     Anne 6.643 · Leo 5.786 · Mel 5.125 · Maria 4.694 · Davi 4.615 · David 4.250 · Isa 3.650 ·
     Vitinho 3.169 · Denilson 3.024 · Gabi 2.140 · **total 43.096**. Base: 355 aparelhos ·
     R$38.345 de acessórios (bruto) · R$26.090 de lucro em acessórios · coletiva R$400/pessoa.
     Unidades: Mel 115 · David 90 · Isa 70 · Maria 49. Bruto de acessórios: Leo 11.695 ·
     Anne 10.125 · Davi 9.960 · Gabi 3.315 · Denilson 2.660 · Maria 410 · Vitinho 180.
+- ✅ **Extras nominais na folha (01/ago/2026).** Lançamento em Custos na área `funcionario` com o
+  campo **`funcionario` preenchido e `fixo=false`** entra na folha como **linha própria com a
+  descrição** — hora extra, ajuste de meta, vale. Não incha o salário: o documento de prova precisa
+  dizer *por que* aquele valor existe. `remuneracaoFixa()` separa `fixo=true` (salário) de
+  `fixo=false` (extras). A coluna "Extras" na tabela só aparece nos meses que têm extra.
+  - **Hora extra: R$30/h, hora arredondada pra cima** (decidido em 01/ago/2026). Em jul/2026:
+    Anne 18h33→19h · Denilson 14h10→15h · Léo 11h55→12h · Gabi 2h50→3h · Davi 1h. **50h = R$1.500.**
+  - **Meta do Davi arredondada** em jul/2026: bruto R$9.960, faltaram R$40 para os R$10k. R$300 pela
+    regra + **R$700 de ajuste** = R$1.000. A linha de meta na planilha continua dizendo a verdade
+    ("faltaram R$40"); o ajuste aparece como **decisão**, não como regra.
+  - ⚠️ **Falta UI**: o modal de Custos não deixa escolher o `funcionario` (o `salvarCusto` grava
+    `funcionario: null`). Hoje esses lançamentos entram por SQL. Enquanto não tiver campo na tela,
+    todo extra novo precisa ser inserido no banco.
+  - 💡 **Não existe banco de horas no painel** — as horas cruas ficam só na `obs` do lançamento
+    ("18h33 → 19h × R$30/h"). Se virar rotina, vale uma tela pra registrar hora por pessoa/dia e o
+    valor sair sozinho.
 - 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
 
 - ✅ **Cruzamento com a lista manual da equipe (01/ago/2026).** A Anne mantém um resumo diário do
