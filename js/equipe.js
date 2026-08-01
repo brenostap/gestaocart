@@ -343,12 +343,14 @@ function fechamentoEquipeRef(anoMes){
   finally { currentPeriod = antes; }
 }
 
-function fechamentoMesAnterior(ref){
+// 'YYYY-MM' n meses antes de ref (n=0 devolve o proprio ref). Vira o ano sozinho.
+function fechamentoMesMenos(ref, n){
   if(!/^\d{4}-\d{2}$/.test(ref||'')) return null;
   const [y,m] = ref.split('-').map(Number);
-  const d = new Date(Date.UTC(y, m-2, 1));
+  const d = new Date(Date.UTC(y, m-1-(n||0), 1));
   return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
 }
+function fechamentoMesAnterior(ref){ return fechamentoMesMenos(ref, 1); }
 
 function renderEquipe(){
   const movsMap={};
@@ -638,9 +640,21 @@ function renderFuncCard(id, lAcessTotal){
   const f = FUNC.find(x => x.id === id);
   if(!f) return '';
   const cl = COLORS[FUNC.indexOf(f) % COLORS.length];
-  const meses = ['2026-01','2026-02','2026-03'];
-  const mesLabels = {'2026-01':'Jan','2026-02':'Fev','2026-03':'Mar'};
-  const mesesNomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesesCurtos = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // O card segue o PERIODO DA SIDEBAR, nao o mes de hoje. Antes o historico
+  // estava fixo em jan/fev/mar/2026 e os rotulos vinham de new Date() -- no dia
+  // 1o do mes o card dizia "Agosto" enquanto mostrava os numeros de julho.
+  // Filtro que nao e um mes (semana/hoje/custom/tudo) cai no mes corrente.
+  const refCard = _refAnoMes() ||
+    (new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0'));
+  const mesAtualStr = refCard;
+  // Historico: os 3 meses que terminam no periodo selecionado
+  const meses = [2,1,0].map(i => fechamentoMesMenos(refCard, i));
+  const mesLabels = {};
+  meses.forEach(mm => { mesLabels[mm] = mesesCurtos[Number(mm.slice(5,7))-1]; });
+  // Rotulo do periodo, igual ao da tabela de fechamento
+  const mesNomeSel = fechamentoMesLabel().replace(' de ', ' ');
 
   // -- Calcular dados por mes --------------------------------------------------
   function calcMes(mesStr){
@@ -703,7 +717,6 @@ function renderFuncCard(id, lAcessTotal){
 
   const dadosMeses = {};
   meses.forEach(m => dadosMeses[m] = calcMes(m));
-  const mesAtualStr = new Date().toISOString().slice(0,7);
   const dadosAtual = dadosMeses[mesAtualStr] || calcMes(mesAtualStr);
 
   // -- Mes atual: os numeros vem da folha (fechamentoEquipe), nao de conta local.
@@ -766,7 +779,6 @@ function renderFuncCard(id, lAcessTotal){
 
   // -- Bloco KPIs mes atual ----------------------------------------------------
   function kpisMesAtual(){
-    const mesLabel = mesesNomes[new Date().getMonth()];
 
     if(f.tipo==='online'){
       const u=mCalc.voMap[f.voKey||f.id]?.units||0;
@@ -895,7 +907,7 @@ function renderFuncCard(id, lAcessTotal){
     : `<button class="c-btn c-btn-sm" onclick="toggleEquipeEdit('${f.id}')">Editar</button>`;
 
   // -- Fechamento --------------------------------------------------------------
-  const mesNomeAtual = mesesNomes[new Date().getMonth()]+' '+new Date().getFullYear();
+  const mesNomeAtual = mesNomeSel; // periodo da sidebar, nao o mes de hoje
   const linhasFechamento = [
     sal>0 ? ['Salário fixo', brl(sal)] : null,
     commAtual>0 ? ['Comissão', brl(commAtual)] : null,
@@ -948,7 +960,7 @@ function renderFuncCard(id, lAcessTotal){
       <!-- KPIs MÊS ATUAL -->
       <div style="margin-bottom:20px">
         <div style="font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">
-          ${mesesNomes[new Date().getMonth()]} ${new Date().getFullYear()}
+          ${mesNomeSel}
         </div>
         ${kpisMesAtual()}
       </div>

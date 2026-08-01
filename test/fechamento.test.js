@@ -223,6 +223,24 @@ fech.pessoas.forEach(p => {
   ok(card.includes(brl(p.total)), `card individual de ${p.nome} mostra ${brl(p.total)}`);
 });
 
+// -- 9b. TUDO segue o filtro da sidebar, nunca o mes de hoje ---------------
+// Bug relatado em 01/ago/2026: no dia 1o do mes o card dizia "Agosto" enquanto
+// mostrava os numeros de julho, e o historico estava fixo em jan/fev/mar/2026.
+sec('a tela segue o período da sidebar, não o mês de hoje');
+const hojeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
+                 'Agosto','Setembro','Outubro','Novembro','Dezembro'][new Date().getMonth()];
+const semRotuloDeHoje = h => hojeMes === 'Julho' || !h.includes(hojeMes + ' ' + new Date().getFullYear());
+ok(tela.includes('Julho de 2026'), 'tabela de fechamento: "Julho de 2026"');
+fech.pessoas.slice(0,3).forEach(p => {
+  const card = html(`renderFuncCard(${JSON.stringify(p.id)}, ${fech.m.lAcess})`);
+  ok(card.includes('Julho 2026'), `card de ${p.nome}: cabeçalho e total dizem "Julho 2026"`);
+  ok(semRotuloDeHoje(card), `card de ${p.nome}: não vaza o mês de hoje (${hojeMes})`);
+  ok(card.includes('Mai') && card.includes('Jun') && card.includes('Jul'),
+     `card de ${p.nome}: histórico é mai/jun/jul (os 3 meses até o filtro)`);
+});
+ok(R('fechamentoMesMenos("2026-01", 2)') === '2025-11', 'fechamentoMesMenos vira o ano');
+ok(R('fechamentoMesMenos("2026-07", 0)') === '2026-07', 'n=0 devolve o próprio mês');
+
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');
 ok(html('renderDash()').length > 1000, 'renderDash()');

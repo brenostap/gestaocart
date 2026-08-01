@@ -1,0 +1,10 @@
+# Netlify — como os arquivos sao cacheados no navegador.
+# Os JS/CSS tem nome fixo (sem hash), entao forcamos revalidacao: o browser
+# guarda mas SEMPRE confere com o servidor (ETag) antes de reusar. Sem isso o
+# celular servia versao velha depois de um deploy (bug relatado jul/2026).
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
