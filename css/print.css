@@ -104,6 +104,19 @@
 
 /* -- Papel ---------------------------------------------------------------- */
 @media print{
+  /* O PAPEL É BRANCO. html e body têm `background:var(--bg)` (styles.css), que no
+     tema escuro é #0f1420 -- quase preto. O documento cobre a primeira página,
+     mas nas seguintes o fundo da página aparece por baixo: eram os blocos pretos
+     do PDF de 01/ago/2026. */
+  html, body{ background:#ffffff !important; background-image:none !important; }
+
+  /* O "fundo atmosférico" é um body::before position:fixed com dois
+     radial-gradients (styles.css). PSEUDO-ELEMENTO NÃO É FILHO: a regra de
+     esconder `body > *` abaixo não pega, e sendo fixed o Safari repinta em TODA
+     página -- era o círculo azul (rgba(91,139,245) = #5b8bf5) atravessando a
+     tabela. Fundo decorativo não vai para o papel. */
+  body::before, body::after{ display:none !important; content:none !important; }
+
   /* Só o documento vai pro papel */
   body > *:not(.fp-overlay){ display:none !important; }
   .fp-bar{ display:none !important; }

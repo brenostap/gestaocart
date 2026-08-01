@@ -247,6 +247,16 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 - ✅ Guard de colisão de nomes globais (`.git/hooks/pre-commit`).
 - ✅ `_headers` versionado (01/ago/2026) — força revalidação de `js/` e `css/`. Estava só no disco
   desde jul/2026, então nunca tinha sido publicado.
+- ⚠️ **PDF saía com blocos pretos e um círculo azul (01/ago/2026).** Duas coisas que o
+  `@media print` não pegava, e nenhuma era o documento em si:
+  - `html`/`body` têm `background:var(--bg)` (styles.css). No tema escuro isso é `#0f1420`; o
+    documento cobria a 1ª página e nas seguintes **o fundo da página aparecia por baixo**.
+  - `body::before` é um `position:fixed` com dois `radial-gradient` (o "fundo atmosférico").
+    **Pseudo-elemento não é filho**, então `body > *:not(.fp-overlay){display:none}` nunca pegou;
+    sendo `fixed`, o Safari repinta em **toda** página. O azul é o `rgba(91,139,245)` = `#5b8bf5`.
+  - Diagnóstico: o PDF gerado tinha **duas `/ShadingType 3` (radial) de raio 220pt** e nenhuma
+    imagem nem retângulo grande — foi isso que apontou o `body::before` em vez do documento.
+  - Correção: `@media print` força `html, body` brancos e mata `body::before/::after`.
 - ✅ ⭐ **O ícone na tela de início do iPhone serve versão velha** (resolvido em 01/ago/2026).
   O dono abre o painel por um ícone adicionado à tela de início; isso roda num **WebView standalone
   do iOS, com cache próprio, separado do Safari**, que na prática **ignora o `must-revalidate`** —

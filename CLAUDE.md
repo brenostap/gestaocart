@@ -7,11 +7,12 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - É um **site estático** (HTML + JS puro, sem build). Pra testar local: servir a pasta
   (`python3 -m http.server 8080`) e abrir no navegador — precisa **login Supabase** (é do dono).
 - Deploy: `main` publica (Netlify). Commit na `main` = vai ao ar.
-- ⚠️ **Mexeu em `js/` ou `css/`? Bumpe o `?v=` do `index.html`** (o mesmo valor em todas as
-  tags — costuma ser o hash do commit). O dono abre o painel por um **ícone na tela de início do
-  iPhone**, que roda num WebView com cache próprio e ignora o `must-revalidate`: sem o `?v=` novo
-  ele serve código velho calado. `js/versao.js` compara a versão rodando com a publicada e mostra
-  a faixa "Nova versão" — mas ela só funciona se o `?v=` mudar.
+- ⚠️ **Mexeu em `js/` ou `css/`? Rode `./scripts/bump-versao.sh` antes de commitar.** O dono abre
+  o painel por um **ícone na tela de início do iPhone**, que roda num WebView com cache próprio e
+  ignora o `must-revalidate`: sem URL nova ele serve código velho calado. `js/versao.js` compara a
+  versão rodando com a publicada e mostra a faixa "Nova versão" — mas só funciona se o `?v=` mudar.
+  - O script usa **carimbo de tempo, não o hash do commit**: o hash só existe depois do commit, e
+    rodar antes repete o valor anterior. Aconteceu em 01/ago/2026 — dois deploys com o mesmo `?v=`.
 - **Teste do fechamento** (sem browser, sem rede): `node test/fechamento.test.js`. Carrega os
   `js/*.js` reais com stubs e prova que tela e exportação saem do **mesmo** `fechamentoEquipe()`.
   Rodar depois de mexer em comissão, meta, folha ou `calc()`.

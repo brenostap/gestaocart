@@ -328,6 +328,15 @@ ok(!/-webkit-overflow-scrolling:\s*touch/.test(printSemComentario),
  ['content:none !important', 'rótulo ::before do modo celular some'],
 ].forEach(([t,msg]) => ok(foraDoPrint.includes(t), msg));
 
+// O FUNDO DA PÁGINA. Foi a causa real dos blocos pretos e do círculo azul:
+// html/body têm background:var(--bg) (#0f1420 no escuro) e o body::before é um
+// position:fixed com radial-gradients rgba(91,139,245) -- e pseudo-elemento NÃO
+// é filho, então `body > *{display:none}` nunca pegou ele.
+[['html, body{ background:#ffffff', 'página branca, seja qual for o tema'],
+ ['background-image:none !important', 'sem o gradiente de fundo do body'],
+ ['body::before, body::after{ display:none', 'fundo atmosférico fora do papel'],
+].forEach(([t,msg]) => ok(blocoPrint.includes(t), msg));
+
 // E no papel: quebra por pessoa, nada de camada composta
 [['break-after:page', 'quebra de página por pessoa'],
  ['position:static !important', 'overlay sai de position:fixed'],
@@ -335,6 +344,19 @@ ok(!/-webkit-overflow-scrolling:\s*touch/.test(printSemComentario),
  ['print-color-adjust:exact', 'fundos saem no papel'],
 ].forEach(([t,msg]) => ok(blocoPrint.includes(t), msg));
 ok(/@page\{[^}]*size:A4/.test(blocoPrint.replace(/\s/g,'')), 'papel A4 com margem');
+
+// Todo asset local do index.html tem que levar a MESMA versão: se um ficar pra
+// trás, aquele arquivo continua vindo do cache do iPhone, calado.
+sec('versão dos assets no index.html');
+const indexHtml = fs.readFileSync(path.join(ROOT,'index.html'),'utf8');
+const locais = [...indexHtml.matchAll(/(?:src|href)="((?:js|css)\/[^"]+)"/g)].map(m => m[1]);
+ok(locais.length > 10, `${locais.length} assets locais no index.html`);
+const semVersao = locais.filter(u => !/\?v=/.test(u));
+ok(semVersao.length === 0, 'todos com ?v=' + (semVersao.length ? ': faltam ' + semVersao.join(', ') : ''));
+const versoes = [...new Set(locais.map(u => u.split('?v=')[1]))];
+ok(versoes.length === 1, 'todos na MESMA versão (' + versoes.join(' / ') + ')');
+ok(indexHtml.includes('js/versao.js?v='), 'js/versao.js carregado (é quem mostra a faixa)');
+ok(!/cdn\.[^"]*\?v=/.test(indexHtml), 'nada de ?v= nas CDNs');
 
 // -- 9f. conciliacao Custos x folha ----------------------------------------
 // Os dois lados tem que dizer o mesmo numero, tirando a comissao (que de
