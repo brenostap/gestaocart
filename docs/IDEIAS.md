@@ -76,6 +76,45 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
     folha só depois de rodar o resync fundo do mês.**
 - 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
 
+## Custo real do aparelho — assistência por IMEI  🔨 **trabalho de agosto/2026**
+
+**O problema:** o conserto do aparelho é lançado na conta da assistência (despesa operacional) e
+nunca chega no custo da peça. Resultado: aparelho de troca aparece com custo de R$130 e margem de
+85%, e o lucro por aparelho é ficção. Em julho foram **R$24.055** de assistência assim.
+
+**Viabilidade já medida (01/ago/2026):** os fechamentos da LegacyPhone (RR) trazem **IMEI por
+aparelho**. Os 4 PDFs de julho foram parseados com `pypdf` e o total bateu **exato** com os
+R$20.225 lançados — 101 serviços, 97 aparelhos. Cruzando com o banco:
+
+| | aparelhos | valor |
+|---|---|---|
+| casou com uma venda | 80 | R$ 15.425 |
+| está no estoque hoje | 9 | R$ 3.120 |
+| IMEI inválido no PDF | 2 | R$ 450 |
+| não encontrado | 6 | R$ 1.230 |
+
+**92% do valor é rastreável até o aparelho.** Nos 80 vendidos: custo hoje R$128.365 · preço
+R$189.829 · margem aparente R$61.464 → margem real **R$46.039**. **25% do "lucro" desses aparelhos
+é serviço que não está no custo deles.**
+
+**As 4 partes:**
+1. Tabela `manutencoes` (imei · data · fornecedor · serviços · valor · fechamento) + importador do
+   PDF da LegacyPhone. Parser já validado.
+2. Vínculo por IMEI com `venda_produtos` (vendido) e `estoque` (parado).
+3. Uso: custo real = compra + manutenções; ficha da venda, lucro real e **ranking de modelos que
+   mais consomem assistência** (é isso que muda decisão de compra).
+4. Contabilidade: manutenção vinculada **sai** da despesa operacional e vira custo de produto —
+   senão o mês é debitado duas vezes.
+
+⚠️ **Não reduz o custo total da loja**, move ~R$20k/mês de despesa operacional para custo de
+produto. O ganho real é enxergar a margem por aparelho e por modelo. **Mas tem um efeito legítimo
+a favor:** os R$3.120 dos 9 aparelhos ainda em estoque **não são despesa de julho** — são estoque,
+e só viram custo quando venderem. Hoje pesam inteiros no resultado do mês.
+
+⚠️ **Access fica de fora da v1**: as notas vêm como texto de WhatsApp com só os 4 últimos dígitos
+(`"13 promax azul face id 0315"`). Casar por *últimos 4 + modelo* é arriscado. **Pedir o IMEI
+completo pra eles** — aí vira igual à RR. São R$3.830/mês.
+
 ## Dashboard
 - ✅ **Modelos mais vendidos (30/jul/2026)**: card no `renderDashV2` (dash-v2.js) — ranking por modelo+GB+cor, filtro Seminovo/Lacrado/Todos, ordena por Volume/Lucro, usa período+loja do contexto e respeita `money()`/permissões. Selo só no Lacrado (sem selo = seminovo). Parsa o `titulo` do FoneNinja (~98,5% identificável). CSS `.d2-mod-*` em dash-v2.css.
 - 💡 Quando `venda_trocas` encher: quadro de trocas (o que mais entra de upgrade, valor médio) e cruzar com o modelo vendido. **(31/jul: já encheu — 1.010 vendas cobertas, julho 100%.)**
@@ -84,7 +123,14 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 🔨 ⭐ **Trocar o lucro do painel para a fórmula A.** Hoje 7 pontos do código somam `v.lucro` (campo da FoneNinja): `render.js` 7/403/433/574, `custos.js` 337/338, `dash-v2.js` 380. Esse campo **erra em ~1 de cada 5 vendas** — em jul/2026 mostrava R$228.933 contra R$238.826 reais (R$9.893 a menos). **Fórmula A (adotada):** `(preço − custo dos itens não-cancelados) + taxa_extra`. Ver [[como-calcular-lucro-de-venda]] na memória para as regras completas (item cancelado, troca, taxa de maquininha é GANHO e não custo).
   - ⚠️ Mudança que toca todas as telas de uma vez — conferir um mês inteiro lado a lado antes de trocar de vez.
 - 💡 **Fórmula B — pelo caixa: `(líquido + troca) − custo`.** Conceitualmente melhor (o preço é referência, o que entra é fato) e bate mais com a FoneNinja (305 de 337 vendas, contra 262 da A). Em jul/2026 dava R$242.917, R$4.092 acima da A. **Por que ficou de fora:** as duas só divergem quando `líquido + troca ≠ valor_total + taxa_extra`, ou seja, quando o registro da venda está inconsistente — e aí a A é mais conservadora por usar só dados internos da própria venda. **NÃO é por causa do `upgrade_valor`**: ele foi validado em 31/jul e está correto (bate com `venda_trocas` em 984 de 1.010 vendas; em julho, 100% das completadas). Revisitar quando as vendas anômalas estiverem limpas.
-- 💡 **Anomalias de julho/2026 pendentes de análise** (lista de 31/jul — ⚠️ **revisar**: o resync de 45 dias de 01/ago corrigiu pelo menos a `40573149`, que foi de 197% para 102% do valor recebido. As outras 10 podem ter se resolvido junto): recebimento fora do padrão (`40573149` recebeu 197% do valor da venda, `40570274` só 77%), prejuízo (`40551264`, `40564245`, `40587358`), margem ~0 em venda grande (`40584017` R$5.150 → R$31, `40574479` R$4.540 → R$78), margem acima do p99 (`40570372`, `40585200`, `40568109`, `40565662`). Régua: margem normal de venda com aparelho é p25=12% · mediana=18% · p75=27% · p95=56%.
+- ✅ **Anomalias de julho revisadas (01/ago/2026).** A lista original de 11 vendas era em boa parte
+  falso positivo. Depois do resync de 45 dias: a `40573149` normalizou (197% → 102% do recebido) e a
+  `40584017` foi de R$31 pra R$321 de lucro. O grupo "margem acima do p99" **não era anomalia de
+  venda**: são aparelhos de troca cujo custo de estoque está subvalorizado porque o conserto foi
+  lançado na conta da assistência, não no aparelho (iPhone 11 a R$130 de custo que teve R$75 de
+  serviço). Isso é o que a seção *Custo real do aparelho* resolve. Sobrou de real: **3 vendas com
+  margem < 3% acima de R$2.000** (R$21.460) e **62 vendas sem recebimento gravado** (R$285.695,
+  pagamento não sincronizado). Nenhuma venda recebendo menos de 85% do valor.
 - ✅ **Parser de observação comia o vendedor — corrigido (31/jul/2026).** `"Atendente Gabi vendedor David venda cart"` virava `vendedor="cart"`: o trecho "venda cart" contém `vend`, caía no ramo do vendedor e sobrescrevia o nome já encontrado quando a linha da loja vinha DEPOIS. Como "cart" está em `SOCIOS_LOJA`, virava ninguém e o vendedor perdia a comissão **em silêncio**. Correção: `NOME_E_LOJA` (`cart/urban/loja/online`) barra esses tokens como nome, no vendedor e no atendente (`parseObs`, equipe.js). Testado em 6 formatos reais de observação. Em julho valia 1 venda (`40585050`, R$2.880 → +1 un e +R$35 pro David).
 
 ## Sync / Dados (repo phonecar-sync)
