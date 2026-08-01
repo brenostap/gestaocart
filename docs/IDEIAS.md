@@ -245,3 +245,21 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 ## Geral / Infra
 - ✅ CLAUDE.md (manual do projeto).
 - ✅ Guard de colisão de nomes globais (`.git/hooks/pre-commit`).
+- ✅ `_headers` versionado (01/ago/2026) — força revalidação de `js/` e `css/`. Estava só no disco
+  desde jul/2026, então nunca tinha sido publicado.
+- 🔨 ⭐ **O ícone na tela de início do iPhone serve versão velha** (confirmado em 01/ago/2026).
+  O dono abre o painel por um ícone adicionado à tela de início; isso roda num **WebView standalone
+  do iOS, com cache próprio, separado do Safari**, que na prática **ignora o `must-revalidate`** —
+  inclusive para o próprio `index.html`. Conferido: servidor manda `max-age=0, must-revalidate` com
+  ETag em `/`, `/index.html`, `/js/*` e `/css/*`, e o código novo estava publicado; **no Safari
+  privado funcionava e pelo ícone não**. Contorno de hoje: remover o ícone e adicionar de novo.
+  - ⚠️ **Não é só chatice — é risco de número errado.** Fechar a folha olhando uma versão velha do
+    painel é decisão financeira em cima de dado velho. Já aconteceu duas vezes na mesma tarde.
+  - **Correção proposta (a fazer):** `?v=<versão>` em todo `<script>`/`<link>` do `index.html`
+    (fonte única da versão) + uma checagem no boot que busca o `index.html` com `cache:'no-store'`,
+    compara a versão com a que está rodando e, se diferir, mostra uma faixa
+    *"Nova versão — toque para atualizar"* que recarrega com URL nova (`?r=<timestamp>`), que é o
+    que o WebView não consegue servir do cache. Sem build: o `?v=` é bumpado no mesmo commit.
+  - 💡 Alternativa mais automática: `netlify.toml` com um comando que carimba `$COMMIT_REF` no
+    `index.html`. Não fiz porque o site hoje **não tem build command** e eu não consigo ler o
+    publish dir pela API — mexer nisso às cegas pode derrubar o deploy.
