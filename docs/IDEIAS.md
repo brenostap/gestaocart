@@ -142,6 +142,18 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - 💡 **Não existe banco de horas no painel** — as horas cruas ficam só na `obs` do lançamento
     ("18h33 → 19h × R$30/h"). Se virar rotina, vale uma tela pra registrar hora por pessoa/dia e o
     valor sair sozinho.
+- ✅ **Versão PDF do fechamento (01/ago/2026).** Botão *📄 PDF* na aba Equipe (documento inteiro) e
+  no card de cada pessoa (só a folha dela). Uma **folha por colaborador**. Mostra tudo — custo,
+  lucro e margem — porque o destino são os sócios (Marcella e Gustavo), o mesmo nível da planilha.
+  - **Sem biblioteca nova**: monta o HTML com os componentes normais (`UI.*`) e usa o `window.print()`
+    do navegador → "Salvar em PDF" (no iPhone sai pelo share sheet). As regras de papel vivem em
+    `css/print.css`.
+  - **xlsx e PDF são documentos diferentes, não dois formatos do mesmo.** O xlsx é o instrumento de
+    conferência do dono (ordena, filtra, soma); o PDF é o que se entrega. E o PDF individual **não
+    leva a folha dos outros** — a planilha inteira vai junto, então mostrar a aba de um expõe todos.
+  - ⚠️ `components.css` empilha `.c-tabela` em cartões abaixo de 720px. Imprimindo do celular isso
+    valeria **no papel** e 250 linhas de venda virariam 250 cartões. `print.css` desfaz o
+    empilhamento; há teste travando isso.
 - 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
 
 - ✅ **Cruzamento com a lista manual da equipe (01/ago/2026).** A Anne mantém um resumo diário do

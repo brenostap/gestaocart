@@ -268,6 +268,48 @@ const cardX = html('renderFuncCard("davi", 0)');
 ok(cardX.includes('Ajuste meta individual'), 'card de Davi mostra a descrição do extra');
 ok(cardX.includes(brl(daviX.total)), 'card de Davi bate com a folha');
 
+// -- 9d. PDF: mesmo numero, uma folha por pessoa ---------------------------
+sec('PDF sai da mesma folha e quebra uma página por pessoa');
+R('fechamentoPDF()');
+const pdf = String(capturado.html);
+ok(pdf.includes('fp-pagina'), 'documento montado com páginas');
+const nPag = (pdf.match(/class="fp-pagina"/g) || []).length;
+ok(nPag === fech.pessoas.length + 1,
+   `${nPag} páginas = ${fech.pessoas.length} pessoas + 1 geral`);
+fech.pessoas.forEach(p => ok(pdf.includes(brl(p.total)),
+  `PDF mostra ${p.nome} ${brl(p.total)} (= folha)`));
+ok(pdf.includes(brl(fech.totais.folha)), `PDF mostra a folha ${brl(fech.totais.folha)}`);
+ok(pdf.includes('Julho de 2026'), 'PDF usa o período selecionado');
+ok(pdf.includes('Ajuste meta individual'), 'PDF mostra a descrição do extra');
+ok(pdf.includes('faltaram R$40 para R$10.000'),
+   'PDF diz a verdade sobre a meta do Davi mesmo com o ajuste');
+ok(!/style="[^"]*#[0-9a-fA-F]{3,6}/.test(pdf), 'nenhuma cor literal no HTML do documento');
+
+R('fechamentoPDF("davi")');
+const pdfDavi = String(capturado.html);
+const nPagDavi = (pdfDavi.match(/class="fp-pagina"/g) || []).length;
+ok(nPagDavi === 1, 'PDF individual tem 1 página só');
+ok(pdfDavi.includes(brl(daviX.total)), `PDF individual mostra ${brl(daviX.total)}`);
+ok(!pdfDavi.includes('Folha — todos lado a lado'),
+   'PDF individual não leva a aba geral (não vaza o dado dos outros)');
+fech.pessoas.filter(p => p.id !== 'davi').forEach(p =>
+  ok(!pdfDavi.includes('>' + p.nome + '<'), `PDF do Davi não cita ${p.nome}`));
+
+// -- 9e. print.css desfaz o empilhamento de tabela do celular --------------
+// components.css empilha .c-tabela em cartoes abaixo de 720px. Imprimindo do
+// iPhone isso valeria no papel e 250 linhas de venda virariam 250 cartoes.
+sec('print.css devolve a tabela no papel');
+const printCss = fs.readFileSync(path.join(ROOT,'css','print.css'),'utf8');
+const blocoPrint = printCss.slice(printCss.indexOf('@media print'));
+[['.c-tabela{ display:table','tabela volta a ser table'],
+ ['.c-tabela td{','td volta a ser table-cell'],
+ ['display:table-cell','display:table-cell presente'],
+ ['.c-tabela thead{ display:table-header-group','cabeçalho repete em cada folha'],
+ ["content:none !important",'rótulo ::before do modo celular some'],
+ ['break-after:page','quebra de página por pessoa'],
+].forEach(([t,msg]) => ok(blocoPrint.includes(t), msg));
+ok(/@page\{[^}]*size:A4/.test(blocoPrint.replace(/\s/g,'')), 'papel A4 com margem');
+
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');
 ok(html('renderDash()').length > 1000, 'renderDash()');

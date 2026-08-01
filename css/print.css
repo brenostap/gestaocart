@@ -1,0 +1,114 @@
+/* ============================================================================
+   PRINT — documento de fechamento (preview na tela + PDF na impressao)
+   O conteudo e montado por js/fechamento.js e usa os componentes normais
+   (UI.card/tabela/kv). Aqui so mora o que e especifico do MEIO: quebra de
+   pagina, cabecalho repetido e o tema claro forcado no papel.
+   ========================================================================= */
+
+/* -- Preview na tela ------------------------------------------------------ */
+.fp-overlay{
+  position:fixed; inset:0; z-index:9998;
+  background:var(--bg); overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.fp-bar{
+  position:sticky; top:0; z-index:2;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:10px 14px;
+  background:var(--bg2); border-bottom:1px solid var(--border);
+}
+.fp-bar-tit{ font-size:var(--fs-caption); color:var(--text3); min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fp-bar-acoes{ display:flex; gap:8px; flex:none; }
+.fp-doc{ max-width:920px; margin:0 auto; padding:18px 14px 64px; }
+
+/* -- Uma "pagina" por pessoa ---------------------------------------------- */
+.fp-pagina + .fp-pagina{ margin-top:26px; padding-top:26px; border-top:1px dashed var(--border2); }
+
+.fp-cab{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; margin-bottom:12px;
+}
+.fp-cab-nome{ font-size:var(--fs-title); line-height:var(--lh-title); font-weight:800; color:var(--text); }
+.fp-cab-sub{ font-size:var(--fs-caption); color:var(--text3); }
+.fp-cab-mes{ font-size:var(--fs-caption); color:var(--text3); text-align:right; }
+
+/* Total a receber — o numero que a pessoa procura primeiro */
+.fp-total{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding:12px 16px; margin:12px 0;
+  background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius-sm);
+}
+.fp-total-rot{ font-size:var(--fs-caption); font-weight:700; color:var(--text3);
+  text-transform:uppercase; letter-spacing:.08em; }
+.fp-total-val{ font-family:var(--font-mono); font-size:var(--fs-title);
+  font-weight:700; color:var(--cart); font-variant-numeric:tabular-nums; }
+
+.fp-sec{ margin-top:16px; }
+.fp-sec-tit{
+  font-size:var(--fs-caption); font-weight:700; color:var(--text4);
+  text-transform:uppercase; letter-spacing:.08em;
+  padding-bottom:5px; margin-bottom:8px; border-bottom:1px solid var(--border);
+}
+.fp-nota{ font-size:var(--fs-caption); color:var(--text4); margin-top:6px; }
+.fp-rodape{
+  margin-top:14px; padding-top:8px; border-top:1px solid var(--border);
+  font-size:var(--fs-caption); color:var(--text4);
+}
+
+/* -- Papel ---------------------------------------------------------------- */
+@media print{
+  /* Só o documento vai pro papel */
+  body > *:not(.fp-overlay){ display:none !important; }
+  .fp-overlay{ position:static; overflow:visible; }
+  .fp-bar{ display:none !important; }
+  .fp-doc{ max-width:none; padding:0; }
+
+  /* Tema CLARO no papel, seja qual for o tema da tela. Sao os mesmos valores
+     do :root (theme.css) reaplicados no container -- nenhuma cor literal
+     nova, e os componentes continuam lendo var(--…) normalmente. */
+  .fp-overlay{
+    --bg:#ffffff; --bg2:#ffffff; --bg3:#f6f9fc; --bg4:#eef2f7;
+    --card:#ffffff; --glass:#ffffff;
+    --border:#e2e6ec; --border2:#d5dbe4; --border3:#c1c9d2;
+    --ink:#1a1f36; --text:#1a1f36; --text2:#424770;
+    --text3:#5b6475; --text-secondary:#5b6475; --text4:#9aa3b2; --text-muted:#9aa3b2;
+    --cart:#3b6fd6; --cart2:#2b57ad; --cart-blue:#3b6fd6;
+    --urban:#F39200; --urban2:#c47600;
+    --success:#0a7c3e; --warning:#b54708; --danger:#b42318; --process:#5b53e8;
+    --green:#0a7c3e; --green2:#0d9647; --red:#b42318;
+    --yellow:#b54708; --purple:#5b53e8; --blue:#3b6fd6;
+    --shadow-sm:none; --shadow-md:none; --shadow-lg:none; --shadow-xl:none;
+    background:#fff; color:#1a1f36;
+  }
+
+  /* Uma pessoa por folha */
+  .fp-pagina{ break-after:page; page-break-after:always; }
+  .fp-pagina:last-child{ break-after:auto; page-break-after:auto; }
+  .fp-pagina + .fp-pagina{ margin-top:0; padding-top:0; border-top:0; }
+
+  /* No celular o design system EMPILHA a tabela em cartoes
+     (components.css, @media max-width:720px). No papel isso nao pode
+     acontecer -- imprimindo do iPhone, 250 linhas de venda viravam 250
+     cartoes. Aqui a tabela volta a ser tabela, seja qual for a largura da
+     tela de onde a impressao saiu. print.css carrega depois de
+     components.css, entao estas regras vencem. */
+  .c-tabela{ display:table; width:100%; }
+  .c-tabela tbody{ display:table-row-group; }
+  .c-tabela tr{ display:table-row; }
+  .c-tabela td{
+    display:table-cell; width:auto;
+    padding:5px 8px; border:0; border-bottom:1px solid var(--border);
+  }
+  .c-tabela td::before{ content:none !important; }
+  .c-tabela tbody tr{ margin:0; padding:0; border:0; border-radius:0; background:none; }
+  .c-tabela tbody tr td:first-child{ font-weight:400; }
+
+  /* A tabela de vendas pode passar de uma folha: o cabecalho repete e a
+     linha nao parte no meio. */
+  .c-tabela-wrap{ overflow:visible !important; }
+  .c-tabela thead{ display:table-header-group; }
+  .c-tabela tr, .fp-total, .fp-cab{ break-inside:avoid; page-break-inside:avoid; }
+  .fp-sec-tit{ break-after:avoid; page-break-after:avoid; }
+
+  @page{ size:A4; margin:12mm; }
+}

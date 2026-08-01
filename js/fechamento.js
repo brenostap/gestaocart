@@ -298,6 +298,277 @@ function fechConferir(fech){
   return erros;
 }
 
+// ===========================================================================
+// VERSAO PDF — o documento que o dono compartilha com os socios
+//
+// Mesma fonte (fechamentoEquipe()), meio diferente: o xlsx e instrumento de
+// conferencia (ordena, filtra, soma); o PDF e o documento que se manda pra
+// alguem. Uma folha por pessoa.
+//
+// Sem biblioteca: monta o HTML com os componentes normais (UI.*) e usa o
+// window.print() do navegador -> "Salvar em PDF". No iPhone sai pelo share
+// sheet. As regras de quebra de pagina e o tema claro no papel vivem em
+// css/print.css -- aqui nao se escreve estilo na mao.
+//
+// Vai para socios (Marcella e Gustavo), entao mostra custo, lucro e margem
+// igual a planilha.
+// ===========================================================================
+
+function fechSecao(titulo, corpo){
+  return `<div class="fp-sec"><div class="fp-sec-tit">${titulo}</div>${corpo}</div>`;
+}
+
+// Resumo do pagamento: as mesmas linhas do resumo da aba da planilha.
+function fechLinhasPagamento(p, fech){
+  const L = [];
+  if(p.sal > 0) L.push(['Salário', p.sal,
+    p.salOrigem === 'custos' ? p.salDesc : '⚠ sem lançamento em Custos — valor da tabela']);
+  p.extras.forEach(e => L.push([e.desc, e.valor, e.obs || 'lançamento em Custos']));
+  if(p.commVo > 0) L.push(['Comissão de vendedor', p.commVo,
+    p.units + ' aparelhos · ' + brl(VO_CURVA.base) + '/un até ' + VO_CURVA.corte
+    + ' un, ' + brl(VO_CURVA.bonus) + '/un acima']);
+  if(p.commAt > 0) L.push(['Comissão de atendente', p.commAt,
+    '25% do lucro dos acessórios que atendeu']);
+  if(p.bonus5 > 0) L.push(['Bônus 5% acessórios', p.bonus5,
+    '5% do lucro de acessórios da loja (' + brl(fech.base.acessLucro) + ')']);
+  if(p.bonusMeta > 0) L.push(['Bônus meta individual', p.bonusMeta,
+    'bruto ' + brl(p.brutoAcess) + ' → faixa ' + brl(p.meta.faixa)]);
+  if(p.bonusCol > 0) L.push(['Bônus meta coletiva', p.bonusCol,
+    'metas da loja no mês, pago cheio para cada pessoa']);
+  return L;
+}
+
+function fechPaginaPessoa(p, fech, ant){
+  const a = ant ? (ant.pessoas.find(x => x.id === p.id) || null) : null;
+
+  const pagamento = UI.tabela({
+    colunas: [{titulo:'Item'}, {titulo:'Valor', num:true, largura:'110px'}, {titulo:'De onde vem'}],
+    linhas: fechLinhasPagamento(p, fech).map(([rot, val, de]) =>
+      [rot, {v: money(val), num:true}, {v:`<span class="fp-nota">${UI.esc(de)}</span>`}]),
+  });
+
+  const metas = [];
+  if(p.ehAtendente) metas.push(['Individual — bruto de acessórios', money(p.brutoAcess),
+    fechTextoMetaIndividual(p.meta)]);
+  if(p.ehVendedor) metas.push(['Curva de comissão — aparelhos', p.units,
+    p.units > VO_CURVA.corte
+      ? 'passou de ' + VO_CURVA.corte + ' un → ' + brl(VO_CURVA.bonus) + '/un nas '
+        + (p.units - VO_CURVA.corte) + ' seguintes'
+      : 'faltaram ' + Math.max(0, VO_CURVA.corte + 1 - p.units) + ' aparelhos para '
+        + brl(VO_CURVA.bonus) + '/un']);
+  metas.push(['Coletiva — aparelhos da loja', fech.base.aparelhos, fechTextoMetaColetivaDev(fech)]);
+  metas.push(['Coletiva — acessórios da loja', money(fech.base.acessBruto), fechTextoMetaColetivaAcess(fech)]);
+
+  const tabelaMetas = UI.tabela({
+    colunas: [{titulo:'Meta'}, {titulo:'Onde chegou', num:true, largura:'110px'}, {titulo:'Situação'}],
+    linhas: metas.map(([rot, val, sit]) =>
+      [rot, {v: val, num:true}, {v:`<span class="fp-nota">${UI.esc(sit)}</span>`}]),
+  });
+
+  // Comparativo com o mes anterior
+  let comparativo = '';
+  if(ant){
+    const linhas = [];
+    const cmp = (rot, va, vc, moeda) => {
+      const d = vc - va;
+      const f = moeda ? money : (x => String(x));
+      linhas.push([rot, {v:f(va), num:true}, {v:f(vc), num:true},
+        {v:`<span class="${d>0?'ok':d<0?'critico':''}">${d>0?'+':''}${f(d)}</span>`, num:true}]);
+    };
+    if(p.ehVendedor)  cmp('Aparelhos vendidos', a?a.units:0, p.units, false);
+    if(p.ehAtendente) cmp('Bruto de acessórios', a?a.brutoAcess:0, p.brutoAcess, true);
+    if(p.ehAtendente) cmp('Lucro de acessórios', a?a.la:0, p.la, true);
+    cmp('Comissão', a?a.comm:0, p.comm, true);
+    cmp('Total recebido', a?a.total:0, p.total, true);
+    comparativo = fechSecao('Comparação com ' + ant.mesLabel, UI.tabela({
+      colunas: [{titulo:''}, {titulo:ant.mesLabel, num:true}, {titulo:fech.mesLabel, num:true},
+                {titulo:'Diferença', num:true}],
+      linhas,
+    }) + (a ? '' : `<div class="fp-nota">Não estava na folha em ${ant.mesLabel}.</div>`));
+  }
+
+  // Vendas
+  let vendas = '';
+  if(p.ehVendedor){
+    vendas += fechSecao(
+      `Vendas como vendedor — ${p.linhasVo.length} pedidos · ${p.units} aparelhos`,
+      UI.tabela({
+        colunas: [{titulo:'Venda'}, {titulo:'Data'}, {titulo:'Cliente'},
+                  {titulo:'Aparelhos', num:true}, {titulo:'R$/un', num:true}, {titulo:'Comissão', num:true}],
+        linhas: p.linhasVo.map(l => [
+          {v:l.id, classe:'mono'}, fechData(l.data), UI.esc(l.cliente || '—'),
+          {v:l.units, num:true}, {v:money(l.taxa), num:true},
+          {v:`<b>${money(l.comissao)}</b>`, num:true},
+        ]).concat([[{v:'<b>TOTAL</b>'}, '', '', {v:`<b>${p.units}</b>`, num:true}, '',
+                    {v:`<b>${money(p.commVo)}</b>`, num:true}]]),
+      })
+      + `<div class="fp-nota">A comissão da venda é o quanto ela acrescentou no acumulado do mês:
+         as ${VO_CURVA.corte} primeiras unidades valem ${brl(VO_CURVA.base)} e as seguintes
+         ${brl(VO_CURVA.bonus)}.</div>`);
+  }
+  if(p.ehAtendente){
+    vendas += fechSecao(
+      `Vendas como atendente — ${p.linhasAt.length} vendas · ${p.qtAcess} acessórios`,
+      UI.tabela({
+        colunas: [{titulo:'Venda'}, {titulo:'Data'}, {titulo:'Cliente'}, {titulo:'Itens', num:true},
+                  {titulo:'Bruto', num:true}, {titulo:'Lucro', num:true}, {titulo:'Comissão', num:true}],
+        linhas: p.linhasAt.map(l => [
+          {v: l.ajuste ? 'ajuste' : l.id, classe:'mono'},
+          l.ajuste ? '—' : fechData(l.data),
+          UI.esc(l.ajuste ? ('ajuste manual: ' + (l.desc||'')) : (l.cliente || '—')),
+          {v:l.qt, num:true}, {v:money(l.bruto), num:true}, {v:money(l.lucro), num:true},
+          {v:`<b>${money(l.comissao)}</b>`, num:true},
+        ]).concat([[{v:'<b>TOTAL</b>'}, '', '', {v:`<b>${p.qtAcess}</b>`, num:true},
+                    {v:`<b>${money(p.brutoAcess)}</b>`, num:true},
+                    {v:`<b>${money(p.la)}</b>`, num:true},
+                    {v:`<b>${money(p.commAt)}</b>`, num:true}]]),
+      })
+      + `<div class="fp-nota">Uma linha por venda (não por acessório). A comissão da linha é 25%
+         do lucro, arredondada ao real de forma que a coluna feche exatamente com o resumo.</div>`);
+  }
+
+  return `<div class="fp-pagina">
+    <div class="fp-cab">
+      <div>
+        <div class="fp-cab-nome">${UI.esc(p.nome)}</div>
+        <div class="fp-cab-sub">${UI.esc(p.nomeCompleto || '')}${p.cargo ? ' · '+UI.esc(p.cargo) : ''}</div>
+      </div>
+      <div class="fp-cab-mes">Fechamento<br><b>${fech.mesLabel}</b></div>
+    </div>
+    <div class="fp-total">
+      <span class="fp-total-rot">Total a receber</span>
+      <span class="fp-total-val">${money(p.total)}</span>
+    </div>
+    ${fechSecao('O que entra no pagamento', pagamento)}
+    ${fechSecao('Metas — onde chegou e quanto faltou', tabelaMetas)}
+    ${comparativo}
+    ${vendas}
+    <div class="fp-rodape">
+      Gerado em ${fechDataHora(fech.geradoEm)} ·
+      loja: ${fech.loja === 'ambas' ? 'Cart + Urban' : UI.esc(fech.loja)} ·
+      fonte: painel Phone Cart
+    </div>
+  </div>`;
+}
+
+function fechPaginaGeral(fech, ant){
+  const t = fech.totais;
+  const temExtras = fech.pessoas.some(p => p.extrasTot !== 0);
+  const ranking = fech.pessoas.slice().sort((a,b) => b.total - a.total);
+
+  const colunas = [{titulo:'#', num:true}, {titulo:'Pessoa'}, {titulo:'Aparelhos', num:true},
+    {titulo:'Bruto acess.', num:true}, {titulo:'Salário', num:true}]
+    .concat(temExtras ? [{titulo:'Extras', num:true}] : [])
+    .concat([{titulo:'Comissão', num:true}, {titulo:'Bônus', num:true}, {titulo:'Total', num:true}]);
+
+  const linhas = ranking.map((p,i) => [
+    {v:i+1, num:true}, UI.esc(p.nome), {v:p.units||'—', num:true},
+    {v:p.brutoAcess ? money(p.brutoAcess) : '—', num:true},
+    {v:money(p.sal), num:true},
+  ].concat(temExtras ? [{v:p.extrasTot ? money(p.extrasTot) : '—', num:true}] : [])
+   .concat([
+    {v:p.comm ? money(p.comm) : '—', num:true},
+    {v:money(p.bonus5 + p.bonusMeta + p.bonusCol), num:true},
+    {v:`<b>${money(p.total)}</b>`, num:true},
+  ]));
+
+  linhas.push(['', {v:'<b>TOTAL</b>'},
+    {v:`<b>${ranking.reduce((a,p)=>a+p.units,0)}</b>`, num:true},
+    {v:`<b>${money(ranking.reduce((a,p)=>a+p.brutoAcess,0))}</b>`, num:true},
+    {v:`<b>${money(t.sal)}</b>`, num:true}]
+    .concat(temExtras ? [{v:`<b>${money(t.extras)}</b>`, num:true}] : [])
+    .concat([
+      {v:`<b>${money(t.comm)}</b>`, num:true},
+      {v:`<b>${money(t.bonus5 + t.bonusMeta + t.bonusCol)}</b>`, num:true},
+      {v:`<b>${money(t.folha)}</b>`, num:true},
+    ]));
+
+  const base = UI.kpis([
+    {rotulo:'Aparelhos vendidos', valor:fech.base.aparelhos, sub:fechTextoMetaColetivaDev(fech)},
+    {rotulo:'Acessórios (bruto)', valor:money(fech.base.acessBruto), sub:fechTextoMetaColetivaAcess(fech)},
+    {rotulo:'Folha completa', valor:money(t.folha), tom:'marca',
+     sub:`${fech.pessoas.length} pessoas · bônus coletivo ${brl(fech.bonusCol)} cada`},
+    {rotulo:'Resultado após folha e custos', valor:money(t.liquido),
+     tom: t.liquido > 0 ? 'ok' : 'critico',
+     sub:`lucro ${brl(fech.base.lucro)} − folha − ${brl(t.custosForaFolha)} de outros custos`},
+  ]);
+
+  let comparativo = '';
+  if(ant){
+    comparativo = fechSecao('Comparação com ' + ant.mesLabel, UI.tabela({
+      colunas:[{titulo:''}, {titulo:ant.mesLabel, num:true}, {titulo:fech.mesLabel, num:true},
+               {titulo:'Diferença', num:true}],
+      linhas:[
+        ['Aparelhos vendidos', {v:ant.base.aparelhos, num:true}, {v:fech.base.aparelhos, num:true},
+         {v:(fech.base.aparelhos-ant.base.aparelhos>0?'+':'')+(fech.base.aparelhos-ant.base.aparelhos), num:true}],
+        ['Acessórios (bruto)', {v:money(ant.base.acessBruto), num:true}, {v:money(fech.base.acessBruto), num:true},
+         {v:money(fech.base.acessBruto-ant.base.acessBruto), num:true}],
+        ['Folha completa', {v:money(ant.totais.folha), num:true}, {v:money(t.folha), num:true},
+         {v:money(t.folha-ant.totais.folha), num:true}],
+      ],
+    }));
+  }
+
+  const avisos = fech.avisos.length
+    ? fechSecao('Avisos', fech.avisos.map(x => `<div class="fp-nota">• ${UI.esc(x)}</div>`).join(''))
+    : '';
+
+  return `<div class="fp-pagina">
+    <div class="fp-cab">
+      <div>
+        <div class="fp-cab-nome">Fechamento da equipe</div>
+        <div class="fp-cab-sub">Phone Cart · Urban</div>
+      </div>
+      <div class="fp-cab-mes"><b>${fech.mesLabel}</b></div>
+    </div>
+    ${base}
+    ${fechSecao('Folha — todos lado a lado', UI.tabela({colunas, linhas}))}
+    ${comparativo}
+    ${avisos}
+    <div class="fp-rodape">
+      Gerado em ${fechDataHora(fech.geradoEm)} ·
+      loja: ${fech.loja === 'ambas' ? 'Cart + Urban' : UI.esc(fech.loja)} ·
+      fonte: painel Phone Cart. O bônus de 5% depende do lucro de acessórios, que muda
+      quando roda o resync — gerar de novo depois do resync do mês.
+    </div>
+  </div>`;
+}
+
+// so: id de uma pessoa para gerar so a folha dela; vazio = documento completo
+function fechamentoPDF(so){
+  const fech = fechamentoEquipe();
+  if(!fech.pessoas.length){
+    alert('Nenhum colaborador na folha deste período.');
+    return;
+  }
+  const erros = fechConferir(fech);
+  if(erros.length) fech.avisos.push(...erros.map(e => '⚠ CONFERÊNCIA: ' + e));
+
+  const ant = fechamentoEquipeRef(fechamentoMesAnterior(fech.ref));
+  const pessoas = so ? fech.pessoas.filter(p => p.id === so)
+                     : fech.pessoas.slice().sort((a,b) => b.total - a.total);
+
+  const corpo = (so ? '' : fechPaginaGeral(fech, ant))
+              + pessoas.map(p => fechPaginaPessoa(p, fech, ant)).join('');
+
+  document.querySelector('.fp-overlay')?.remove();
+  const el = document.createElement('div');
+  el.className = 'fp-overlay';
+  el.innerHTML = `
+    <div class="fp-bar">
+      <span class="fp-bar-tit">Fechamento ${fech.mesLabel}${so ? ' · '+UI.esc(pessoas[0]?.nome||'') : ''} — confira e use Imprimir para salvar em PDF</span>
+      <span class="fp-bar-acoes">
+        ${UI.btn('🖨 Imprimir / PDF', {onclick:'window.print()', variante:'primario', sm:true})}
+        ${UI.btn('Fechar', {onclick:'fechFecharPDF()', sm:true})}
+      </span>
+    </div>
+    <div class="fp-doc">${corpo}</div>`;
+  document.body.appendChild(el);
+  el.scrollTop = 0;
+}
+
+function fechFecharPDF(){ document.querySelector('.fp-overlay')?.remove(); }
+
 // -- Acao do botao ----------------------------------------------------------
 function exportarFechamento(btn){
   const rotulo = btn ? btn.innerHTML : null;

@@ -26,6 +26,7 @@ mas seguem em `css/direcoes.css` para comparar de novo se der vontade.
 | `css/components.css` | estilos dos componentes (`.c-card`, `.c-kpi`, `.c-tabela`, `.c-badge`…) |
 | `css/shell.css` | layout — sidebar do desktop, bottom-tabs do mobile |
 | `css/direcoes.css` | as 4 direções visuais (só o comparador usa) |
+| `css/print.css` | **documento de fechamento** — preview + regras de papel (quebra de página, tema claro forçado, tabela que não empilha). Carrega por último de propósito: vence o `@media (max-width:720px)` de `components.css` |
 | `js/ui.js` | **o kit** — `UI.card/kpi/kpis/badge/tabela/vazio/btn/chip/barra/kv/painel` |
 | `js/shell.js` | navegação, contexto (loja + período), matriz de permissão |
 | `styleguide.html` | guia vivo — componentes reais, números fictícios |

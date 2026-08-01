@@ -551,7 +551,8 @@ function renderEquipe(){
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <div class="card-title" style="margin:0">📋 Fechamento — ${fech.mesLabel}</div>
         <div style="display:flex;gap:8px">
-          ${UI.btn('📊 Exportar fechamento',{onclick:'exportarFechamento(this)',variante:'primario',sm:true,titulo:'Planilha com uma aba por colaborador, venda a venda'})}
+          ${UI.btn('📊 Planilha',{onclick:'exportarFechamento(this)',variante:'primario',sm:true,titulo:'Arquivo .xlsx com uma aba por colaborador, venda a venda — pra você conferir'})}
+          ${UI.btn('📄 PDF',{onclick:'fechamentoPDF()',sm:true,titulo:'Documento com uma folha por colaborador — pra compartilhar com os sócios'})}
           ${UI.btn('📋 Gerar resumos',{onclick:'gerarResumoEquipe()',sm:true})}
         </div>
       </div>
@@ -1003,7 +1004,11 @@ function renderFuncCard(id, lAcessTotal){
 
       <!-- FECHAMENTO -->
       <div style="margin-bottom:20px">
-        <div style="font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Fechamento</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--text4);text-transform:uppercase;letter-spacing:.08em">Fechamento</div>
+          ${UI.btn('📄 PDF', {onclick:`fechamentoPDF('${f.id}')`, sm:true,
+            titulo:'Só a folha de '+escAttr(f.ap)+', pra compartilhar'})}
+        </div>
         ${fechamentoHtml}
       </div>
 
