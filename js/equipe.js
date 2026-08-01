@@ -327,6 +327,30 @@ function fechamentoEquipe(){
   // (lancar seria contar duas vezes -- ver docs/IDEIAS.md).
   totais.liquido = m.lucro - totais.folha - custosForaFolha;
 
+  // -- Conciliacao: Custos (area funcionario) x o que a folha calcula ---------
+  // Os dois tem que dizer o mesmo numero, tirando a comissao, que de proposito
+  // nao e lancada. Diferenca aponta um destes:
+  //   > 0  lancamento na area sem pessoa marcada -- o valor nao chega em
+  //        ninguem E fica fora do resultado (a area inteira e excluida de
+  //        custosForaFolha). Sumia calado ate ago/2026;
+  //   < 0  falta lancar (tipico: bonus do mes ainda nao lancado);
+  //   != 0 bonus lancado com valor velho -- e o caso do 5% depois do resync
+  //        fundo, que em jul/2026 mudou de 1.287 para 1.305.
+  const custosDaFolha = filterCustoPeriod(getCustos())
+    .filter(c => c.area === 'funcionario')
+    .reduce((a,c) => a + parseFloat(c.valor||0), 0);
+  totais.custosDaFolha = custosDaFolha;
+  totais.folhaSemComissao = totais.sal + totais.extras
+                          + totais.bonus5 + totais.bonusMeta + totais.bonusCol;
+  totais.conciliacao = Math.round(custosDaFolha - totais.folhaSemComissao);
+  if(totais.conciliacao > 0) avisos.push(
+    'Custos tem '+brl(totais.conciliacao)+' a mais na área Funcionários do que a folha calcula. '
+    + 'Provável lançamento sem pessoa marcada (o valor não chega em ninguém nem no resultado) '
+    + 'ou bônus com valor diferente do calculado.');
+  if(totais.conciliacao < 0) avisos.push(
+    'Falta lançar '+brl(-totais.conciliacao)+' em Custos (área Funcionários) para bater com a folha. '
+    + 'Se o mês ainda não fechou, é só o bônus que ainda não foi lançado.');
+
   return {
     m, ref:_refAnoMes(), loja:currentStore, geradoEm:new Date(),
     mesLabel: fechamentoMesLabel(),
@@ -599,6 +623,16 @@ function renderEquipe(){
     </div>`;
 
   html += tabelaFechamento;
+
+  // Aviso de conciliação: até ago/2026 isso só aparecia no arquivo exportado.
+  // É o lugar certo pra ver — quem fecha a folha está olhando esta tela.
+  if(fech.avisos.length){
+    html += UI.card({
+      titulo:'⚠️ Confira antes de fechar a folha',
+      corpo: fech.avisos.map(a => `<div class="c-alerta-linha">${UI.esc(a)}</div>`).join(''),
+      classe:'c-card-alerta',
+    });
+  }
 
     return html;
 }

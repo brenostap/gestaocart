@@ -130,7 +130,12 @@ async function saveCustoToSB(custo){
       loja: custo.loja,
       obs: custo.obs||'',
       fixo: false,
-      funcionario: null
+      // Precisa passar adiante: e o que faz o valor chegar na folha da pessoa.
+      // Ate ago/2026 era fixo em null aqui, entao um extra lancado pela tela
+      // nao entrava na folha de ninguem -- e, como a area 'funcionario' fica
+      // fora de custosForaFolha, tambem nao aparecia no resultado. Sumia dos
+      // dois lados da conta.
+      funcionario: custo.funcionario || null
     })
   });
 }
@@ -231,6 +236,10 @@ function abrirModalCusto(id, preset){
   const editando = !!existente;
   const areaOpts = AREAS.map(a => ({v:a.id, t:a.label}));
   const lojaOpts = [{v:'cart',t:'📱 Phone Cart'},{v:'urban',t:'🏙 Urban'},{v:'ambas',t:'🔀 Ambas (rateio)'}];
+  // Mesma lista da folha (fechamentoPessoas, equipe.js) -- quem sai do cadastro
+  // some daqui sozinho, e nao da pra lancar extra pra quem nao esta na folha.
+  const pessoaOpts = [{v:'', t:'— nenhuma (custo da loja) —'}]
+    .concat(fechamentoPessoas().map(f => ({v:f.id, t:f.ap})));
 
   const corpo = `<div class="c-form">
     ${UI.campo({label:'Descrição', corpo:
@@ -245,6 +254,10 @@ function abrirModalCusto(id, preset){
       UI.campo({label:'Área', corpo: UI.select({id:'mc-area', opcoes:areaOpts, valor:c?.area||'outro'})}),
       UI.campo({label:'Loja', corpo: UI.select({id:'mc-loja', opcoes:lojaOpts, valor:c?.loja||'ambas'})})
     )}
+    ${UI.campo({label:'Pessoa (só para a área Funcionários)', corpo:
+      UI.select({id:'mc-func', opcoes:pessoaOpts, valor:c?.funcionario||''})
+      + `<div class="c-field-nota">Com a pessoa marcada, o valor entra na folha dela (aba Equipe,
+         planilha e PDF) como linha própria. Sem pessoa, é custo da loja e não chega em ninguém.</div>`})}
     ${UI.campo({label:'Obs (opcional)', corpo:
       UI.input({id:'mc-obs', valor:c?.obs||'', placeholder:'Informação adicional...'})})}
   </div>`;
@@ -265,7 +278,12 @@ async function salvarModalCusto(id){
   const area  = document.getElementById('mc-area')?.value||'outro';
   const loja  = document.getElementById('mc-loja')?.value||'ambas';
   const obs   = document.getElementById('mc-obs')?.value||'';
+  // '' -> null: a coluna e nullable e o fechamento testa `funcionario===id`.
+  const func  = document.getElementById('mc-func')?.value || null;
   if(!desc || !valor || !data) return alert('Preencha descrição, valor e data.');
+  if(func && area !== 'funcionario')
+    return alert('Para marcar uma pessoa, a área precisa ser "Funcionários".\n\n'
+      + 'É essa área que a folha lê para montar salário e extras de cada um.');
 
   const btn = document.getElementById('mc-salvar');
   if(btn){ btn.textContent='Salvando...'; btn.disabled=true; }
@@ -276,14 +294,14 @@ async function salvarModalCusto(id){
       const r = await fetch(SB_URL+'/rest/v1/custos?id=eq.'+id, {
         method:'PATCH',
         headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_TOKEN,'Content-Type':'application/json'},
-        body: JSON.stringify({ descricao:desc, valor, loja, area, data, obs })
+        body: JSON.stringify({ descricao:desc, valor, loja, area, data, obs, funcionario:func })
       });
       if(!r.ok) throw new Error('patch');
       const idx = (_custosCache||[]).findIndex(x=>x.id===id);
-      if(idx>=0) _custosCache[idx] = {..._custosCache[idx], desc, descricao:desc, valor, loja, area, data, obs};
+      if(idx>=0) _custosCache[idx] = {..._custosCache[idx], desc, descricao:desc, valor, loja, area, data, obs, funcionario:func};
     } else {
       // Novo -> POST
-      const novo = {id:Date.now(), desc, valor, data, area, loja, obs, fixo:false, funcionario:null};
+      const novo = {id:Date.now(), desc, valor, data, area, loja, obs, fixo:false, funcionario:func};
       const r = await saveCustoToSB(novo);
       if(!r.ok) throw new Error('post');
       if(_custosCache) _custosCache.unshift(novo); else _custosCache=[novo];

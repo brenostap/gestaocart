@@ -310,6 +310,58 @@ const blocoPrint = printCss.slice(printCss.indexOf('@media print'));
 ].forEach(([t,msg]) => ok(blocoPrint.includes(t), msg));
 ok(/@page\{[^}]*size:A4/.test(blocoPrint.replace(/\s/g,'')), 'papel A4 com margem');
 
+// -- 9f. conciliacao Custos x folha ----------------------------------------
+// Os dois lados tem que dizer o mesmo numero, tirando a comissao (que de
+// proposito nao e lancada em Custos). As 3 direcoes:
+sec('conciliação: Custos (área Funcionários) × o que a folha calcula');
+const custosBase = R('_custosCache');
+
+// (a) fixture sem os lancamentos de bonus -> "falta lancar"
+ok(fech.totais.conciliacao < 0,
+   `falta lançar ${brl(-fech.totais.conciliacao)} (os 3 bônus do mês)`);
+ok(fech.avisos.some(a => a.includes('Falta lançar')), 'avisa o que falta lançar');
+
+// (b) com os bonus lancados no valor que a folha calcula -> bate
+ctx.__fx.custosOk = custosBase.concat([
+  {id:'b1', desc:'Bonus meta coletiva',      valor:fech.totais.bonusCol,  data:'2026-07-31',
+   area:'funcionario', loja:'ambas', fixo:false, funcionario:null},
+  {id:'b2', desc:'Bonus meta individual',    valor:fech.totais.bonusMeta, data:'2026-07-31',
+   area:'funcionario', loja:'ambas', fixo:false, funcionario:null},
+  {id:'b3', desc:'Bonus 5% acessorios Anne', valor:fech.totais.bonus5,    data:'2026-07-31',
+   area:'funcionario', loja:'ambas', fixo:false, funcionario:null},
+]);
+R('_custosCache = __fx.custosOk;');
+const fechOk = R('fechamentoEquipe()');
+ok(fechOk.totais.conciliacao === 0,
+   `bate: Custos ${brl(fechOk.totais.custosDaFolha)} = folha sem comissão ${brl(fechOk.totais.folhaSemComissao)}`);
+ok(!fechOk.avisos.some(a => a.includes('Custos tem') || a.includes('Falta lançar')),
+   'sem aviso de conciliação quando bate');
+
+// (c) bonus dos 5% com valor VELHO (o caso do resync: 1.287 em vez de 1.305)
+ctx.__fx.custosVelhos = ctx.__fx.custosOk.map(c =>
+  c.id === 'b3' ? {...c, valor: c.valor - 18} : c);
+R('_custosCache = __fx.custosVelhos;');
+const fechVelho = R('fechamentoEquipe()');
+ok(fechVelho.totais.conciliacao === -18,
+   'pega o bônus de 5% desatualizado pelo resync (diferença de R$18)');
+ok(fechVelho.avisos.some(a => a.includes('Falta lançar')), 'e avisa');
+
+// (d) lancamento na area sem pessoa -> dinheiro que sumiria dos dois lados
+ctx.__fx.custosOrfao = ctx.__fx.custosOk.concat([
+  {id:'o1', desc:'Vale transporte', valor:300, data:'2026-07-20',
+   area:'funcionario', loja:'ambas', fixo:false, funcionario:null},
+]);
+R('_custosCache = __fx.custosOrfao;');
+const fechOrfao = R('fechamentoEquipe()');
+ok(fechOrfao.totais.conciliacao === 300, 'pega os R$300 lançados sem pessoa');
+ok(fechOrfao.avisos.some(a => a.includes('a mais na área Funcionários')),
+   'avisa que o valor não chega em ninguém nem no resultado');
+const telaAviso = html('renderEquipe()');
+ok(telaAviso.includes('Confira antes de fechar a folha'),
+   'o aviso aparece NA TELA, não só no arquivo exportado');
+
+R('_custosCache = __fx.custos;'); // devolve o estado do fixture
+
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');
 ok(html('renderDash()').length > 1000, 'renderDash()');

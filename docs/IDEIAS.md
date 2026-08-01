@@ -136,9 +136,19 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   - **Meta do Davi arredondada** em jul/2026: bruto R$9.960, faltaram R$40 para os R$10k. R$300 pela
     regra + **R$700 de ajuste** = R$1.000. A linha de meta na planilha continua dizendo a verdade
     ("faltaram R$40"); o ajuste aparece como **decisão**, não como regra.
-  - ⚠️ **Falta UI**: o modal de Custos não deixa escolher o `funcionario` (o `salvarCusto` grava
-    `funcionario: null`). Hoje esses lançamentos entram por SQL. Enquanto não tiver campo na tela,
-    todo extra novo precisa ser inserido no banco.
+  - ✅ **Campo "Pessoa" no modal de Custos (01/ago/2026).** Dá pra lançar extra pela tela; a lista de
+    pessoas sai de `fechamentoPessoas()`, a mesma da folha. Só aceita pessoa quando a área é
+    *Funcionários*.
+    - ⚠️ Era um **buraco que engolia dinheiro em silêncio**: `saveCustoToSB` gravava
+      `funcionario: null` fixo, então um extra lançado pela tela não entrava na folha de ninguém
+      **e**, como a área `funcionario` fica fora de `custosForaFolha`, também não aparecia no
+      resultado. Sumia dos dois lados da conta.
+  - ✅ **Conciliação Custos × folha (01/ago/2026).** `fechamentoEquipe()` compara o total da área
+    `funcionario` em Custos com o que a folha calcula (sem a comissão, que de propósito não é
+    lançada) e **avisa na tela** — card âmbar "Confira antes de fechar a folha", antes só ia no
+    arquivo. Pega três coisas: lançamento sem pessoa, bônus que falta lançar e **bônus com valor
+    velho** — que é exatamente o caso do 5% depois do resync fundo (jul/2026: 1.287 → 1.305).
+    Julho fecha em R$30.216 dos dois lados.
   - 💡 **Não existe banco de horas no painel** — as horas cruas ficam só na `obs` do lançamento
     ("18h33 → 19h × R$30/h"). Se virar rotina, vale uma tela pra registrar hora por pessoa/dia e o
     valor sair sozinho.

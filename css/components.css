@@ -783,3 +783,18 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .cst-cmp-track{ grid-column:1 / -1; }
   .cst-vista{ margin-right:0; }
 }
+
+/* -- Campo: nota de apoio embaixo do controle ---------------------------- */
+.c-field-nota{
+  font-size:var(--fs-caption); line-height:var(--lh-caption);
+  color:var(--text4); margin-top:4px;
+}
+
+/* -- Card de alerta (âmbar = atenção, não erro) -------------------------- */
+.c-card-alerta{ border-color:var(--yellow); }
+.c-card-alerta .c-card-title{ color:var(--yellow); }
+.c-alerta-linha{
+  font-size:var(--fs-body); line-height:var(--lh-body); color:var(--text2);
+  padding:7px 0; border-bottom:1px solid var(--border);
+}
+.c-alerta-linha:last-child{ border-bottom:none; padding-bottom:0; }
