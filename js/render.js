@@ -246,8 +246,7 @@ function renderDash(){
 
   // -- Metas: os limites e o progresso ate a proxima faixa -------------------
   const totalProdutos=m.unPrincipal;
-  const metasProdutos=[{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}];
-  const metasAcess=[{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}];
+  const metasProdutos=metasColetivas().dev, metasAcess=metasColetivas().acess;
   const metaDevAtual=metasProdutos.filter(x=>totalProdutos>=x.qt).pop()||null;
   const metaDevProx=metasProdutos.find(x=>totalProdutos<x.qt)||null;
   const metaAcessAtual=metasAcess.filter(x=>m.vendaAcess>=x.val).pop()||null;
@@ -363,8 +362,7 @@ function renderDash(){
     </div>`;
 
   // -- Metas -- bonus automaticos ------------------------------------------------
-  const metasDevList=_periodoNovoRegime()?[{qt:350,bonus:500},{qt:400,bonus:750},{qt:450,bonus:1000}]:[{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}];
-  const metasAcList=_periodoNovoRegime()?[{val:25000,bonus:200},{val:30000,bonus:500},{val:40000,bonus:750}]:[{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}];
+  const metasDevList=metasColetivas().dev, metasAcList=metasColetivas().acess;
   const metaDevBatida=metasDevList.filter(x=>m.unPrincipal>=x.qt).pop()||null;
   const metaAcBatida=metasAcList.filter(x=>m.vendaAcess>=x.val).pop()||null;
   const bonusMetaColetiva=(metaDevBatida?.bonus||0)+(metaAcBatida?.bonus||0);

@@ -52,6 +52,25 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Média dos últimos 3 meses ao lado do mês passado, pra não comparar com um mês atípico.
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
+## Equipe / Metas
+- ✅ **Faixas de meta coletiva viraram fonte única (31/jul/2026)**: `metasColetivas(ref)` em `core.js`.
+  Estavam **copiadas em 6 lugares** (equipe.js ×3, render.js ×2, dash-v2.js ×1) — e um deles
+  (o dashboard legado em `render.js`) estava travado no regime antigo. Regra: **nunca retroativa**,
+  cada tabela nova é um degrau por mês.
+  | vigência | aparelhos | acessórios (bruto) |
+  |---|---|---|
+  | até mai/2026 | 300→200 · 350→400 · 400→550 | 20k→150 · 25k→200 · 30k→500 |
+  | jun/2026 | 350→500 · 400→750 · 450→1000 | 25k→200 · 30k→500 · 40k→750 |
+  | jul/2026 + | 400→600 · 450→800 · 500→1000 | 30k→400 · 40k→700 · 50k→1000 |
+  - ⚠️ A meta de devices conta **APARELHOS**, não número de vendas (confirmado com o dono em
+    31/jul/2026, apesar de a mensagem das metas dizer "400 Vendas"). Metas individuais de
+    atendente (4k→100 · 6k→300 · 10k→1000) **não mudaram**.
+- 💡 ⭐ **Bônus não entram no resultado do mês.** Custos só tem salário; o "Resultado após custos"
+  desconta só as comissões (`voTot`+`atTot`). Em jul/2026 ficaram **R$ 7.587** de bônus fora
+  (4.000 coletivo + 2.300 meta individual + 1.287 dos 5% da Anne). Decidir se viram lançamento
+  em Custos ou se entram na conta do resultado.
+- 💡 As faixas vêm por WhatsApp todo mês — cadastrar na tela em vez de editar `core.js`.
+
 ## Dashboard
 - ✅ **Modelos mais vendidos (30/jul/2026)**: card no `renderDashV2` (dash-v2.js) — ranking por modelo+GB+cor, filtro Seminovo/Lacrado/Todos, ordena por Volume/Lucro, usa período+loja do contexto e respeita `money()`/permissões. Selo só no Lacrado (sem selo = seminovo). Parsa o `titulo` do FoneNinja (~98,5% identificável). CSS `.d2-mod-*` em dash-v2.css.
 - 💡 Quando `venda_trocas` encher: quadro de trocas (o que mais entra de upgrade, valor médio) e cruzar com o modelo vendido. **(31/jul: já encheu — 1.010 vendas cobertas, julho 100%.)**

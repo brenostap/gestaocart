@@ -346,8 +346,7 @@ function renderEquipe(){
   function calcCommVoF(k){const u=m2.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
   function calcCommAtF(k){return Math.round((m2.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m2.lAcess*0.05):0);}
   function calcBonusAtF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
-  const metasDevL=_periodoNovoRegime()?[{qt:350,bonus:500},{qt:400,bonus:750},{qt:450,bonus:1000}]:[{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}];
-  const metasAcL=_periodoNovoRegime()?[{val:25000,bonus:200},{val:30000,bonus:500},{val:40000,bonus:750}]:[{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}];
+  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
   const metaDevF=metasDevL.filter(x=>m2.unPrincipal>=x.qt).pop()||null;
   const metaAcF=metasAcL.filter(x=>m2.vendaAcess>=x.val).pop()||null;
   const bonusColF=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
@@ -435,8 +434,7 @@ function gerarResumoEquipe(){
   function cvF(k){const u=m.voMap[k]?.units||0;return u<=80?u*25:80*25+(u-80)*35;}
   function caF(k){return Math.round((m.atMap[k]?.la||0)*0.25)+(k==='anne'?Math.round(m.lAcess*0.05):0);}
   function bmF(b){return b>=10000?1000:b>=6000?300:b>=4000?100:0;}
-  const metasDevL=_periodoNovoRegime()?[{qt:350,bonus:500},{qt:400,bonus:750},{qt:450,bonus:1000}]:[{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}];
-  const metasAcL=_periodoNovoRegime()?[{val:25000,bonus:200},{val:30000,bonus:500},{val:40000,bonus:750}]:[{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}];
+  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
   const metaDevF=metasDevL.filter(x=>m.unPrincipal>=x.qt).pop()||null;
   const metaAcF=metasAcL.filter(x=>m.vendaAcess>=x.val).pop()||null;
   const bonusColF=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
@@ -586,11 +584,10 @@ function renderFuncCard(id, lAcessTotal){
   const sal = salarios[f.id] || 0;
 
   // -- Bonus coletivo por pessoa -----------------------------------------------
-  const metasDevL=_periodoNovoRegime()?[{qt:350,v:500},{qt:400,v:750},{qt:450,v:1000}]:[{qt:300,v:200},{qt:350,v:400},{qt:400,v:550}];
-  const metasAcL=_periodoNovoRegime()?[{val:25000,v:200},{val:30000,v:500},{val:40000,v:750}]:[{val:20000,v:150},{val:25000,v:200},{val:30000,v:500}];
+  const metasDevL=metasColetivas().dev, metasAcL=metasColetivas().acess;
   const metaDevF=metasDevL.filter(x=>mCalc.unPrincipal>=x.qt).pop()||null;
   const metaAcF=metasAcL.filter(x=>mCalc.vendaAcess>=x.val).pop()||null;
-  const bonusColTotal=(metaDevF?.v||0)+(metaAcF?.v||0);
+  const bonusColTotal=(metaDevF?.bonus||0)+(metaAcF?.bonus||0);
   const bonusColPP=Math.round(bonusColTotal); // valor ja e individual por pessoa
 
   // -- Dados do mes atual (via calc() = consistente com dashboard) -------------

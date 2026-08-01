@@ -85,6 +85,46 @@ function acessParaComissao(p, ref){
   return _periodoNovoRegime(ref) ? isAcess(p) : (!isPrincipal(p) && !isCancelado(p));
 }
 
+// Periodo de referencia resolvido para 'YYYY-MM'. Filtro que nao e um mes
+// (semana/hoje/custom/tudo) devolve null -> quem chama usa a tabela vigente.
+function _refAnoMes(ref){
+  let p = ref;
+  if(!p || p === 'mes'){
+    if(typeof currentPeriod !== 'undefined' && /^\d{4}-\d{2}$/.test(currentPeriod)) p = currentPeriod;
+    else { const n = new Date(); p = n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'); }
+  }
+  return /^\d{4}-\d{2}$/.test(p) ? p : null;
+}
+
+// FONTE UNICA das faixas de META COLETIVA (equipe, fechamento, dashboard).
+// Estavam copiadas em 6 lugares; quando o dono mudou as faixas em jul/2026 a
+// folha teria pago R$1.000 por pessoa onde o certo era R$400.
+//
+// Regra: NUNCA retroativas -- cada tabela nova vira um degrau, para fechamento
+// ja pago nao mudar de valor depois.
+//   ate mai/2026 : 300/350/400 aparelhos · 20k/25k/30k acessorios
+//   jun/2026     : 350/400/450 aparelhos · 25k/30k/40k acessorios
+//   jul/2026 +   : 400/450/500 aparelhos · 30k/40k/50k acessorios
+//
+// 'dev' conta APARELHOS (unidades principais), nao numero de vendas -- confirmado
+// com o dono em 31/07/2026, apesar de a mensagem das metas dizer "400 Vendas".
+// 'acess' e o BRUTO de acessorios, nao o lucro.
+function metasColetivas(ref){
+  const p = _refAnoMes(ref);
+  if(p && p < '2026-06') return {
+    dev:   [{qt:300,bonus:200},{qt:350,bonus:400},{qt:400,bonus:550}],
+    acess: [{val:20000,bonus:150},{val:25000,bonus:200},{val:30000,bonus:500}],
+  };
+  if(p === '2026-06') return {
+    dev:   [{qt:350,bonus:500},{qt:400,bonus:750},{qt:450,bonus:1000}],
+    acess: [{val:25000,bonus:200},{val:30000,bonus:500},{val:40000,bonus:750}],
+  };
+  return {
+    dev:   [{qt:400,bonus:600},{qt:450,bonus:800},{qt:500,bonus:1000}],
+    acess: [{val:30000,bonus:400},{val:40000,bonus:700},{val:50000,bonus:1000}],
+  };
+}
+
 // Socios -- aparecem nas vendas como vendedor mas NAO sao comissionados
 const SOCIOS = ['breno','gustavo','marcella','marcela','marcelo'];
 
