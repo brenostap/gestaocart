@@ -241,6 +241,18 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 
 ## Perfis / Permissões
 - 💡 Fase 2: visão do vendedor/atendente (vê a venda e o valor, **não** vê custo/lucro). Hoje desligado; hooks já existem (`podeVerValor`/`podeVerMargem`).
+- ✅ **"Ver como"** (02/ago/2026): seletor no rodapé da sidebar, visível só para `EMAIL_DONO`, que troca
+  `papelAtual()` entre sócio/gerente/vendedor/atendente sem deslogar. Faixa âmbar no topo enquanto está
+  ligado; se a tela aberta não existe no papel escolhido, cai no Dashboard. Estado em
+  `localStorage.pc_papel_preview`.
+- ⚠️ **A permissão de hoje é só de tela.** `podeVerValor`/`podeVerMargem` escondem o número no painel, mas
+  o RLS libera `select` pra **qualquer usuário autenticado** (política `auth_read`/`auth_all` com
+  `using true`, conferido em 02/ago/2026). Pra sócio tanto faz — eles podem ver tudo. **Quando entrar
+  vendedor/atendente de verdade, a trava tem que descer pro RLS**, senão basta a chave anon + o login
+  dele pra ler custo e lucro direto na API. Provável desenho: tabela `perfis(user_id, papel)` +
+  política que confere o papel.
+- 💡 Com a tabela `perfis` no ar, `papelReal()` (shell.js) deixa de ser fixo em `'socio'` e passa a ler
+  de lá — o "Ver como" continua por cima, só pro dono.
 
 ## Geral / Infra
 - ✅ CLAUDE.md (manual do projeto).
