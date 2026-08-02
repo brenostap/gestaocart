@@ -48,7 +48,48 @@ const MATRIZ_ACESSO = {
   atendente: ['dash','vendas','estoque'],
 };
 
-function papelAtual(){ return 'socio'; }
+const PAPEIS = ['socio','gerente','vendedor','atendente'];
+const LABEL_PAPEL = { socio:'Sócio', gerente:'Gerente', vendedor:'Vendedor', atendente:'Atendente' };
+
+// Papel de verdade do usuario logado. Hoje todo mundo que entra e socio; quando
+// a fase de perfis chegar, e ESTA funcao que passa a ler o perfil real.
+function papelReal(){ return 'socio'; }
+
+// So o dono. Usado pra decidir quem enxerga o seletor "Ver como".
+function ehDono(){ return usuarioEmail === EMAIL_DONO; }
+
+// "Ver como": o dono olha o painel com os olhos de outro papel sem deslogar.
+// ⚠️ E PREVIA VISUAL, nao trava de seguranca: o RLS do banco continua liberando
+// leitura pra qualquer usuario autenticado. A trava real so existe quando a fase
+// de perfis descer pro RLS (docs/IDEIAS.md > Perfis / Permissoes).
+function papelAtual(){
+  return (papelPreview && ehDono()) ? papelPreview : papelReal();
+}
+function setPapelPreview(p){
+  papelPreview = (p && p !== papelReal()) ? p : '';
+  try{ localStorage.setItem('pc_papel_preview', papelPreview); }catch(e){}
+  // A tela aberta pode nao existir para o papel escolhido (ex.: Custos para
+  // vendedor). Sem isso o painel ficaria numa tela que sumiu do menu.
+  if(!podeVer(currentTab)) currentTab = 'dash';
+  renderShell();
+  // A previa muda o que cada tela pode mostrar (money(), colunas de margem),
+  // entao a tela precisa ser desenhada de novo, nao so o shell.
+  if(typeof renderContent === 'function') renderContent();
+}
+
+// Faixa de aviso no topo do conteudo. Sem ela da pra esquecer que esta na previa
+// e concluir que o painel "perdeu" o lucro.
+function renderPreviewBar(){
+  const el = document.getElementById('preview-bar');
+  if(!el) return;
+  const ativo = papelPreview && ehDono();
+  el.style.display = ativo ? 'flex' : 'none';
+  el.innerHTML = ativo
+    ? `<span>Prévia: você está vendo o painel como <b>${LABEL_PAPEL[papelPreview]||papelPreview}</b>.</span>
+       <button class="pv-btn" onclick="setPapelPreview('socio')">Voltar a sócio</button>`
+    : '';
+}
+
 function podeVer(secao){ return (MATRIZ_ACESSO[papelAtual()] || []).includes(secao); }
 
 // Duas permissoes distintas, a pedido do dono:
@@ -134,6 +175,14 @@ function renderShell(){
       }).join('')}
     </nav>
 
+    ${ehDono() ? `
+    <div class="sb-preview${papelPreview?' ativo':''}">
+      <div class="label-mono">Ver como</div>
+      <select class="sb-period" id="papel-sel" onchange="setPapelPreview(this.value)">
+        ${PAPEIS.map(p => `<option value="${p}"${papelAtual()===p?' selected':''}>${LABEL_PAPEL[p]}</option>`).join('')}
+      </select>
+    </div>` : ''}
+
     <div class="sb-foot">
       <button class="sb-fbtn" id="btn-tema" onclick="alternarTema()" title="Alternar tema">${temaEscuroAtivo()?'☀':'☾'}</button>
       <button class="sb-fbtn" onclick="reloadData()" title="Atualizar dados">↻</button>
@@ -151,6 +200,7 @@ function renderShell(){
   }
 
   if(typeof updateHeaderLogo === 'function') updateHeaderLogo();
+  renderPreviewBar();
 }
 
 // Marca o item ativo sem re-renderizar o shell (evita perder o foco do select).

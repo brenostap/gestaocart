@@ -77,6 +77,24 @@
   background:var(--bg4); padding:2px 5px; border-radius:var(--radius-pill);
 }
 
+/* "Ver como" — previa de perfil, so o dono ve. Ambar = atencao: e um estado
+   temporario que precisa ser desfeito, nao um modo normal de trabalho. */
+.sb-preview{ padding:10px 12px; border-top:1px solid var(--border); }
+.sb-preview.ativo .sb-period{ border-color:var(--warning); color:var(--warning); }
+
+.preview-bar{
+  /* linha inteira: o .topbar e um flex row, entao sem isto a faixa dividiria
+     a linha com o status e as duas ficariam espremidas no celular */
+  flex:1 0 100%; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:7px 11px; border-radius:var(--radius-sm); font-size:12.5px;
+  background:var(--warning-bg); color:var(--warning); border:1px solid var(--warning);
+}
+.preview-bar .pv-btn{
+  margin-left:auto; padding:4px 10px; border-radius:var(--radius-pill);
+  border:1px solid var(--warning); background:transparent; color:var(--warning);
+  font-family:inherit; font-size:12px; cursor:pointer; white-space:nowrap;
+}
+
 .sb-foot{ display:flex; gap:6px; padding:10px 12px; border-top:1px solid var(--border); }
 .sb-fbtn{
   padding:7px 10px; border:1px solid var(--border2); border-radius:var(--radius-sm);
@@ -94,7 +112,7 @@
 .main .content{ padding:18px 22px 40px; flex:1; max-width:1800px; }
 .topbar{
   position:sticky; top:0; z-index:10;
-  display:flex; align-items:center; gap:12px;
+  display:flex; align-items:center; gap:10px 12px; flex-wrap:wrap;
   padding:10px 22px; border-bottom:1px solid var(--border);
   background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
 }
@@ -129,6 +147,8 @@
   .sb-store{ padding:6px 10px; white-space:nowrap; }
   .sb-period{ width:auto; margin:0; }
   .sb-nav{ display:none; }                  /* vira bottom-tab */
+  .sb-preview{ border:none; padding:0; flex:0 0 auto; }
+  .sb-preview .label-mono{ display:none; }
   .sb-foot{ border:none; padding:0; }
   .sb-fbtn{ padding:6px 9px; }
 

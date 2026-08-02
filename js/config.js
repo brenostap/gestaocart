@@ -10,6 +10,14 @@ let USE_SUPABASE=true; // usa Supabase como fonte principal
 // access_token do usuário após o login (é ele que faz o RLS ver role=authenticated).
 const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 let SB_TOKEN = SB_KEY;
+// Quem esta logado. Preenchido no login (auth.js) e ao restaurar a sessao (boot.js).
+let usuarioEmail = '';
+// So o dono ve o seletor "Ver como" no rodape da sidebar. Ver papelAtual() em shell.js:
+// e PREVIA VISUAL, nao trava de seguranca.
+const EMAIL_DONO = 'breno@phonestp.com';
+// Papel escolhido na previa ('' = papel real). Sobrevive ao reload de proposito:
+// da pra fechar o app, abrir de novo e continuar conferindo a mesma visao.
+let papelPreview = (function(){ try{ return localStorage.getItem('pc_papel_preview')||''; }catch(e){ return ''; } })();
 let allVendas=[],allMovs=[],estoqueItens=[],ajustesAcessorios=[];
 let currentStore='ambas',currentTab='dash',currentPeriod='mes';
 // Estado do Estoque v3

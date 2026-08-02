@@ -9,6 +9,7 @@ window.onload=async function(){
     const { data:{ session } } = await sb.auth.getSession();
     if(session){
       SB_TOKEN=session.access_token;
+      usuarioEmail=(session.user?.email||'').toLowerCase();
       enterApp();
       loadAllData();
       return;

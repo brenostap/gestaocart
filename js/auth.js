@@ -32,6 +32,7 @@ async function doLogin(){
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error) throw error;
     SB_TOKEN=data.session.access_token;
+    usuarioEmail=(data.user?.email||'').toLowerCase();
     enterApp();
     await loadAllData();
   }catch(e){
@@ -48,7 +49,7 @@ async function doLogout(){
   if(_pollingInterval){clearInterval(_pollingInterval);_pollingInterval=null;}
   pararTokenKeepAlive();
   try{ await sb.auth.signOut(); }catch(e){}
-  SB_TOKEN=SB_KEY;allVendas=[];allMovs=[];estoqueItens=[];
+  SB_TOKEN=SB_KEY;usuarioEmail='';allVendas=[];allMovs=[];estoqueItens=[];
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   const pw=document.getElementById('login-password');if(pw) pw.value='';
