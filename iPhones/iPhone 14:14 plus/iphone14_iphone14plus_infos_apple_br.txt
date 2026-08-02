@@ -1,0 +1,128 @@
+iPhone 14 e iPhone 14 Plus — Informações completas (baseado no press release da Apple BR - 07/09/2022)
+
+1) Modelos e tamanhos
+- iPhone 14: tela de 6,1”
+- iPhone 14 Plus: tela de 6,7”
+- Linha com sistema de câmera dupla, recursos de segurança e grande duração de bateria (com destaque para o 14 Plus)
+
+2) Design, tela e resistência
+- Design em alumínio aeroespacial
+- Tela Super Retina XDR (OLED)
+  - Pico de brilho: 1.200 nits (HDR)
+  - Proporção de contraste: 2.000.000:1
+  - Dolby Vision
+- Design interno atualizado para melhor desempenho térmico
+- Ceramic Shield na parte frontal (Apple afirma ser mais resistente que qualquer vidro de smartphone)
+- Resistência a poeira e a respingos/água
+
+3) Cores e armazenamento
+Cores:
+- Meia-noite
+- Azul
+- Estelar
+- Roxo
+- (PRODUCT)RED
+
+Armazenamento:
+- 128 GB
+- 256 GB
+- 512 GB
+
+4) Sistema de câmeras e Photonic Engine
+O iPhone 14 e o iPhone 14 Plus trazem:
+- Nova câmera grande-angular de 12 MP:
+  - Sensor maior e mais pixels
+  - Abertura ƒ/1.5
+  - Pixels de 1,9 µm
+  - Estabilização óptica por deslocamento de sensor
+  - Melhorias em fotos e vídeos com qualquer iluminação: mais detalhes, menos ruído, exposição mais rápida para congelar movimentos
+- Nova câmera frontal TrueDepth:
+  - Abertura ƒ/1.9
+  - Melhor desempenho em pouca luz (fotos e vídeos)
+  - Autofoco (pela primeira vez), com foco mais rápido em pouca luz e em fotos mais distantes (ex.: grupos)
+- Câmera ultra-angular:
+  - Aumenta o campo de visão e captura perspectivas únicas
+  - Melhorias em pouca luz com Photonic Engine
+- Photonic Engine:
+  - Melhora fotos em meia/pouca luz em todas as câmeras
+  - Apple cita melhorias de até 2x na ultra-angular e TrueDepth e até 2,5x na grande-angular
+  - Aplica recursos do Deep Fusion mais cedo no processamento para preservar detalhes, texturas, cores e mais informações na foto
+- Flash True Tone:
+  - Apple afirma ser 10x mais brilhante e com melhor uniformidade, detectando partes da cena com iluminação ambiente
+
+5) Vídeo
+- Novo Modo Ação:
+  - Estabilização avançada para vídeos com transições suaves
+  - Ajusta para tremores, movimentos e vibrações em gravações de alta ação
+- Modo Cinema:
+  - Agora em 4K a 30 fps e 4K a 24 fps
+- HDR Dolby Vision de ponta a ponta (Apple afirma ser exclusivo do iPhone)
+
+6) Desempenho
+- Chip A15 Bionic com GPU de cinco núcleos
+  - CPU de seis núcleos
+  - Neural Engine de 16 núcleos (15,8 trilhões de operações por segundo)
+- Apple destaca desempenho e eficiência para tarefas complexas, jogos e recursos de câmera
+- Segurança e privacidade: Secure Enclave
+
+7) Segurança: Detecção de Acidente e SOS de Emergência via satélite
+Detecção de Acidente (car crash detection):
+- Acelerômetro de dois núcleos (até 256g)
+- Giroscópio de alto alcance dinâmico
+- Usa também barômetro (pressão da cabine), GPS (mudanças de velocidade) e microfone (ruídos altos típicos)
+- Algoritmos treinados com mais de 1 milhão de horas de dados de direção e acidentes reais
+- Liga automaticamente para serviços de emergência quando necessário
+- Com Apple Watch, a interface de chamada de emergência aparece no relógio, e o iPhone completa a ligação com a melhor conexão possível
+
+SOS de Emergência via satélite:
+- Permite enviar mensagens ao serviço de emergência fora da cobertura celular ou Wi‑Fi
+- Guia o usuário para apontar o iPhone na direção correta para conectar ao satélite
+- Satélites têm baixa largura de banda, então as mensagens podem levar alguns minutos
+- Questionário inicial + mensagens são retransmitidos para centros com especialistas treinados pela Apple
+- Também permite compartilhamento manual de localização via satélite no app Buscar
+- Disponível inicialmente nos EUA e Canadá (novembro), gratuito por 2 anos com a ativação
+
+8) Conectividade
+- 5G para downloads e uploads rápidos, streaming e conectividade em tempo real
+- Cobertura 5G expandida para:
+  - Mais de 150 operadoras parceiras
+  - Mais de 70 mercados
+  - Compatibilidade ampliada para redes independentes
+- eSIM:
+  - Conexão fácil e transferência digital de plano
+  - Alternativa mais segura ao SIM físico
+  - Suporta múltiplos planos
+- Nos modelos dos EUA: remoção da bandeja de SIM físico para facilitar configuração
+
+9) Apple Fitness+ (no iPhone)
+- Disponível para usuários de iPhone assinarem mesmo sem Apple Watch (nos 21 países onde o serviço existe)
+- Mais de 3.000 treinos e meditações
+- Exibe orientações, cronômetro de intervalos e estimativa de calorias na tela
+- Integrado ao app Fitness no iOS 16
+- Pode ser usado no iPhone, iPad e Apple TV
+
+10) iOS 16 (vem no iPhone 14/14 Plus)
+- Tela Bloqueada redesenhada:
+  - Efeito multicamadas
+  - Widgets com novo design
+  - Galeria com opções (coleções Apple, Tempo, Astronomia etc.)
+- Mensagens:
+  - Editar ou desfazer envio de mensagens recentes
+  - Marcar como não lida
+- Fototeca Compartilhada do iCloud
+- Texto ao Vivo:
+  - Reconhece texto em vídeo
+  - Converte moedas e traduz textos com mais rapidez
+- Pesquisa Visual:
+  - Destacar parte da imagem do fundo (pressionar e segurar) e usar em apps como Mensagens
+
+11) Meio ambiente
+- Linhas de antena usando plástico reciclado (garrafas) transformado quimicamente
+- 100% metais de terras raras reciclados nos ímãs (incluindo MagSafe)
+- 100% tungstênio reciclado no Taptic Engine
+- 100% estanho reciclado na solda da placa lógica
+- 100% ouro reciclado na superfície da placa lógica e na fiação das câmeras
+- Embalagem feita de fibras elimina o plástico externo
+- Objetivo: eliminar plásticos das embalagens até 2025
+- Apple afirma que operações globais são neutras em carbono e planeja neutralizar toda a cadeia/ciclo de vida até 2030
+

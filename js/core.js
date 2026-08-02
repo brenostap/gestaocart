@@ -61,11 +61,16 @@ const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','gabi
 // de fora de 4 arrays hardcoded no dashboard, e o bonus de meta saiu R$1.000 menor que a folha.
 // Quem entra/sai do FUNC passa a aparecer sozinho. Quem saiu (cargo "(saiu)") fica fora.
 // Confere com o conjunto que a folha (equipe.js) paga.
+// Quem saiu da loja. Marca-se com "(saiu)" no cargo do FUNC (config.js) -- o
+// cadastro FICA, senao o historico perde a atribuicao das vendas dela. Esta e a
+// UNICA leitura desse marcador: quem precisa esconder ex-funcionario chama daqui.
+function saiuDaEquipe(f){ return /\(saiu\)/i.test((f && f.cargo) || ''); }
+
 const AT_LABELS_ALL = FUNC
-  .filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !/\(saiu\)/i.test(f.cargo||''))
+  .filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !saiuDaEquipe(f))
   .map(f => [f.ap, f.atKey]);
 const VO_LABELS_ALL = FUNC
-  .filter(f => f.voKey && VO_KEYS.includes(f.voKey) && !/\(saiu\)/i.test(f.cargo||''))
+  .filter(f => f.voKey && VO_KEYS.includes(f.voKey) && !saiuDaEquipe(f))
   .map(f => [f.ap, f.voKey]);
 
 // === Regras novas a partir de junho/2026 (NAO retroativas) ===

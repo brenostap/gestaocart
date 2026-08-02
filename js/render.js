@@ -42,14 +42,17 @@ function calc(){
 
   // Socios/Loja -- vendas da casa (gustavo, marcella, breno, ou sem vendedor identificado)
   const SOCIOS_KEYS=['gustavo','marcella','breno'];
-  const EQUIPE_KEYS=['isa','mel','david','pietra','vitinho','davi','anne','denilson','leo','luana','gabi','maria'];
+  // Derivado das chaves oficiais (core.js), nunca escrito a mao -- em jul/2026 uma
+  // lista a mao deixou Leo e Gabi de fora do dashboard. Inclui QUEM SAIU de proposito:
+  // venda antiga da Pietra continua sendo dela, nao "venda da loja".
+  const EQUIPE_KEYS=[...new Set([...VO_KEYS, ...AT_KEYS])];
   const isVendaLoja=(x)=>{
     const {vendedor}=getVendaInfo(x);
     if(!vendedor) return true;
     const vl=vendedor.toLowerCase().trim();
     if(SOCIOS_KEYS.some(s=>vl.includes(s))) return true;
     if(['cart','urban','loja'].includes(vl)) return true;
-    if(!EQUIPE_KEYS.some(e=>vl.includes(e))&&!['isa','mel','david','pietra','maria'].some(e=>vl.includes(e))) return true;
+    if(!EQUIPE_KEYS.some(e=>vl.includes(e))) return true;   // VO_KEYS ja esta dentro de EQUIPE_KEYS
     return false;
   };
   let lojaVendas=0,lojaUnits=0;

@@ -1,0 +1,132 @@
+A Apple lança o iPhone 14 Pro e o iPhone 14 Pro Max — Apple (BR)
+PRESS RELEASE • 07 de setembro de 2022
+Fonte: https://www.apple.com/br/newsroom/2022/09/apple-debuts-iphone-14-pro-and-iphone-14-pro-max/
+
+Resumo do anúncio
+- A Apple anunciou o iPhone 14 Pro e o iPhone 14 Pro Max, a linha Pro mais avançada até então.
+- Principais destaques: Dynamic Island, Tela Sempre Ativa, primeira câmera principal de 48 MP em um iPhone, chip A16 Bionic, SOS de Emergência via satélite e Detecção de Acidente.
+- Cores: preto-espacial, prateado, dourado e roxo escuro.
+- Pré-venda (EUA): 9 de setembro; disponibilidade a partir de 16 de setembro.
+- Armazenamento: 128 GB, 256 GB, 512 GB e 1 TB.
+
+Citação (Apple)
+“Nossos clientes contam com seu iPhone todos os dias e com o iPhone 14 Pro e o iPhone 14 Pro Max, estamos trazendo mais avanços do que em outros aparelhos iPhone. O Phone 14 Pro vem com um novo sistema de câmera que dá versatilidade para todos os usuários, sejam casuais ou profissionais, para que façam seus melhores vídeos e fotos, e tecnologias inovadoras, como a tela Sempre Ativa e Dynamic Island, que oferece novas interações para as notificações e atividades”, disse Greg Joswiak, senior vice president of Worldwide Marketing da Apple. “Recursos revolucionários de segurança trazem aos usuários mais proteção, oferecendo ajuda quando eles mais precisam. E com o poderoso e eficiente chip A16 Bionic e bateria para o dia todo, este é o melhor iPhone já visto”.
+
+1) Design e tela
+- Moldura em aço inoxidável de qualidade cirúrgica e vidro matte texturizado.
+- Tamanhos: 6,1 e 7,7 polegadas (conforme descrito na página).
+- Tela Super Retina XDR com ProMotion.
+- Tela Sempre Ativa: estreia no iPhone com taxa de atualização de 1 Hz e tecnologias de economia de bateria.
+- Pico de brilho em ambiente externo: até 2.000 nits (duas vezes mais brilho que no iPhone 13 Pro).
+- Durabilidade:
+  - Ceramic Shield na parte frontal.
+  - Resistência a respingos, água e poeira.
+
+2) Dynamic Island
+- Nova forma de interagir com o iPhone, mesclando hardware e software.
+- Adapta-se em tempo real para mostrar alertas importantes, notificações e atividades.
+- Mantém um estado ativo, permitindo acesso fácil aos controles com toque e segurar.
+- Atividades contínuas (ex.: Mapas, Música, timer) ficam visíveis e interativas.
+- Apps de terceiros no iOS 16 podem usar Live Activities (ex.: placares, compartilhamento de carro).
+
+3) Sistema de câmeras Pro
+- Novo conceito de sistema de câmera pro com:
+  - Câmera principal de 48 MP com sensor quad-pixel.
+  - Photonic Engine (canal de imagem aprimorado) para melhorar fotos em pouca luz.
+- Ganhos de desempenho em baixa luz (com Photonic Engine):
+  - Até 2x na câmera principal
+  - Até 3x na ultra-angular
+  - Até 2x na teleobjetiva
+  - Até 2x na TrueDepth
+- Deep Fusion aplicado mais cedo no processamento para detalhes, texturas, cores e mais informações na foto.
+
+Câmera principal 48 MP (sensor quad-pixel)
+- Combina 4 pixels em 1 maior (equivalente a 2,44 µm) para fotos de 12 MP com melhor desempenho em pouca luz.
+- Opção de zoom de 2x (teleobjetiva) usando os 12 MP intermediários do sensor:
+  - Fotos com resolução completa
+  - Vídeos 4K sem zoom digital
+  - Distância focal familiar, ideal para Modo Retrato
+- ProRAW em 48 MP com mais detalhes e controle criativo (com novo modelo de aprendizado de máquina para o sensor).
+
+Outras atualizações e recursos de câmera
+- Ultra-angular 12 MP com 1,4 µm pixel: imagens mais nítidas e detalhadas e melhor macro.
+- Teleobjetiva aprimorada com zoom ótico de até 3x.
+- Câmera frontal TrueDepth:
+  - abertura ƒ/1.9
+  - melhor desempenho em pouca luz
+  - foco automático (mais rápido em pouca luz e em fotos de grupos à distância)
+- Flash True Tone Adaptativo redesenhado com 9 LEDs e padrões que mudam conforme a distância focal.
+- Fotografia computacional:
+  - Modo Noite
+  - HDR Inteligente 4
+  - Modo Retrato com Iluminação de Retrato
+  - Retratos no Modo Noite
+  - Photographic Styles
+  - Apple ProRAW
+- Vídeo:
+  - Modo Ação (estabilização para tremores, movimento e vibração)
+  - Modo Cinema em 4K a 30 qps e 4K a 24 qps
+  - ProRes
+  - Dolby Vision HDR de ponta a ponta
+
+4) Segurança: Detecção de Acidente e SOS via satélite
+Detecção de Acidente
+- Acelerômetro de dois núcleos: detecta medições de força g de até 256g.
+- Giroscópio de alto alcance dinâmico.
+- Pode detectar acidentes graves de carro e ligar automaticamente para os serviços de emergência quando:
+  - o usuário está inconsciente, ou
+  - não consegue alcançar o iPhone.
+- Usa: barômetro (alterações na pressão da cabine), GPS (mudanças de velocidade) e microfone (ruídos altos típicos de colisões).
+- Algoritmos treinados com mais de 1 milhão de horas de gravações de direção e acidentes reais.
+- Com Apple Watch: a interface de chamada aparece no Watch e o iPhone completa a ligação quando possível.
+
+SOS de Emergência via satélite
+- Antenas se conectam diretamente a satélites para enviar mensagens ao serviço de emergência fora de cobertura celular ou Wi‑Fi.
+- Satélites têm baixa largura de banda e se movem; a mensagem pode demorar alguns minutos.
+- iPhone faz perguntas para avaliar a situação e orienta como apontar o aparelho para se conectar ao satélite.
+- Mensagens são retransmitidas para centros com especialistas treinados pela Apple.
+- Permite compartilhar manualmente a localização via satélite com o Buscar em regiões sem cobertura.
+- Disponibilidade inicial: EUA e Canadá em novembro; gratuito por dois anos com ativação do iPhone 14 Pro / Pro Max.
+
+5) Chip A16 Bionic
+- “O chip mais rápido em um smartphone”, segundo a página.
+- CPU de 6 núcleos (2 de alto desempenho + 4 de alta eficiência):
+  - até 40% mais rápida que a dos concorrentes (conforme descrito).
+- GPU de 5 núcleos com 50% mais largura de banda de memória.
+- Neural Engine de 16 núcleos:
+  - quase 17 trilhões de operações por segundo.
+- Foco em performance + eficiência para bateria durar o dia todo.
+- Importante para fotografia computacional: CPU, GPU, Neural Engine e ISP trabalham juntos (até quatro trilhões de operações por foto, conforme descrito).
+
+6) Conectividade (Cellular e 5G)
+- Downloads e uploads rápidos, melhor streaming e conectividade em tempo real com 5G.
+- Cobertura 5G: mais de 150 operadoras parceiras em mais de 70 mercados (conforme descrito).
+- Compatibilidade ampliada para redes independentes.
+- eSIM:
+  - conexão/transferência digital de planos
+  - alternativa mais segura ao SIM físico
+  - múltiplos planos no mesmo aparelho
+- Nos EUA, iPhone 14 Pro e Pro Max removem a bandeja do SIM físico.
+
+7) iOS 16 (destaques citados)
+- Tela Bloqueada redesenhada com efeito multicamadas e widgets.
+- Galeria da Tela Bloqueada (coleções, Tempo, Astronomia etc.).
+- Mensagens: editar ou desfazer envio; marcar como não lida.
+- Fototeca Compartilhada do iCloud.
+- Texto ao Vivo: agora também em vídeo + conversão de moedas, tradução etc.
+- Pesquisa Visual: destacar parte da imagem e usar em apps como Mensagens.
+
+8) Apple Fitness+ (mencionado na página)
+- Disponível para assinatura por usuários de iPhone (mesmo sem Apple Watch) nos 21 países em que é oferecido (conforme descrito).
+- Integração com o app Fitness no iPhone com iOS 16.
+
+9) Meio ambiente
+- 100% de metais de terras raras reciclados em todos os ímãs (incluindo MagSafe).
+- 100% de tungstênio reciclado no Taptic Engine.
+- 100% de estanho reciclado na solda da placa lógica.
+- 100% de ouro reciclado na superfície da placa lógica e na fiação de todas as câmeras.
+- Embalagem em fibras (sem plástico externo), objetivo de eliminar plástico de todas as embalagens até 2025.
+- Operações corporativas globais neutras em carbono; meta de neutralizar emissões de toda a cadeia e ciclo de vida dos produtos até 2030.
+
+10) Preços e disponibilidade (trechos citados)
+- Modelos e armazenamento: preto-espacial, prateado, dourado e roxo escuro com 128 GB, 256 GB, 512 GB e 1 TB.

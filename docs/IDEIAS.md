@@ -53,6 +53,13 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- ✅ **Ex-funcionário some das telas (02/ago/2026)**: `saiuDaEquipe(f)` em `core.js` é a **única**
+  leitura do marcador `(saiu)` no cargo. Tira a pessoa dos rankings do dashboard, dos **cards da
+  Equipe** (era o vazamento: `renderEquipe` montava as listas do `FUNC` cru, então Pietra e Luana
+  continuavam aparecendo) e da folha. **O cadastro fica no `FUNC` de propósito** — sem ele, venda
+  antiga da pessoa viraria "venda da loja" e o histórico mudaria sozinho.
+- 💡 Se um dia quiserem consultar quem saiu, uma seção "Ex-equipe" recolhida na tela de Equipe
+  resolve sem sujar a visão do mês.
 - ✅ **Faixas de meta coletiva viraram fonte única (31/jul/2026)**: `metasColetivas(ref)` em `core.js`.
   Estavam **copiadas em 6 lugares** (equipe.js ×3, render.js ×2, dash-v2.js ×1) — e um deles
   (o dashboard legado em `render.js`) estava travado no regime antigo. Regra: **nunca retroativa**,

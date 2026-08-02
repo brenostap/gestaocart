@@ -180,7 +180,7 @@ function abrirModalIncompletas(){
         ${rowsHTML(itensAba, aba)}
       </div>
       <div style="padding:14px 24px;border-top:1px solid var(--border);font-size:11px;color:var(--text4);flex-shrink:0">
-        💡 Formatos aceitos: <b>cart/urban</b> · vendedor: <b>david/isa/mel/pietra</b> · atendente: <b>davi/anne/vitinho/denilson/pietra</b>
+        💡 Formatos aceitos: <b>cart/urban</b> · vendedor: <b>${VO_LABELS_ALL.map(([,k])=>k).join('/')}</b> · atendente: <b>${AT_LABELS_ALL.map(([,k])=>k).join('/')}</b>
       </div>
     </div>`;
 

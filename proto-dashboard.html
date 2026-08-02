@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Proto — dashboard v7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1420; --bg2:#161c2b; --bg3:#1b2233; --bg4:#222b3f;
+  --border:#2a3349; --border2:#38425c; --border3:#4a5570;
+  --text:#e8ecf4; --text2:#c3ccdd; --text3:#94a0b8; --text4:#6d7893;
+  --cart:#5b8bf5; --urban:#f5a423; --green:#3ddc84; --red:#f87171; --yellow:#fbbf24;
+  --accent:#5b8bf5;
+  --font-mono:'Geist Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sora',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;line-height:1.35}
+.wrap{max-width:1080px;margin:0 auto}
+.tag{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--text4)}
+.tnum{font-variant-numeric:tabular-nums}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:20px}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.card-h .t{font-size:15px;font-weight:700}
+.card-h .sub{font-size:11.5px;color:var(--text4)}
+
+/* HEADER */
+.head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px}
+.head h1{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.head-actions{display:flex;align-items:center;gap:12px;position:relative}
+.iconbtn{position:relative;width:38px;height:38px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.iconbtn:hover{background:var(--bg3);color:var(--text2)}
+.iconbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg)}
+.refresh{padding:8px 13px;background:transparent;border:1px solid var(--border2);border-radius:10px;color:var(--text3);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer}
+.refresh:hover{background:var(--bg3);color:var(--text2)}
+.notif{display:none;position:absolute;top:46px;right:0;width:330px;background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:8px;z-index:50;box-shadow:0 16px 40px rgba(0,0,0,.45)}
+.notif-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 10px}
+.notif-h .nt{font-size:13px;font-weight:700}.notif-h .nc{font-size:11px;color:var(--text4)}
+.notif-item{display:flex;align-items:center;gap:11px;padding:10px;border-radius:10px;cursor:pointer}
+.notif-item:hover{background:var(--bg3)}
+.notif-item .ni-ic{width:32px;height:32px;border-radius:8px;background:var(--bg4);color:var(--text3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.notif-item .ni-tx{flex:1;min-width:0}
+.notif-item .ni-tx .a{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notif-item .ni-tx .b{font-size:11px;color:var(--text4);margin-top:1px}
+.notif-item .ni-go{font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap}
+
+/* KPI ROW */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kcard{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:17px 18px}
+.kcard .kl{font-size:12.5px;color:var(--text3);font-weight:500;margin-bottom:9px}
+.kcard .kv{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.kbot{display:flex;align-items:flex-end;justify-content:space-between;margin-top:12px;gap:10px}
+.delta{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:7px}
+.delta.up{color:var(--green);background:rgba(61,220,132,.12)}
+.delta.down{color:var(--red);background:rgba(248,113,113,.12)}
+.spark{display:flex;align-items:flex-end;gap:4px;height:34px}
+.spark i{width:7px;border-radius:3px 3px 2px 2px;background:var(--bg4);display:block}
+.spark i.hi{background:var(--text3)}
+
+/* CHART DE VENDAS DO PERÍODO */
+.chart-tiles{display:flex;gap:10px;margin:14px 0 6px;flex-wrap:wrap}
+.tile{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 13px;min-width:112px}
+.tile .tl{font-size:10.5px;color:var(--text4);font-weight:600;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.tile .tl .pin{width:8px;height:8px;border-radius:2px}
+.tile .tv{font-size:18px;font-weight:800;margin-top:3px}
+.legend{display:flex;gap:16px;font-size:11.5px;color:var(--text3)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .pin{width:9px;height:9px;border-radius:2px}
+.legend .lin{width:14px;height:2px;border-radius:2px;background:var(--text2)}
+
+/* donut + gauge */
+.row2{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin:14px 0}
+.donut-wrap{display:flex;align-items:center;gap:24px;margin-top:8px}
+.donut{position:relative;flex-shrink:0}
+.donut .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut .center .cv{font-size:20px;font-weight:800}.donut .center .cl{font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:.06em;margin-top:1px}
+.leg{flex:1;display:flex;flex-direction:column;gap:12px}
+.leg-item{display:flex;align-items:center;gap:10px}
+.leg-item .pin{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.leg-item .li-txt{flex:1}.leg-item .li-txt .n{font-size:13px;font-weight:600}.leg-item .li-txt .s{font-size:11px;color:var(--text4);margin-top:1px}
+.leg-item .li-val{text-align:right}.leg-item .li-val .v{font-size:15px;font-weight:700}.leg-item .li-val .liq{font-size:11px;color:var(--green);font-weight:600}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-top:4px}
+.gauge-val{margin-top:-42px;text-align:center}.gauge-val .gv{font-size:30px;font-weight:800}.gauge-val .gl{font-size:11.5px;color:var(--text4)}
+.gauge-foot{display:flex;justify-content:space-between;width:100%;margin-top:18px;font-size:12px}
+.gauge-foot .gf-k{color:var(--text4)}.gauge-foot .gf-v{color:var(--text2);font-weight:600}
+
+/* RANKING separado */
+.row3{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.rank-row{display:grid;grid-template-columns:20px 1fr auto auto;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--border)}
+.rank-row:first-of-type{border-top:none}
+.rank-pos{font-size:12px;font-weight:700;color:var(--text4);text-align:center}
+.rk-who{display:flex;align-items:center;gap:10px;min-width:0}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;flex-shrink:0;background:var(--bg4);color:var(--text2);border:1px solid var(--border2)}
+.rk-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-res{font-size:12.5px;color:var(--text3);text-align:right;white-space:nowrap}
+.rk-com{font-size:13px;font-weight:700;text-align:right;white-space:nowrap;min-width:60px}
+
+/* VENDAS RECENTES */
+.sales-table{width:100%;border-collapse:collapse;margin-top:10px}
+.sales-table th{font-family:var(--font-mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);text-align:left;padding:0 8px 9px;border-bottom:1px solid var(--border)}
+.sales-table th.r,.sales-table td.r{text-align:right}
+.sales-table td{padding:11px 8px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+.sales-table tr:last-child td{border-bottom:none}
+.sales-table tbody tr:hover td{background:var(--bg3)}
+.sales-table .cod{font-family:var(--font-mono);font-size:12px;color:var(--text3)}
+.sales-table .apar{color:var(--text);font-weight:500}
+.sales-table .lucro{color:var(--green);font-weight:600}
+.live{color:var(--green);font-size:10px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="head">
+    <div><div class="tag">Visão geral</div><h1>Dashboard</h1></div>
+    <div class="head-actions">
+      <button class="iconbtn" onclick="toggleNotif()" aria-label="Alertas">🔔<span class="dot"></span></button>
+      <button class="refresh">↻ Atualizar</button>
+      <div class="notif" id="notif-panel">
+        <div class="notif-h"><span class="nt">Vendas faltando info</span><span class="nc">6 no período</span></div>
+        <div class="notif-item"><div class="ni-ic">⏳</div><div class="ni-tx"><div class="a">#4821 · iPhone 13 128GB</div><div class="b">Pendente — não contabilizada</div></div><div class="ni-go">Ir →</div></div>
+        <div class="notif-item"><div class="ni-ic">⚠</div><div class="ni-tx"><div class="a">#4790 · iPhone 15 Pro</div><div class="b">Obs incompleta — corrija no FoneNinja</div></div><div class="ni-go">Ir →</div></div>
+        <div class="notif-item"><div class="ni-ic">🔍</div><div class="ni-tx"><div class="a">#4774 · sem device</div><div class="b">Produto não vinculado</div></div><div class="ni-go">Ir →</div></div>
+        <div class="notif-item" style="justify-content:center"><div class="ni-go">Ver todas as 6 →</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpis">
+    <div class="kcard"><div class="kl">Produtos vendidos</div><div class="kv tnum">312</div>
+      <div class="kbot"><span class="delta up">↑ 12,1%</span><div class="spark"><i style="height:40%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:70%"></i><i class="hi" style="height:100%"></i><i style="height:62%"></i></div></div></div>
+    <div class="kcard"><div class="kl">Venda bruta</div><div class="kv tnum">R$ 641,5k</div>
+      <div class="kbot"><span class="delta up">↑ 8,4%</span><div class="spark"><i style="height:50%"></i><i style="height:60%"></i><i style="height:45%"></i><i style="height:80%"></i><i class="hi" style="height:100%"></i><i style="height:72%"></i></div></div></div>
+    <div class="kcard"><div class="kl">Lucro bruto</div><div class="kv tnum">R$ 115,5k</div>
+      <div class="kbot"><span class="delta up">↑ 5,1%</span><div class="spark"><i style="height:55%"></i><i style="height:48%"></i><i style="height:65%"></i><i style="height:58%"></i><i class="hi" style="height:100%"></i><i style="height:70%"></i></div></div></div>
+    <div class="kcard"><div class="kl">Lucro líquido</div><div class="kv tnum" style="color:var(--green)">R$ 72,2k</div>
+      <div class="kbot"><span class="delta down">↓ 3,2%</span><div class="spark"><i style="height:70%"></i><i style="height:85%"></i><i style="height:62%"></i><i style="height:90%"></i><i class="hi" style="height:74%"></i><i style="height:58%"></i></div></div></div>
+  </div>
+
+  <!-- CHART: VENDAS DO PERÍODO (estilo Analytics Report) -->
+  <div class="card">
+    <div class="card-h">
+      <div class="t">Vendas do período</div>
+      <div class="legend">
+        <span><span class="pin" style="background:var(--cart)"></span>Cart</span>
+        <span><span class="pin" style="background:var(--urban)"></span>Urban</span>
+        <span><span class="lin"></span>Acessórios R$</span>
+      </div>
+    </div>
+    <div class="chart-tiles">
+      <div class="tile"><div class="tl">Aparelhos</div><div class="tv tnum">312</div></div>
+      <div class="tile"><div class="tl"><span class="pin" style="background:var(--cart)"></span>Cart</div><div class="tv tnum">188</div></div>
+      <div class="tile"><div class="tl"><span class="pin" style="background:var(--urban)"></span>Urban</div><div class="tv tnum">124</div></div>
+      <div class="tile"><div class="tl">Acessórios (bruto)</div><div class="tv tnum">R$ 84,3k</div></div>
+    </div>
+    <svg id="chart" width="100%" viewBox="0 0 900 250" style="display:block;margin-top:6px"></svg>
+  </div>
+
+  <!-- donut + gauge -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-h"><div class="t">Acessórios · para onde vai</div><div class="sub">bruto R$ 84,3k</div></div>
+      <div class="donut-wrap">
+        <div class="donut">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle cx="75" cy="75" r="58" fill="none" stroke="var(--bg4)" stroke-width="18"/>
+            <circle cx="75" cy="75" r="58" fill="none" stroke="var(--green)" stroke-width="18" stroke-dasharray="123.9 240.5" transform="rotate(-90 75 75)"/>
+            <circle cx="75" cy="75" r="58" fill="none" stroke="var(--text3)" stroke-width="18" stroke-dasharray="54.7 309.8" stroke-dashoffset="-123.9" transform="rotate(-90 75 75)"/>
+            <circle cx="75" cy="75" r="58" fill="none" stroke="var(--border3)" stroke-width="18" stroke-dasharray="185.9 178.6" stroke-dashoffset="-178.6" transform="rotate(-90 75 75)"/>
+          </svg>
+          <div class="center"><div class="cv tnum">R$ 84k</div><div class="cl">bruto</div></div>
+        </div>
+        <div class="leg">
+          <div class="leg-item"><span class="pin" style="background:var(--green)"></span><div class="li-txt"><div class="n">Líquido · 34%</div><div class="s">o que sobra pra loja</div></div><div class="li-val"><div class="v tnum" style="color:var(--green)">R$ 28,8k</div></div></div>
+          <div class="leg-item"><span class="pin" style="background:var(--text3)"></span><div class="li-txt"><div class="n">Comissões · 15%</div><div class="s">atendentes + Anne</div></div><div class="li-val"><div class="v tnum">R$ 12,4k</div></div></div>
+          <div class="leg-item"><span class="pin" style="background:var(--border3)"></span><div class="li-txt"><div class="n">Custo · 51%</div><div class="s">mercadoria</div></div><div class="li-val"><div class="v tnum">R$ 43,1k</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><div class="t">Meta de produtos</div><div class="sub">mês</div></div>
+      <div class="gauge-wrap">
+        <svg width="230" height="128" viewBox="0 0 230 128">
+          <path d="M20,115 A95,95 0 0 1 210,115" fill="none" stroke="var(--bg4)" stroke-width="16" stroke-linecap="round"/>
+          <path d="M20,115 A95,95 0 0 1 210,115" fill="none" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" stroke-dasharray="233 400"/>
+        </svg>
+        <div class="gauge-val"><div class="gv tnum">312</div><div class="gl">de 400 · faltam 88</div></div>
+      </div>
+      <div class="gauge-foot"><span class="gf-k">300</span><span class="gf-v">bônus +R$ 750 na próxima faixa</span><span class="gf-k">400</span></div>
+    </div>
+  </div>
+
+  <!-- RANKING SEPARADO -->
+  <div class="row3">
+    <div class="card">
+      <div class="card-h" style="margin-bottom:10px"><div class="t">Vendedores</div><div class="sub">por produtos · comissão</div></div>
+      <div id="vend"></div>
+    </div>
+    <div class="card">
+      <div class="card-h" style="margin-bottom:10px"><div class="t">Atendentes</div><div class="sub">por acessórios · comissão</div></div>
+      <div id="atend"></div>
+    </div>
+  </div>
+
+  <!-- VENDAS RECENTES -->
+  <div class="card">
+    <div class="card-h"><div class="t">Vendas recentes</div><span class="live">● ao vivo</span></div>
+    <table class="sales-table">
+      <thead>
+        <tr><th>Data</th><th>Cód</th><th>Aparelho</th><th class="r">Valor total</th><th class="r">Lucro</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>26/07</td><td class="cod">#4821</td><td class="apar">iPhone 13 128GB</td><td class="r tnum">R$ 3.200</td><td class="r tnum lucro">R$ 576</td></tr>
+        <tr><td>26/07</td><td class="cod">#4820</td><td class="apar">iPhone 15 Pro 256GB</td><td class="r tnum">R$ 6.800</td><td class="r tnum lucro">R$ 816</td></tr>
+        <tr><td>26/07</td><td class="cod">#4819</td><td class="apar">iPhone 12 SN + Capa</td><td class="r tnum">R$ 2.400</td><td class="r tnum lucro">R$ 528</td></tr>
+        <tr><td>26/07</td><td class="cod">#4818</td><td class="apar">AirPods Pro + Capa</td><td class="r tnum">R$ 1.850</td><td class="r tnum lucro">R$ 758</td></tr>
+        <tr><td>26/07</td><td class="cod">#4817</td><td class="apar">iPhone 14 128GB</td><td class="r tnum">R$ 4.100</td><td class="r tnum lucro">R$ 690</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+function toggleNotif(){const p=document.getElementById('notif-panel');p.style.display=p.style.display==='block'?'none':'block';}
+
+/* ---- chart vendas do período ---- */
+(function(){
+  const dias=['13','14','15','16','17','18','19','20','21','22','23','24','25','26'];
+  const cart=[10,13,9,15,12,14,11,16,13,12,15,18,14,16];
+  const urban=[6,8,5,9,7,8,6,10,8,7,9,11,9,10];
+  const acess=[2800,3600,2400,4100,3200,3800,2900,4600,3500,3100,4200,5200,4000,4800];
+  const W=900,H=250,padL=40,padR=48,padT=14,padB=32;
+  const plotW=W-padL-padR, plotH=H-padT-padB, n=dias.length, slot=plotW/n;
+  const uMax=30, rMax=6000;
+  const yU=v=>padT+plotH-(v/uMax)*plotH;
+  const yR=v=>padT+plotH-(v/rMax)*plotH;
+  const cx=i=>padL+slot*i+slot/2;
+  let s='';
+  // grid + eixos
+  for(let g=0;g<=3;g++){const y=padT+plotH-(g/3)*plotH;s+=`<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+    s+=`<text x="${padL-8}" y="${y+3}" fill="var(--text4)" font-size="10" text-anchor="end">${g*10}</text>`;
+    s+=`<text x="${W-padR+8}" y="${y+3}" fill="var(--text4)" font-size="10" text-anchor="start">${g*2}k</text>`;}
+  // barras empilhadas
+  const bw=18;
+  for(let i=0;i<n;i++){
+    const cH=(cart[i]/uMax)*plotH, uH=(urban[i]/uMax)*plotH, base=padT+plotH;
+    const x=cx(i)-bw/2, last=i===n-1;
+    s+=`<rect x="${x}" y="${base-cH}" width="${bw}" height="${cH}" rx="3" fill="var(--cart)" opacity="${last?1:.85}"/>`;
+    s+=`<rect x="${x}" y="${base-cH-uH}" width="${bw}" height="${uH}" rx="3" fill="var(--urban)" opacity="${last?1:.85}"/>`;
+    s+=`<text x="${cx(i)}" y="${H-12}" fill="var(--text4)" font-size="10" text-anchor="middle">${dias[i]}</text>`;
+  }
+  // linha acessorios (neutra)
+  let d='';
+  for(let i=0;i<n;i++){d+=(i?'L':'M')+cx(i)+','+yR(acess[i]);}
+  s+=`<path d="${d}" fill="none" stroke="var(--text2)" stroke-width="2"/>`;
+  for(let i=0;i<n;i++){s+=`<circle cx="${cx(i)}" cy="${yR(acess[i])}" r="${i===n-1?4:2.5}" fill="var(--bg2)" stroke="var(--text2)" stroke-width="2"/>`;}
+  // destaque do ultimo dia (hoje)
+  s+=`<text x="${cx(n-1)}" y="${padT-2}" fill="var(--text3)" font-size="10" text-anchor="middle" font-weight="600">hoje</text>`;
+  document.getElementById('chart').innerHTML=s;
+
+  /* ranking */
+  const vend=[['Isa','92 un','R$ 3.220'],['Mel','78 un','R$ 1.950'],['David','64 un','R$ 1.600'],['Pietra','51 un','R$ 1.275']];
+  const atend=[['Vitinho','R$ 12,4k','R$ 1.950'],['Anne','R$ 9,8k','R$ 980'],['Davi','R$ 7,2k','R$ 720'],['Denilson','R$ 5,1k','R$ 510']];
+  const ini=n=>n.slice(0,2).toUpperCase();
+  const rows=arr=>arr.map((r,i)=>`<div class="rank-row"><div class="rank-pos">${i+1}</div><div class="rk-who"><div class="av">${ini(r[0])}</div><div class="rk-name">${r[0]}</div></div><div class="rk-res">${r[1]}</div><div class="rk-com tnum">${r[2]}</div></div>`).join('');
+  document.getElementById('vend').innerHTML=rows(vend);
+  document.getElementById('atend').innerHTML=rows(atend);
+})();
+</script>
+</body>
+</html>

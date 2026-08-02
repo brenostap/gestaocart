@@ -192,7 +192,7 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
 // falam do mesmo conjunto de gente.
 function fechamentoPessoas(){
   return FUNC.filter(f =>
-    !/\(saiu\)/i.test(f.cargo||'') &&
+    !saiuDaEquipe(f) &&
     ((f.voKey && VO_KEYS.includes(f.voKey)) || (f.atKey && AT_KEYS.includes(f.atKey)))
   );
 }
@@ -408,10 +408,15 @@ function renderEquipe(){
   const metricas={};
   FUNC.forEach(function(f){ metricas[f.id]=calcComissaoFunc(f,allVendas,allMovs,lAcessTotal); });
 
+  // Quem saiu nao vira card: a tela mostra a equipe de HOJE. O cadastro continua
+  // no FUNC (historico das vendas) e o fechamento ja usa o mesmo criterio em
+  // fechamentoPessoas() -- entao tela e folha falam da mesma gente.
+  const naEquipe=function(f){ return !SOCIOS_IDS.includes(f.id) && !saiuDaEquipe(f); };
+
   const socios=FUNC.filter(function(f){return SOCIOS_IDS.includes(f.id);});
-  const online=FUNC.filter(function(f){return !SOCIOS_IDS.includes(f.id)&&f.tipo==='online'&&!f.atKey;});
-  const presencial=FUNC.filter(function(f){return !SOCIOS_IDS.includes(f.id)&&(f.tipo==='presencial'||(f.atKey&&!f.voKey));});
-  const ambos=FUNC.filter(function(f){return !SOCIOS_IDS.includes(f.id)&&f.voKey&&f.atKey;});
+  const online=FUNC.filter(function(f){return naEquipe(f)&&f.tipo==='online'&&!f.atKey;});
+  const presencial=FUNC.filter(function(f){return naEquipe(f)&&(f.tipo==='presencial'||(f.atKey&&!f.voKey));});
+  const ambos=FUNC.filter(function(f){return naEquipe(f)&&f.voKey&&f.atKey;});
 
   online.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].units||0)-(metricas[a.id]&&metricas[a.id].units||0);});
   presencial.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});

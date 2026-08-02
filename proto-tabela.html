@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protótipo · Tabela Oficial agrupada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/components.css">
+<script>(function(){try{var t=localStorage.getItem('pc_tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<style>
+  /* Só o que é novo ao protótipo. Tudo via tokens do theme.css (dark mode grátis). */
+  body{ background:var(--bg); color:var(--text); margin:0; }
+  .proto-wrap{ max-width:1180px; margin:0 auto; padding:26px 24px 70px; }
+  .proto-topo{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .proto-tema{ display:flex; gap:4px; background:var(--bg4); border-radius:var(--radius-sm); padding:3px; }
+  .proto-tema button{ padding:5px 12px; border:none; border-radius:6px; background:transparent; color:var(--text3);
+    font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .proto-tema button.on{ background:var(--bg2); color:var(--text); box-shadow:var(--shadow-sm); }
+
+  /* faixa de filtros: chips de categoria com ícone + contador (a sacada do PXT) */
+  .tp-filtros{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+  .tp-cnt{ font-family:var(--font-mono); font-size:10px; opacity:.6; margin-left:5px; }
+  .c-chip.ativo .tp-cnt{ opacity:.85; }
+
+  /* tabela agrupada */
+  .tp-tabwrap{ overflow-x:auto; }
+  .tp-tab{ width:100%; border-collapse:collapse; font-size:13px; }
+  .tp-tab th{
+    position:sticky; top:0; z-index:3;
+    padding:9px 16px; background:var(--bg3); text-align:left;
+    font-family:var(--font-mono); font-size:10px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.07em; color:var(--text4);
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .tp-tab th.n{ text-align:right; }
+
+  /* faixa do modelo (sticky logo abaixo do cabeçalho) */
+  .tp-grupo td{
+    position:sticky; top:32px; z-index:2;
+    padding:10px 16px 9px; background:var(--bg3); cursor:pointer;
+    border-top:1px solid var(--border2); border-bottom:1px solid var(--border);
+    user-select:none;
+  }
+  .tp-grupo:hover td{ background:var(--bg4); }
+  .tp-seta{ display:inline-block; width:12px; color:var(--text4); font-size:9px; margin-right:6px; transition:transform .15s; }
+  .tp-grupo.fechado .tp-seta{ transform:rotate(-90deg); }
+  .tp-grupo-nome{ font-size:13.5px; font-weight:700; color:var(--text); letter-spacing:-.01em; }
+  .tp-cores{ display:inline-flex; gap:4px; margin-left:12px; vertical-align:middle; }
+  .tp-dot{ width:13px; height:13px; border-radius:50%;
+    border:1px solid rgba(0,0,0,.22); box-shadow:inset 0 1px 1px rgba(255,255,255,.25); }
+  :root[data-theme="dark"] .tp-dot,
+  html:not([data-theme="light"]) .tp-dot{ border-color:rgba(255,255,255,.18); }
+  .tp-cores-cap{ font-family:var(--font-mono); font-size:10px; color:var(--text4); margin-left:10px; vertical-align:middle; }
+  /* chip informativo NEUTRO — não é alerta (cor = significado, nunca decoração) */
+  .tp-varia{ font-family:var(--font-mono); font-size:9px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text4); background:var(--bg4); padding:1px 6px; border-radius:var(--radius-pill); margin-left:10px; vertical-align:middle; }
+
+  /* linhas de variante */
+  .tp-lin td{ padding:8px 16px; border-bottom:1px solid var(--border); color:var(--text2); }
+  .tp-lin:hover td{ background:var(--bg3); }
+  .tp-gb{ font-family:var(--font-mono); font-size:12px; color:var(--text3); }
+  .tp-gb::before{ content:"↳"; color:var(--text4); margin:0 8px 0 8px; opacity:.55; }
+  .tp-lin .tp-dot-lin{ width:11px; height:11px; border-radius:50%; display:inline-block; vertical-align:middle;
+    margin-right:7px; border:1px solid rgba(0,0,0,.22); }
+  .tp-cor-nome{ color:var(--text2); }
+  .tp-preco{ text-align:right; font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
+  .tp-up{ color:var(--text2); }
+  .tp-var{ color:var(--cart); }
+  .tp-warn{ text-align:center; }
+  .tp-warn span{ color:var(--warning); font-size:12px; cursor:help; }
+
+  .proto-nota{ font-size:12px; color:var(--text3); background:var(--bg3); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:10px 13px; margin-top:14px; line-height:1.55; }
+  .proto-nota b{ color:var(--text); }
+</style>
+</head>
+<body>
+<div class="proto-wrap">
+
+  <div class="proto-topo">
+    <div>
+      <div class="pg-kicker">PROTÓTIPO · TABELA DE PREÇOS</div>
+      <div class="pg-title" style="font-size:26px">Agrupada por modelo</div>
+    </div>
+    <div class="proto-tema">
+      <button id="t-claro" onclick="setTema('light')">☀ Claro</button>
+      <button id="t-escuro" onclick="setTema('dark')">☾ Escuro</button>
+    </div>
+  </div>
+
+  <!-- FILTROS: categoria (ícone + contador) · separador · condição -->
+  <div class="tp-filtros" id="filtros"></div>
+
+  <!-- CARD único com a tabela (largura toda) -->
+  <div class="c-card">
+    <div class="c-card-head">
+      <div class="c-card-title">📋 Tabela de preços <span class="c-card-sub" id="sub-contagem"></span></div>
+      <div class="c-card-action">
+        <span style="font-size:11px;color:var(--text4)">sincronizada há 2 h</span>
+        <button class="c-btn c-btn-sm" style="color:var(--cart);border-color:var(--cart)">↻ Atualizar da planilha</button>
+      </div>
+    </div>
+    <div class="c-card-body flush">
+      <div id="tabela"></div>
+    </div>
+    <div style="padding:11px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text4)">
+      💡 Preços vêm da planilha oficial no Google Sheets · <span style="color:var(--warning)">⚠</span> = sujeito a disponibilidade · bolinhas = cores disponíveis (mesmo preço) · clique numa faixa pra recolher
+    </div>
+  </div>
+
+  <div class="proto-nota">
+    <b>Ajustado com o que definimos:</b> aba só com a tabela (sem KPIs, sem Estoque×Tabela), largura toda · faixa do modelo <b>sticky</b> ao rolar e <b>clicável pra recolher</b> · GB em ordem crescente.
+    Clique em <b>Lacrado</b> pra ver um modelo que <b>varia preço por cor</b> (aí a cor entra na linha, não só na faixa). Clique em <b>Novo</b> pra ver o estado vazio.
+  </div>
+
+</div>
+
+<script>
+// ---- Cores reais da planilha -> hex aproximado do produto -------------------
+const COR = {
+  'Branco':'#ECECEC', 'Preto':'#1C1C1E', 'Roxo':'#B7A8DB', 'Verde':'#A8D5B5',
+  'Amarelo':'#FDE36A', 'Vermelho':'#C63B3B', 'Prateado':'#E4E5E7',
+  'Cinza Espacial':'#52525A', 'Dourado':'#EAD9B0', 'Verde Meia Noite':'#3B4A45',
+  'Azul':'#7FA8D6', 'Azul Pacífico':'#2E5A70', 'Grafite':'#3C3C3E',
+  'Estelar':'#F1EAD9', 'Meia Noite':'#26303F', 'Rosa':'#F4D3D8',
+  'Cosmic Orange':'#C25A28', 'Deep Blue':'#2E4A6B', 'Silver':'#DDDEE0'
+};
+
+// ---- Dados reais (aba precos-referencia da "Maju Tabela") --------------------
+const C = ['Prateado','Cinza Espacial','Dourado','Verde Meia Noite'];
+const CPRO = ['Prateado','Grafite','Dourado','Azul Pacífico'];
+const C11 = ['Branco','Preto','Roxo','Verde','Amarelo','Vermelho'];
+const C12 = ['Branco','Preto','Vermelho','Azul','Verde','Roxo'];
+const C13 = ['Azul','Vermelho','Estelar','Meia Noite','Rosa','Verde'];
+const C17 = ['Cosmic Orange','Deep Blue','Silver'];
+
+const DADOS = [
+  // --- Seminovo: cor NÃO muda preço -> bolinhas na faixa ---------------------
+  {cat:'iPhone', mod:'11',         gb:'64GB',  cond:'Seminovo', up:400,  var:900,  cores:C11, subj:false},
+  {cat:'iPhone', mod:'11',         gb:'128GB', cond:'Seminovo', up:500,  var:1000, cores:C11, subj:true},
+  {cat:'iPhone', mod:'11 Pro',     gb:'64GB',  cond:'Seminovo', up:550,  var:1200, cores:C, subj:false},
+  {cat:'iPhone', mod:'11 Pro',     gb:'256GB', cond:'Seminovo', up:800,  var:1400, cores:C, subj:true},
+  {cat:'iPhone', mod:'11 Pro Max', gb:'64GB',  cond:'Seminovo', up:800,  var:1400, cores:C, subj:false},
+  {cat:'iPhone', mod:'11 Pro Max', gb:'256GB', cond:'Seminovo', up:900,  var:1500, cores:C, subj:true},
+  {cat:'iPhone', mod:'12',         gb:'64GB',  cond:'Seminovo', up:700,  var:1290, cores:C12, subj:false},
+  {cat:'iPhone', mod:'12',         gb:'128GB', cond:'Seminovo', up:850,  var:1390, cores:C12, subj:false},
+  {cat:'iPhone', mod:'12',         gb:'256GB', cond:'Seminovo', up:950,  var:1490, cores:C12, subj:true},
+  {cat:'iPhone', mod:'12 Pro',     gb:'128GB', cond:'Seminovo', up:1200, var:1750, cores:CPRO, subj:false},
+  {cat:'iPhone', mod:'12 Pro',     gb:'256GB', cond:'Seminovo', up:1250, var:1850, cores:CPRO, subj:true},
+  {cat:'iPhone', mod:'12 Pro Max', gb:'128GB', cond:'Seminovo', up:1490, var:2090, cores:CPRO, subj:false},
+  {cat:'iPhone', mod:'12 Pro Max', gb:'256GB', cond:'Seminovo', up:1590, var:2190, cores:CPRO, subj:true},
+  {cat:'iPhone', mod:'13',         gb:'128GB', cond:'Seminovo', up:1400, var:1900, cores:C13, subj:false},
+  {cat:'iPhone', mod:'13',         gb:'256GB', cond:'Seminovo', up:1450, var:1990, cores:C13, subj:true},
+
+  // --- Lacrado: cor MUDA preço -> `cor` na própria linha (ilustrativo) -------
+  {cat:'iPhone', mod:'17 Pro Max', gb:'256GB', cond:'Lacrado', cor:'Cosmic Orange', up:6800, var:7600, cores:C17, subj:false},
+  {cat:'iPhone', mod:'17 Pro Max', gb:'256GB', cond:'Lacrado', cor:'Deep Blue',     up:6700, var:7500, cores:C17, subj:false},
+  {cat:'iPhone', mod:'17 Pro Max', gb:'256GB', cond:'Lacrado', cor:'Silver',        up:6750, var:7550, cores:C17, subj:true},
+  {cat:'iPhone', mod:'17 Pro Max', gb:'512GB', cond:'Lacrado', cor:'Cosmic Orange', up:7300, var:8100, cores:C17, subj:false},
+  {cat:'iPhone', mod:'17 Pro Max', gb:'512GB', cond:'Lacrado', cor:'Deep Blue',     up:7250, var:8050, cores:C17, subj:false},
+  {cat:'iPhone', mod:'17 Pro Max', gb:'512GB', cond:'Lacrado', cor:'Silver',        up:7280, var:8080, cores:C17, subj:false},
+];
+
+const CATS = [ {k:'iPhone', ico:'📱'}, {k:'Android', ico:'🤖'}, {k:'iPad', ico:'💻'} ];
+const CONDS = ['Seminovo','Novo','Lacrado'];
+let cat = 'iPhone', cond = 'Seminovo';
+let fechados = new Set();   // chaves de modelos recolhidos
+
+const brl = n => 'R$ ' + Number(n).toLocaleString('pt-BR');
+const gbNum = g => { const m = String(g).match(/([\d.]+)\s*(TB|GB)/i); if(!m) return 0;
+  return parseFloat(m[1]) * (/tb/i.test(m[2]) ? 1024 : 1); };
+
+function setTema(t){
+  document.documentElement.setAttribute('data-theme', t);
+  try{ localStorage.setItem('pc_tema', t); }catch(e){}
+  document.getElementById('t-claro').classList.toggle('on', t==='light');
+  document.getElementById('t-escuro').classList.toggle('on', t==='dark');
+}
+function setCat(c){ cat=c; render(); }
+function setCond(c){ cond=c; render(); }
+function toggleGrupo(k){ if(fechados.has(k)) fechados.delete(k); else fechados.add(k); render(); }
+
+function render(){
+  // filtros
+  const cont = c => DADOS.filter(d=>d.cat===c && d.cond===cond).length;
+  const chips = CATS.map(c=>`
+    <button class="c-chip${c.k===cat?' ativo':''}" onclick="setCat('${c.k}')">
+      ${c.ico} ${c.k}<span class="tp-cnt">${cont(c.k)}</span>
+    </button>`).join('');
+  const conds = CONDS.map(cd=>`
+    <button class="c-chip${cd===cond?' ativo':''}" onclick="setCond('${cd}')">${cd}</button>`).join('');
+  document.getElementById('filtros').innerHTML = chips + `<div class="c-sep"></div>` + conds;
+
+  const linhas = DADOS.filter(d=>d.cat===cat && d.cond===cond);
+  document.getElementById('sub-contagem').textContent = linhas.length ? `${linhas.length} variantes` : '';
+
+  const alvo = document.getElementById('tabela');
+  if(!linhas.length){
+    alvo.innerHTML = `<div class="c-vazio">
+      <div class="c-vazio-ico">🗂️</div>
+      <div class="c-vazio-titulo">Sem preços para ${cat} · ${cond}</div>
+      <div class="c-vazio-texto">Essa combinação ainda não tem linha na planilha. Adicione em <b>${cat} → ${cond}</b> no Google Sheets e clique em “Atualizar da planilha”.</div>
+    </div>`;
+    return;
+  }
+
+  // agrupa por modelo, preservando ordem
+  const grupos = [];
+  linhas.forEach(d=>{
+    let g = grupos.find(x=>x.mod===d.mod);
+    if(!g){ g = {mod:d.mod, cores:d.cores, itens:[], variaCor:false}; grupos.push(g); }
+    if(d.cor) g.variaCor = true;
+    g.itens.push(d);
+  });
+
+  const dot = (c,cls='tp-dot') => `<span class="${cls}" style="background:${COR[c]||'var(--text4)'}" title="${c}"></span>`;
+
+  const corpo = grupos.map(g=>{
+    const k = g.mod;
+    const aberto = !fechados.has(k);
+    const faixa = `<tr class="tp-grupo${aberto?'':' fechado'}" onclick="toggleGrupo('${k.replace(/'/g,"\\'")}')"><td colspan="4">
+      <span class="tp-seta">▾</span>
+      <span class="tp-grupo-nome">iPhone ${g.mod}</span>
+      <span class="tp-cores">${g.cores.map(c=>dot(c)).join('')}</span>
+      <span class="tp-cores-cap">${g.cores.length} cores</span>
+      ${g.variaCor?'<span class="tp-varia">preço varia por cor</span>':''}
+    </td></tr>`;
+
+    if(!aberto) return faixa;
+
+    // ordena: GB crescente; se varia por cor, cor como desempate
+    const itens = g.itens.slice().sort((a,b)=> gbNum(a.gb)-gbNum(b.gb)
+      || String(a.cor||'').localeCompare(String(b.cor||''),'pt-BR'));
+
+    const vars = itens.map(d=>{
+      const rotulo = d.cor
+        ? `<span class="tp-gb" style="padding-left:0">${d.gb}</span> &nbsp;${dot(d.cor,'tp-dot-lin')}<span class="tp-cor-nome">${d.cor}</span>`
+        : `<span class="tp-gb">${d.gb}</span>`;
+      return `<tr class="tp-lin">
+        <td>${rotulo}</td>
+        <td class="tp-preco tp-up">${brl(d.up)}</td>
+        <td class="tp-preco tp-var">${brl(d.var)}</td>
+        <td class="tp-warn">${d.subj?'<span title="Sujeito a disponibilidade">⚠</span>':''}</td>
+      </tr>`;
+    }).join('');
+    return faixa + vars;
+  }).join('');
+
+  alvo.innerHTML = `<div class="tp-tabwrap"><table class="tp-tab">
+    <thead><tr>
+      <th>Modelo · GB</th>
+      <th class="n">Upgrade</th>
+      <th class="n">Varejo</th>
+      <th style="width:44px"></th>
+    </tr></thead>
+    <tbody>${corpo}</tbody>
+  </table></div>`;
+}
+
+setTema(document.documentElement.getAttribute('data-theme') || 'light');
+render();
+</script>
+</body>
+</html>

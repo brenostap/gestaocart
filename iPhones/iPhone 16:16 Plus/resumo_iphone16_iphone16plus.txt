@@ -1,0 +1,102 @@
+Resumo – iPhone 16 e iPhone 16 Plus (Apple)
+
+Data do anúncio: 09 de setembro de 2024 (press release da Apple).
+
+O que é
+• A Apple apresentou o iPhone 16 e o iPhone 16 Plus, com foco em câmera, desempenho, bateria, Apple Intelligence e novos recursos de segurança e conectividade via satélite.
+
+Principais novidades e destaques
+1) Chip A18 (3 nm – 2ª geração)
+• Grande avanço em desempenho e eficiência energética.
+• CPU 6 núcleos: ~30% mais rápida que a do A16 Bionic.
+• GPU 5 núcleos: até ~40% mais rápida e ~35% mais eficiente que a do A16 Bionic.
+• Ray tracing acelerado por hardware.
+• Neural Engine (16 núcleos) otimizado para modelos generativos: até 2× mais rápido que o do iPhone 15 (para workloads de ML).
+
+2) Controle da Câmera (Camera Control)
+• Novo controle físico/tátil para abrir câmera, tirar foto e gravar vídeo rapidamente.
+• Sensor de força (pressão leve) + sensor capacitivo (gestos).
+• Permite ajustar zoom, exposição e profundidade de campo com deslizes/toques.
+• Integração com apps de terceiros (ex.: Snapchat).
+• Vai ganhar “inteligência visual” (Visual Intelligence) em países/regiões com Apple Intelligence: consultar info de lugares/objetos, criar eventos a partir de cartazes, identificar raças de cachorro etc.
+• Também poderá acessar ferramentas de terceiros (ex.: busca no Google e ChatGPT) — com controle do usuário sobre uso e compartilhamento de dados.
+
+3) Câmeras (sistema de câmera atualizado)
+• Câmera Fusion 48 MP com teleobjetiva 2× (qualidade óptica) — “como ter duas câmeras em uma”.
+• Ultra-angular 12 MP com foco automático:
+  – Fotografia macro.
+  – Captura até 2,6× mais luz.
+• Fotos e vídeos espaciais para reviver momentos no Apple Vision Pro.
+• Nova geração de Estilos Fotográficos:
+  – Ajuste em tempo real de cor, realces e sombras.
+  – Melhor compreensão de tons de pele.
+  – Aplicação por cores específicas (diferente de filtros).
+  – Prévia em tempo real, aplicação pós-captura e reversão posterior.
+• Vídeo com Áudio Espacial + “Mixagem de Áudio”:
+  – Ajustes depois de gravar (dar foco à voz, efeito estúdio, etc.).
+• Redução de ruído do vento com ML.
+
+4) Design, tela e durabilidade
+• Tamanhos: 6,1" (iPhone 16) e 6,7" (iPhone 16 Plus).
+• Tela Super Retina XDR OLED com Dynamic Island.
+• Ceramic Shield de última geração: 50% mais forte que a 1ª geração.
+• Resistência a água/poeira IP68 (até 6 m por 30 min – IEC 60529).
+• Novo design interno para acomodar bateria maior, melhor dissipação de calor e facilitar reparos na bateria.
+
+5) Botão de Ação (Action Button) no iPhone 16/16 Plus
+• Permite atalho rápido para várias funções: câmera, lanterna, modos silencioso, foco, tradutor, lupa, atalhos etc.
+• Pode funcionar dentro de apps (ex.: FordPass para travar/destravar o carro – disponibilidade por país).
+
+6) Apple Intelligence (IA)
+• Linha iPhone 16 foi pensada para Apple Intelligence.
+• Recursos citados:
+  – Ferramentas de Escrita (reescrever, revisar, resumir em todo o sistema).
+  – Genmoji e Image Playground.
+  – Resumo e priorização de notificações e mensagens no Mail.
+  – Gravação/transcrição/resumo de áudio em Notas e Telefone.
+  – Gravação de chamadas com notificação automática e resumo pós-chamada.
+  – Siri mais natural, contextual e integrada; permite digitar para Siri.
+  – Integração facilitada ao ChatGPT durante uso de Siri e Ferramentas de Escrita.
+• Privacidade: Private Cloud Compute (processamento entre dispositivo e servidores com chips Apple).
+
+7) Conectividade e segurança via satélite
+• Mensagens via Satélite (iOS 18): enviar/receber textos, emojis e Tapbacks via iMessage e SMS quando sem rede celular/Wi‑Fi.
+• Criptografia ponta a ponta para mensagens via satélite.
+• Vídeo ao Vivo para SOS de Emergência (iOS 18) — disponível nos EUA.
+• Assistência Rodoviária via Satélite:
+  – Já disponível nos EUA (AAA e Verizon Roadside Assistance).
+  – Chega ao Reino Unido (Green Flag) ainda em 2024.
+• Recursos de satélite gratuitos por 2 anos a partir da ativação de iPhone 14 ou posterior (conforme regras locais).
+
+8) Games
+• Suporte a jogos AAA (antes restritos ao 15 Pro).
+• Exemplo citado: Honor of Kings: World com modo ultra otimizado para iPhone 16 (chega em 2025).
+• Modo de Jogo do iOS 18: quadros mais consistentes e melhor resposta para AirPods/controles.
+
+Cores e armazenamento
+• Cores: ultramarino, verde-acinzentado, rosa, branco e preto.
+• Capacidades: 128 GB, 256 GB, 512 GB.
+
+
+Datas importantes (mercados principais)
+• Pré-venda em mais de 58 países/regiões: 13 de setembro de 2024 (5h PDT).
+• Disponibilidade: 20 de setembro de 2024.
+• Expansão para mais países: a partir de 27 de setembro de 2024.
+• iOS 18: atualização gratuita em 16 de setembro de 2024.
+• Apple Intelligence: primeiras funções em beta no iOS 18.1 / iPadOS 18.1 / macOS Sequoia 15.1 (a partir do mês seguinte ao anúncio, com expansão de idiomas ao longo de 2025).
+
+Meio ambiente
+• Parte do Apple 2030 (neutralidade de carbono nas operações até o fim da década).
+• +30% de material reciclado no aparelho:
+  – 85% de alumínio reciclado na estrutura.
+  – 80%+ de aço reciclado em vários componentes.
+  – Bateria: 100% cobalto reciclado; +95% lítio reciclado (primeira vez no iPhone).
+• Embalagem 100% fibra; redução de plástico nas embalagens.
+
+Acessórios citados
+• Capas (transparente e silicone com MagSafe) compatíveis com Controle da Câmera.
+• Carteira FineWoven com MagSafe.
+• Novo carregador MagSafe: até 25W, compatível com Qi2.
+
+Fonte
+• Apple Newsroom (Brasil): “Apple apresenta iPhone 16 e iPhone 16 Plus” (09/09/2024).

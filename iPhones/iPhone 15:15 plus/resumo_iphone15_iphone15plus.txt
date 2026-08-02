@@ -1,0 +1,52 @@
+Resumo — iPhone 15 e iPhone 15 Plus (Apple Newsroom | 13 set 2023)
+
+Principais novidades
+• Novo design com vidro traseiro colorido por infusão e acabamento matte texturizado; estrutura de alumínio com bordas mais arredondadas.
+• Dynamic Island chega aos modelos base, trazendo alertas e Atividades ao Vivo de forma interativa.
+• Porta USB‑C para recarga e transferência, com padrão universal (mesmo cabo pode carregar iPhone, Mac, iPad e AirPods Pro 2ª geração com USB‑C).
+• Chip A16 Bionic (o mesmo da geração Pro anterior), com alta eficiência e foco em desempenho para câmera, Dynamic Island e recursos do iOS 17.
+
+Tela e resistência
+• iPhone 15: 6,1"
+• iPhone 15 Plus: 6,7"
+• Tela Super Retina XDR com pico de brilho de até 1.600 nits em HDR e até 2.000 nits em uso externo sob sol.
+• Frente com Ceramic Shield (mais resistente que vidro comum de smartphone).
+• Resistência à água e poeira (padrão de proteção citado no artigo).
+
+Câmeras (grande destaque)
+• Câmera grande-angular de 48 MP com sensor quad‑pixel, foco rápido (Focus Pixels 100%) e fotos com novo padrão de 24 MP (alta qualidade com tamanho de arquivo otimizado).
+• Zoom óptico de qualidade em 3 níveis no sistema de câmera dupla: 0,5x / 1x / 2x (teleobjetiva 2x via recorte óptico, equivalente a uma “terceira câmera”).
+• Retratos mais inteligentes:
+  – O iPhone captura automaticamente informações de profundidade quando detecta pessoa, cachorro ou gato no enquadramento (ou quando você toca para focar).
+  – É possível transformar a foto em retrato depois, no app Fotos, e ajustar o ponto de foco posteriormente.
+• Melhorias no modo Noite e no HDR Inteligente, com pele mais realista, mais detalhes e cores melhores, inclusive em apps de terceiros.
+
+Conectividade e recursos úteis
+• Compatível com MagSafe e carregadores padrão Qi.
+• Pode recarregar AirPods/Apple Watch via iPhone (usando USB‑C).
+• Chip de banda ultralarga (UWB) de 2ª geração: alcance até 3x maior para Busca Precisa no Buscar Amigos (útil em multidões).
+• Mantém 5G e melhora a qualidade de áudio em ligações, incluindo opção de Isolamento de Voz.
+• eSIM como alternativa ao chip físico; compatível com mais de 295 operadoras.
+
+Segurança via satélite e emergência
+• Detecção de Acidente e SOS de Emergência via satélite (em países e regiões compatíveis).
+• Novo recurso “Assistência Rodoviária via Satélite” (inicialmente nos EUA), conectando o usuário à AAA quando não há sinal — incluso por 2 anos (conforme condições descritas).
+
+iOS 17 (destaques citados)
+• Pôsteres de Contato e Voicemail ao Vivo com transcrição no aparelho em tempo real.
+• Mensagens com adesivos, busca avançada, transcrição de áudio e Chegou Bem.
+• NameDrop para compartilhar contato aproximando dois iPhones.
+• Em Espera (StandBy) com visual em tela cheia quando o iPhone está na horizontal carregando.
+• Novo app Diário (Journal) e outras melhorias gerais.
+
+Sustentabilidade
+• Mais materiais reciclados: 100% cobalto reciclado na bateria, 100% cobre reciclado em partes da placa, 75% alumínio reciclado na estrutura, metais de terras raras reciclados nos ímãs e 100% ouro reciclado na porta USB‑C (entre outros).
+• Embalagem com mais de 99% de fibras, visando reduzir plástico.
+• A Apple deixa de usar couro em novos produtos, introduzindo acessórios FineWoven.
+
+Cores
+• Rosa, amarelo, verde, azul e preto.
+
+Armazenamento
+• 128 GB, 256 GB e 512 GB.
+
