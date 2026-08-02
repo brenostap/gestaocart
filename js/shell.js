@@ -101,8 +101,9 @@ function renderShell(){
     <div class="sb-brand">
       <img class="sb-logo" id="header-logo" src="img/phonecart-icon.png" alt="">
       <div class="sb-brand-txt">
-        <span class="sb-brand-name" id="header-logo-name">Phone Cart</span>
-        <span class="sb-brand-sub" id="header-logo-sub">Dashboard</span>
+        <!-- estado inicial = loja 'ambas'; updateHeaderLogo() troca ao mudar de loja -->
+        <span class="sb-brand-name" id="header-logo-name">Cart System</span>
+        <span class="sb-brand-sub" id="header-logo-sub">Visão consolidada</span>
       </div>
     </div>
 

@@ -245,7 +245,7 @@ function updateHeaderLogo(){
     if(sub) sub.textContent='Dashboard';
   } else {
     img.src=LOGO_PHONECART_ICON;
-    name.textContent='Phone Cart · Urban';
+    name.textContent='Cart System';
     name.style.color='var(--text)';
     if(sub) sub.textContent='Visão consolidada';
   }
