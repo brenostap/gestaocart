@@ -22,6 +22,21 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - ✅ Badge de forma de pagamento por venda (Pix/Crédito/Débito/Dinheiro).
 - ✅ Colunas parcelas/taxa/líquido/margem + toggle "Mais colunas".
 
+## Tabela de preços
+- ✅ **Seções empilhadas + linha por modelo (02/ago/2026)**, inspirado na tabela que a loja posta nos
+  stories. Antes: chip de condição mostrava **uma** condição por vez e todas as variantes de GB abertas.
+  Agora: **Seminovos** primeiro, **Lacrados** abaixo, lista contínua; uma linha por modelo (fechada,
+  mostrando cores e **faixa de preço**), que abre nas capacidades. Chip de condição virou `Todas` +
+  filtro. Categoria com iPhone na frente (`PRECO_CAT_ORDEM` em tabela.js).
+- ⚠️ **No celular a coluna Upgrade sai da tabela** e o valor aparece embaixo do nome. Três colunas de
+  número não cabem em 375px sem cortar o Varejo — que é justamente a coluna que se olha.
+- 💡 **Mesmo padrão em Vendas** (pedido do dono, ago/2026): linha fechada por venda, expande em linhas.
+  Compras já funciona assim (`comprasAbertas`).
+- 💡 **Gerar a imagem do story a partir da tabela.** Hoje a arte é feita à mão e os preços são copiados —
+  fonte dupla, erra fácil. A tela já tem os dados agrupados do jeito que o story mostra.
+- ⚠️ **Dado da planilha:** existem `17 Pro Max` e `17 pro Max` (p minúsculo) em Lacrado — viram **dois
+  modelos separados** na tela. É typo na planilha, corrige lá.
+
 ## Tela de Compras
 - ✅ **Aba Compras (jul/2026)**: espelho de Vendas. Uma compra por linha (ordem de registro = `data_entrada desc`); **clicar expande a linha inline** com os itens um por linha (modelo/série/IMEI/custo). Coluna Fornecedor mostra a qtd de itens; selo **parcial** (itens capturados < `qtd_produtos`) e **sem detalhe** (0 capturado). KPIs (compras/itens/valor), filtros (fornecedor + busca fornecedor/modelo/IMEI via `ilike` no servidor), período do contexto. **Só sócio** (todo valor é custo); **estoque único** — ignora o filtro de loja (a tabela `compras` não tem loja).
   - Código: `renderCompras`/`comprasDetalheHTML`/`alternarCompra` em `js/compras.js` (arquivo novo). **Carga sob demanda**: cabeçalhos `compras` (janela 6m) + contagem leve de `compra_produtos` no 1º open; itens completos só ao expandir. Reusa `.est-detalhe`/`.est-linha.aberta` (Estoque) e `.vf-item` (ficha de Vendas) → zero CSS novo.
