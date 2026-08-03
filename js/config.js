@@ -33,6 +33,9 @@ let estoqueWaModalState = { open:false, template:'A', scope:'todos' };
 let movsView='compras',movsSearchStr='',movsCache={},movsFilterTipo='todos';
 let customDateStart='',customDateEnd='';
 let vendasSearch='',vendasLoja='todas',vendasVendedor='todos',vendasAtendente='todos',vendasProduto='',vendasSortCol='',vendasSortDir=1;
+// Filtro por conta bancaria do pagamento (o banco escolhido na FoneNinja).
+// 'todas' = sem filtro. Ver a tela Contas (js/contas.js) pro consolidado.
+let vendasConta='todas';
 
 const FUNC=[
   {id:'david',  ap:'David',   nome:'Davi da Silva Ramos',         cargo:'Vendedor',          pix:'(11) 98288-1180',          tipo:'online',    email:'',                                   voKey:'david'  },

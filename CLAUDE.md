@@ -63,6 +63,18 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - O `líquido`/recebimento da FoneNinja **erra em ~9%** das vendas — o lucro dessas não é confiável.
 - `taxa` = custo real da maquininha; `taxa_extra` = juros repassados ao cliente (é ganho da loja, já embutido no líquido).
 - **Trocas detalhadas** (quais aparelhos o cliente entregou, IMEI/valor) **ainda não são capturadas** — só o total (`upgrade_valor`/`upgrade_qtd`).
+- **A obs da venda é a ÚNICA fonte de loja, vendedor e atendente.** `vendas.loja_id` está 100%
+  vazio e não existe campo de vendedor-nome: `loja`, `vendedor_obs` e `atendente_obs` são todos
+  parseados do texto da observação. Tirar a obs quebra as três coisas de uma vez.
+  - `vendas.vendedor_id` é **quem cadastrou** (o perfil FoneNinja de quem digitou) e casa com
+    `funcionarios.id` → nome. Ele **não** é o vendedor: é o **atendente**, e bate com
+    `atendente_obs` em ~96% de julho/2026. Os ~4% que erram são atendente usando o login do
+    colega — justamente o caso em que a comissão sairia errada.
+  - O **vendedor online** (Mel, Isa, David) não tem perfil na FoneNinja — não cadastra venda.
+    Pra ele a obs é insubstituível.
+- **Conta bancária do pagamento** (`pagamentos.conta_bancaria`) já vem do sync e alimenta a tela
+  Contas. A lista de contas é montada do próprio dado — conta nova cadastrada na FoneNinja
+  aparece sozinha, sem mexer no código.
 
 ## Caderno de ideias
 - `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.

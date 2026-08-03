@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-stpx-Desktop-gestaocart/73dbb988-c865-4a46-8073-34909532f935/scratchpad/serve.js"],
+      "port": 8080
+    },
+    {
+      "name": "site-contas",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-stpx-Desktop-gestaocart/5090d63d-05b2-45ff-b4a6-d53729907602/scratchpad/serve.js"],
+      "port": 8092
+    }
+  ]
+}

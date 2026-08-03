@@ -12,6 +12,7 @@ const ICO = {
   movs:      '<svg viewBox="0 0 24 24"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3"/></svg>',
   equipe:    '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.6M18 20a6.4 6.4 0 0 0-2-4.6"/></svg>',
   tabela:    '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 15h18M9.5 9.5V20"/></svg>',
+  contas:    '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10.5h20"/><path d="M6 15.5h4"/></svg>',
   custos:    '<svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 6.5c0-1.9-2.2-3-5-3s-5 1.1-5 3 2.2 2.7 5 3.2 5 1.3 5 3.3-2.2 3.2-5 3.2-5-1.3-5-3.2"/></svg>',
   fechamento:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="m9 15 2 2 4-4"/></svg>',
 };
@@ -29,6 +30,7 @@ const NAV = [
     {id:'tabela',  label:'Tabela de preços'},
   ]},
   { grupo:'Financeiro', itens:[
+    {id:'contas',     label:'Contas'},
     {id:'custos',     label:'Custos'},
     {id:'fechamento', label:'Fechamento', emBreve:true},
   ]},
@@ -42,7 +44,7 @@ const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 // a fase de perfis chegar, basta papelAtual() passar a ler o perfil real.
 // ---------------------------------------------------------------------------
 const MATRIZ_ACESSO = {
-  socio:     ['dash','vendas','compras','estoque','movs','equipe','tabela','custos','fechamento'],
+  socio:     ['dash','vendas','compras','estoque','movs','equipe','tabela','contas','custos','fechamento'],
   gerente:   ['dash','vendas','estoque','movs','equipe'],
   vendedor:  ['dash','vendas','estoque'],
   atendente: ['dash','vendas','estoque'],

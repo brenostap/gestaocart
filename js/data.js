@@ -24,7 +24,7 @@ async function loadFromSupabase(){
   let pagamentos = [];
   for(let i=0;i<vendasIds.length;i+=100){
     const lote = vendasIds.slice(i,i+100);
-    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,conta_bancaria,valor,taxa,taxa_extra,liquido,numero_parcelas,status&venda_id=in.(${lote.join(',')})`);
+    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,conta_bancaria,valor,taxa,taxa_extra,liquido,numero_parcelas,status,data_pagamento,data_compensacao&venda_id=in.(${lote.join(',')})`);
     pagamentos = pagamentos.concat(pags||[]);
   }
   const pagsMap={};

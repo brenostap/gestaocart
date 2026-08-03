@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proto mobile — Vendas / Estoque</title>
+<!-- Banco de provas do celular: o painel de verdade exige login do dono, entao
+     esta pagina repete o MESMO html que renderVendas/renderEstoque produzem,
+     com dados de mentira, so pra poder olhar o CSS em 390px. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/shell.css">
+<link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <img class="sb-logo" src="img/phonecart-icon.png" alt="">
+      <div class="sb-brand-txt"><div class="sb-brand-name">Cart System</div><div class="sb-brand-sub">Painel interno</div></div>
+    </div>
+    <div class="sb-context">
+      <div class="sb-stores">
+        <button class="sb-store active" data-store="ambas">Ambas</button>
+        <button class="sb-store" data-store="cart">Phone Cart</button>
+        <button class="sb-store" data-store="urban">Urban</button>
+      </div>
+      <select class="sb-period"><option>Mês atual</option></select>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><div class="status-bar">220 aparelhos · 16 vendas</div></div>
+    <div class="content" id="content"></div>
+  </main>
+  <nav class="bottom-tabs">
+    <button class="bt-item"><span class="bt-ico">▦</span><span class="bt-label">Dashboard</span></button>
+    <button class="bt-item active" id="bt-v"><span class="bt-ico">🛒</span><span class="bt-label">Vendas</span></button>
+    <button class="bt-item" id="bt-e"><span class="bt-ico">📦</span><span class="bt-label">Estoque</span></button>
+    <button class="bt-item"><span class="bt-ico">👥</span><span class="bt-label">Equipe</span></button>
+    <button class="bt-item"><span class="bt-ico">$</span><span class="bt-label">Custos</span></button>
+  </nav>
+</div>
+
+<script src="js/ui.js"></script>
+<script src="proto-mobile.js"></script>
+</body>
+</html>

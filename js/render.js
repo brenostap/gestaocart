@@ -152,6 +152,7 @@ function renderContent(){
   else if(currentTab==='equipe')c.innerHTML=renderEquipe();
   else if(currentTab==='movs')c.innerHTML=renderMovs();
   else if(currentTab==='tabela')c.innerHTML=renderTabela();
+  else if(currentTab==='contas')c.innerHTML=renderContas();
   else if(currentTab==='fechamento')c.innerHTML=renderFechamento();
 
   // Modal de WhatsApp do Estoque (renderiza por cima quando aberto)
@@ -691,6 +692,14 @@ function renderVendas(){
   if(vendasLoja!=='todas')rows=rows.filter(r=>r.loja===vendasLoja);
   if(vendasVendedor!=='todos')rows=rows.filter(r=>r.vendedor===vendasVendedor);
   if(vendasAtendente!=='todos')rows=rows.filter(r=>r.atendente===vendasAtendente);
+  // Contas que aparecem no periodo -- lista montada do proprio dado, entao conta
+  // nova cadastrada na FoneNinja aparece aqui sozinha, sem mexer no codigo.
+  // ⚠️ Calculada ANTES do filtro de conta, senao o select desaba pra uma opcao so.
+  const contasLista = [...new Set(rows.flatMap(r =>
+    (r.pagamentos||[]).map(p => p.conta || '(sem conta)')))].sort((a,b)=>a.localeCompare(b));
+  // Conta bancaria: a venda entra se QUALQUER pagamento dela caiu naquela conta
+  // (venda dividida em duas formas aparece nas duas contas, de proposito).
+  if(vendasConta!=='todas')rows=rows.filter(r=>(r.pagamentos||[]).some(p=>(p.conta||'(sem conta)')===vendasConta));
   if(vendasProduto)rows=rows.filter(r=>r.produtosLista&&r.produtosLista.some(p=>p.titulo.toLowerCase().includes(vendasProduto.toLowerCase())));
   // Sort por coluna
   if(vendasSortCol){
@@ -769,7 +778,7 @@ function renderVendas(){
   const opt = (val, atual, texto) =>
     `<option value="${escapeHtml(val)}"${atual===val?' selected':''}>${escapeHtml(texto)}</option>`;
   const ativos = (vendasSearch?1:0)+(vendasLoja!=='todas')+(vendasVendedor!=='todos')
-               +(vendasAtendente!=='todos')+(vendasProduto?1:0);
+               +(vendasAtendente!=='todos')+(vendasProduto?1:0)+(vendasConta!=='todas');
 
   const filtros = `
     <div class="est-barra">
@@ -790,6 +799,10 @@ function renderVendas(){
         <select onchange="filterVendas('atendente',this.value)">
           ${opt('todos',vendasAtendente,'Todos')}${atends.map(x=>opt(x,vendasAtendente,capNome(x))).join('')}
         </select></label>
+      ${contasLista.length>1 ? `<label class="est-sel"><span>Conta</span>
+        <select onchange="filterVendas('conta',this.value)">
+          ${opt('todas',vendasConta,'Todas')}${contasLista.map(x=>opt(x,vendasConta,x)).join('')}
+        </select></label>` : ''}
       ${ativos ? UI.btn('Limpar filtros', {onclick:"filterVendas('limpar')", variante:'sutil', sm:true}) : ''}
       ${UI.btn(completo?'− Menos colunas':'+ Mais colunas', {onclick:'toggleVendasModo()', variante:'sutil', sm:true})}
     </div>`;
@@ -1173,7 +1186,7 @@ function sortVendas(col){
 function filterVendas(tipo,val){
   if(tipo==='limpar'){
     vendasSearch=''; vendasLoja='todas'; vendasVendedor='todos';
-    vendasAtendente='todos'; vendasProduto='';
+    vendasAtendente='todos'; vendasProduto=''; vendasConta='todas';
     renderContent(); return;
   }
   if(tipo==='search')vendasSearch=val;
@@ -1181,6 +1194,7 @@ function filterVendas(tipo,val){
   else if(tipo==='vendedor')vendasVendedor=val;
   else if(tipo==='atendente')vendasAtendente=val;
   else if(tipo==='produto')vendasProduto=val;
+  else if(tipo==='conta')vendasConta=val;
   document.getElementById('content').innerHTML=renderVendas();
 }
 
