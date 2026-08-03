@@ -387,12 +387,17 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
    VENDAS — master-detail: linha enxuta (achar) + ficha da venda (entender)
    A linha mostra so o essencial; o detalhe mora na ficha docada do lado.
    ========================================================================= */
-/* fechada: lista ocupa tudo. aberta: abre a coluna da ficha ao lado. */
-.v-stage{ display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
-.v-stage.tem-selecao{ grid-template-columns:minmax(0,1fr) 384px; }
-.v-lista{ min-width:0; }
-.v-ficha-dock{ position:sticky; top:16px; }
-.vf-scrim{ display:none; }
+/* A lista ocupa a largura toda; o detalhe abre DENTRO da tabela, na linha
+   seguinte a da venda clicada (.v-expand). Sem painel do lado, sem sheet. */
+.v-stage{ min-width:0; }
+.v-expand > td{ padding:0 !important; background:var(--bg3); border-bottom:1px solid var(--border2); }
+.v-expand .v-ficha{
+  border:none; border-radius:0; box-shadow:none; background:transparent;
+  animation:v-expand-in .16s ease-out;
+}
+.v-expand .v-ficha::before{ width:2px; }
+.v-expand .vf-body{ max-height:none; }
+@keyframes v-expand-in{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
 
 /* linha selecionada — realce discreto + seta de acento */
 .est-tabela .est-linha.sel td{ background:var(--bg4); }
@@ -486,20 +491,12 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .v-dia-vazio{ color:var(--text4); font-size:12px; padding:3px 0; }
 .v-dia-nota{ font-size:10.5px; color:var(--text4); font-style:italic; margin-top:10px; }
 
-/* tablet/celular: uma coluna; a ficha vira sheet que sobe ao selecionar */
+/* tablet/celular: a expansao continua inline, so encolhe o respiro interno.
+   (Ate ago/2026 aqui virava sheet subindo de baixo — trocado por expansao na
+   propria linha, que e como o dono le a venda.) */
 @media (max-width: 960px){
-  .v-stage, .v-stage.tem-selecao{ display:block; }
-  .v-ficha-dock{
-    position:fixed; left:0; right:0; bottom:0; z-index:65;
-    transform:translateY(101%); transition:transform .24s ease; pointer-events:none;
-  }
-  .v-stage.tem-selecao .v-ficha-dock{ transform:none; pointer-events:auto; }
-  .v-ficha{ border-radius:16px 16px 0 0; border-bottom:none; max-height:88vh; display:flex; flex-direction:column; }
+  .v-ficha{ border-radius:0; border:none; }
   .vf-body{ max-height:none; }
-  .v-stage.tem-selecao .vf-scrim{
-    display:block; position:fixed; inset:0; z-index:64;
-    background:rgba(10,14,24,.42); backdrop-filter:blur(2px);
-  }
 }
 
 /* ============================================================================
@@ -533,6 +530,15 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .c-tabela tbody tr td:first-child{
     background:var(--bg3); padding:8px 12px; margin-bottom:2px;
   }
+
+  /* a expansao da venda nao vira cartao empilhado: e um bloco cheio, colado
+     no cartao da linha de cima (a venda que foi tocada). */
+  .c-tabela tbody tr.v-expand{
+    border:1px solid var(--border2); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm);
+    margin:-8px 0 8px; padding:0; background:var(--bg3); overflow:hidden;
+  }
+  .c-tabela tbody tr.v-expand td{ display:block; text-align:left; padding:0; }
+  .c-tabela tbody tr.v-expand td::before{ content:''; }
 
   /* faixa de grupo: nao vira cartao, vira uma banda de secao */
   .c-tabela tbody tr.c-grupo{

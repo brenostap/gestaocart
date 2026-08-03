@@ -821,6 +821,11 @@ function renderVendas(){
              + (completo&&podeVerMargem()?1:0) + (podeVerMargem()?1:0)
              + (completo&&podeVerMargem()?1:0);
 
+  // Detalhe da venda ABAIXO da linha clicada, dentro da propria tabela. Nao e
+  // painel do lado nem card flutuante: a venda se abre no lugar onde ela esta.
+  const linhaExpandida = r =>
+    `<tr class="v-expand"><td colspan="${COLS}">${fichaVendaHTML(r)}</td></tr>`;
+
   const linhaVenda = r => {
     const sel = r.id === vendasSelecionada;
     const mg = r.valor>0 ? Math.round(r.lucro/r.valor*100) : 0;
@@ -837,7 +842,7 @@ function renderVendas(){
       ${completo && podeVerMargem() ? `<td data-rot="Taxa" class="num">${r.taxa>0?money(r.taxa):'—'}</td>` : ''}
       ${podeVerMargem() ? `<td data-rot="Lucro" class="num"><span class="est-venda" style="color:var(--success)">${money(r.lucro)}</span></td>` : ''}
       ${completo && podeVerMargem() ? `<td data-rot="Margem" class="num">${r.valor>0?mg+'%':'—'}</td>` : ''}
-    </tr>`;
+    </tr>${sel ? linhaExpandida(r) : ''}`;
   };
 
   // Ordenado por coluna = lista plana. Ordem cronologica (padrao) = agrupa por
@@ -868,17 +873,9 @@ function renderVendas(){
         texto: ativos ? 'Tente limpar os filtros ou trocar o período na barra lateral.'
                       : 'Assim que uma venda for concluída na FoneNinja, ela aparece aqui em até 2 minutos.' }) });
 
-  // Ficha da venda — so aparece quando ha selecao. Fechada, a lista ocupa tudo.
-  // Docada no desktop, sheet no celular; ✕ (ou tocar a linha de novo) fecha.
-  const selRow = vendasSelecionada!=null ? rows.find(r => r.id === vendasSelecionada) : null;
-
-  const stage = `<div class="v-stage${selRow?' tem-selecao':''}">
-    <div class="v-lista">${tabela}</div>
-    ${selRow ? `<div class="vf-scrim" onclick="fecharFicha()"></div>
-    <aside class="v-ficha-dock">${fichaVendaHTML(selRow)}</aside>` : ''}
-  </div>`;
-
-  return cabecalho + kpis + alertas + filtros + stage;
+  // O detalhe ja saiu embutido na tabela (linhaExpandida), logo abaixo da linha
+  // clicada. Sem painel docado e sem sheet: a venda abre onde ela esta.
+  return cabecalho + kpis + alertas + filtros + `<div class="v-stage">${tabela}</div>`;
 }
 
 // ── FICHA DA VENDA (painel master-detail) ────────────────────────────────
