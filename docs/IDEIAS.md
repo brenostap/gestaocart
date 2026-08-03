@@ -297,6 +297,19 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
     capital preso. Vale um quadro só delas — e pesa na decisão de quanto dar num upgrade.
   - 💡 **Margem está nos modelos populares** (14/14 Plus/15/13 Pro: 21–26%) e não nos topo de linha
     (16 Pro Max/17 Pro Max: 14–16%). Um ranking por R$/aparelho deixaria isso na cara.
+- 🔨 **Painel de canais de compra** — R$/aparelho e dias de giro lado a lado. ⚠️ **Canais não são
+  comparáveis entre si**: `STP` são as peças que o próprio dono envia (custo de aquisição, não
+  preço de mercado), `DESEJO` é fornecedor de SP em **pronta entrega** (custa R$452/aparelho a mais
+  que o STP em 15 de 15 modelos — é o preço da disponibilidade, não má compra), e Erick/Apple
+  Show/Grupo são **encomenda** (giro de 0–1 dia, margem 7–10% mas R$500–600/aparelho **sem travar
+  capital** — some em qualquer relatório ordenado por %). Detalhe em `docs/ANALISE-MARGEM-ESTOQUE.md`.
+  - ⚠️ **`compras.fornecedor_nome` é só um texto** — não diz o que o canal é. Perguntar antes de
+    comparar; ranquear os três modelos juntos produz conclusão errada.
+  - 🔨 **Dias de cobertura por canal.** Em jul/2026 a remessa do STP (~35% das unidades vendidas)
+    entregou **10 itens** e a seguinte chegou em **01/ago com 165**. O mês vendeu 366 contra 453 de
+    junho, com lucro por aparelho quase igual (R$558 × R$567) e **CAC 24% maior** — assinatura de
+    ruptura de estoque, não de demanda fraca. ~R$53 mil de lucro de diferença. Medir cobertura
+    antecipa o buraco em vez de explicá-lo depois.
 
 ## Cálculo de lucro (decidido em 31/jul/2026)
 - 🔨 ⭐ **Trocar o lucro do painel para a fórmula A.** Hoje 7 pontos do código somam `v.lucro` (campo da FoneNinja): `render.js` 7/403/433/574, `custos.js` 337/338, `dash-v2.js` 380. Esse campo **erra em ~1 de cada 5 vendas** — em jul/2026 mostrava R$228.933 contra R$238.826 reais (R$9.893 a menos). **Fórmula A (adotada):** `(preço − custo dos itens não-cancelados) + taxa_extra`. Ver [[como-calcular-lucro-de-venda]] na memória para as regras completas (item cancelado, troca, taxa de maquininha é GANHO e não custo).
