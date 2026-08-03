@@ -42,7 +42,7 @@ const FUNC=[
   {id:'davi',   ap:'Davi',    nome:'Davi Pacheco da Silva',        cargo:'Atendente',          pix:'(11) 95774-6749',          tipo:'presencial',email:'',                                   atKey:'davi'   },
   {id:'anne',   ap:'Anne',    nome:'Alauany Ramos de Campos',     cargo:'Atendente',          pix:'(11) 95143-9933',          tipo:'presencial',email:'alauanyramosdecampos@gmail.com',     atKey:'anne',  bonus:true},
   {id:'pietra', ap:'Pietra',  nome:'Pietra Castro',               cargo:'Atendente / Gerente (saiu)',pix:'pietracassttro@gmail.com', tipo:'presencial',email:'pietraurban@gmail.com',              atKey:'pietra', voKey:'pietra' },
-  {id:'denilson',ap:'Denilson',nome:'Denilson Henrique Campos',   cargo:'Atendente',          pix:'47362104863',              tipo:'presencial',email:'denilson.h.c2708@gmail.com',         atKey:'denilson'},
+  {id:'denilson',ap:'Denilson',nome:'Denilson Henrique Campos',   cargo:'Atendente (saiu)',   pix:'47362104863',              tipo:'presencial',email:'denilson.h.c2708@gmail.com',         atKey:'denilson', saiuEm:'2026-08'},
   {id:'leo',    ap:'Leo',     nome:'Leo',                         cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'leo'    },
   {id:'maria',  ap:'Maria',   nome:'Maria',                       cargo:'SAC / Vendedora',    pix:'',                         tipo:'online',    email:'',                                   atKey:'maria', voKey:'maria' },
   {id:'luana',  ap:'Luana',   nome:'Luana',                       cargo:'Atendente (saiu)',   pix:'',                         tipo:'presencial',email:'',                                   atKey:'luana'  },
@@ -81,11 +81,28 @@ function corHex(nome){ return CORES_HEX[_normCor(nome)] || null; }
 // Supabase) e por equipe.js (fechamento, resumos e card individual). Luana saiu;
 // Gabi entrou no lugar (atendente presencial, R$2.250). Pietra saiu em 15/06/2026
 // -- junho ja foi pago proporcional (R$1.557) e julho em diante nao tem salario.
+// Denilson saiu em 31/07/2026 -- julho pago cheio (+R$450 de hora extra) e agosto
+// em diante nao tem salario; nao chegou a trabalhar nenhum dia de agosto.
+// Vitinho voltou em agosto/2026 com fixo de R$3.000 (era R$2.250).
 // Quem sai tambem ganha "(saiu)" no cargo do FUNC: e isso que tira a pessoa dos
-// rankings do dashboard (ver AT_LABELS_ALL / VO_LABELS_ALL em core.js).
+// rankings do dashboard (ver atLabelsAll / voLabelsAll em core.js). Quem sai numa
+// data certa leva saiuEm:'YYYY-MM' no FUNC -- os meses anteriores ficam intactos.
 const SALARIOS = {
-  anne:2250, denilson:2250, davi:2250,
-  mel:1500,  isa:1500,      david:1500, vitinho:2250,
+  anne:2250, davi:2250,
+  mel:1500,  isa:1500,      david:1500, vitinho:3000,
   leo:2250,  maria:3000,    gabi:2250,
+};
+
+// Quem NAO entra no rateio do bonus coletivo naquele mes (ferias, afastamento).
+// O bonus coletivo e pago CHEIO por pessoa -- cada nome aqui economiza ate
+// R$2.000 na folha do mes. Chave 'YYYY-MM', valores = id do FUNC.
+//
+// Regra NUNCA retroativa: a exclusao so vale de ago/2026 em diante (ver
+// entraNoBonusColetivo em core.js). Anne esteve de ferias em jun/2026 e recebeu
+// o bonus coletivo daquele mes -- fechamento pago nao muda de valor depois.
+//
+//   ago/2026: Davi de ferias o mes inteiro (R$3.000, sem trabalhar nenhum dia).
+const SEM_BONUS_COLETIVO = {
+  '2026-08': ['davi'],
 };
 

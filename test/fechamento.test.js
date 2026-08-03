@@ -200,8 +200,19 @@ ok(Math.round(davi.meta.falta) === 40, `faltaram ${brl(davi.meta.falta)} para R$
 ok(R('comissaoVendedor(115)') === 3225 && R('comissaoVendedor(80)') === 2000, 'curva do vendedor');
 ok(R('bonusMetaAtendente(9999)') === 300 && R('bonusMetaAtendente(10000)') === 1000,
    'faixas da meta individual');
-ok(fech.totais.bonusCol === fech.pessoas.length * fech.bonusCol,
-   'bônus coletivo pago cheio para cada pessoa');
+const comCol = fech.pessoas.filter(p => p.bonusCol > 0).length;
+ok(fech.totais.bonusCol === comCol * fech.bonusCol,
+   `bônus coletivo pago cheio para cada pessoa do rateio (${comCol})`);
+ok(comCol === fech.pessoas.length, 'em jul/2026 ninguém está fora do rateio');
+
+// Ferias/afastamento tiram a pessoa do rateio -- mas NUNCA retroativo. Anne esteve
+// de ferias em jun/2026 e recebeu o coletivo; mexer nisso mudaria folha ja paga.
+ok(R('entraNoBonusColetivo("davi", "2026-08")') === false,
+   'Davi fica fora do rateio em ago/2026 (férias o mês inteiro)');
+ok(R('entraNoBonusColetivo("leo", "2026-08")') === true, 'quem trabalhou continua no rateio');
+ok(R('entraNoBonusColetivo("anne", "2026-06")') === true,
+   'regra não é retroativa: jun/2026 (férias da Anne) não muda');
+ok(R('entraNoBonusColetivo("davi", "2026-07")') === true, 'julho fechado não muda');
 
 // -- 8. mes anterior nao vaza o contexto ------------------------------------
 sec('comparação com o mês anterior não vaza o contexto global');

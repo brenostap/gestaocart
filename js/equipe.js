@@ -188,7 +188,7 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
 
 // Quem entra na folha: derivado do cadastro (FUNC), nunca lista a mao. Quem
 // ganha "(saiu)" no cargo sai sozinho; quem entra aparece sozinho. Mesmo
-// criterio de AT_LABELS_ALL/VO_LABELS_ALL (core.js), entao ranking e folha
+// criterio de atLabelsAll/voLabelsAll (core.js), entao ranking e folha
 // falam do mesmo conjunto de gente.
 function fechamentoPessoas(){
   return FUNC.filter(f =>
@@ -253,7 +253,8 @@ function fechamentoEquipe(){
   const metaDevProx = metas.dev.find(x => m.unPrincipal < x.qt) || null;
   const metaAc      = metas.acess.filter(x => m.vendaAcess >= x.val).pop() || null;
   const metaAcProx  = metas.acess.find(x => m.vendaAcess < x.val) || null;
-  // Bonus coletivo e pago CHEIO para cada pessoa (uma vez por pessoa).
+  // Bonus coletivo e pago CHEIO para cada pessoa (uma vez por pessoa) -- menos
+  // quem esta em SEM_BONUS_COLETIVO no mes (ferias/afastamento, ver core.js).
   const bonusCol = (metaDev?.bonus||0) + (metaAc?.bonus||0);
 
   const avisos = [];
@@ -274,6 +275,9 @@ function fechamentoEquipe(){
     const bonus5     = f.bonus ? Math.round(m.lAcess * 0.05) : 0;
     const meta       = metaAtendente(brutoAcess);
     const bonusMeta  = at ? meta.bonus : 0;
+    const bonusColP  = entraNoBonusColetivo(f.id) ? bonusCol : 0;
+    if(bonusCol > 0 && bonusColP === 0) avisos.push(
+      f.ap+' esta fora do rateio do bonus coletivo neste mes ('+brl(bonusCol)+' nao pagos).');
     const rem        = remuneracaoFixa(f.id);
     const extrasTot  = rem.extras.reduce((a,e) => a+e.valor, 0);
     if(rem.origem === 'constante' && rem.valor > 0) avisos.push(
@@ -303,8 +307,8 @@ function fechamentoEquipe(){
       sal:rem.valor, salOrigem:rem.origem, salDesc:rem.desc,
       extras:rem.extras, extrasTot,
       commVo, commAt, comm:commVo+commAt,
-      bonus5, bonusMeta, bonusCol, meta,
-      total: rem.valor + extrasTot + commVo + commAt + bonus5 + bonusMeta + bonusCol,
+      bonus5, bonusMeta, bonusCol: bonusColP, meta,
+      total: rem.valor + extrasTot + commVo + commAt + bonus5 + bonusMeta + bonusColP,
       linhasVo, linhasAt,
     };
   });
@@ -614,7 +618,8 @@ function renderEquipe(){
             <tr style="border-top:2px solid var(--border2)">
               <td style="padding:8px 8px;font-weight:700;color:var(--text)">Total folha</td>
               <td colspan="${temExtras?5:4}" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
-                ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`:''}
+                ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`
+                  +(pessoas.some(p=>p.bonusCol===0)?` · fora do rateio: ${pessoas.filter(p=>p.bonusCol===0).map(p=>p.nome).join(', ')}`:''):''}
               </td>
               <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totais.folha)}</td>
             </tr>
@@ -648,10 +653,12 @@ function gerarResumoEquipe(){
   const fech=fechamentoEquipe();
   const mesLabel=fech.mesLabel;
   const pessoas=fech.pessoas;
-  const bonusColPorPessoa=fech.bonusCol;
 
   // Montar mensagem de cada pessoa
   function montarMsg(p){
+    // Bonus coletivo e por PESSOA -- quem ficou de fora no mes (ferias) nao pode
+    // receber a linha na mensagem dizendo que ganhou.
+    const bonusColPorPessoa=p.bonusCol;
     const lines=[];
     lines.push('📊 *Fechamento '+mesLabel+'*');
     lines.push('');

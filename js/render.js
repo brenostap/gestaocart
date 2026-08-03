@@ -325,7 +325,7 @@ function renderDash(){
   const calcCommVoDash = comissaoVendedor; // fonte unica em core.js
 
   // Vendedores -- SEM Gustavo (vai para "Loja")
-  const VO_LABELS=VO_LABELS_ALL.slice().sort((a,b)=>(m.voMap[b[1]]?.units||0)-(m.voMap[a[1]]?.units||0));
+  const VO_LABELS=voLabelsAll().slice().sort((a,b)=>(m.voMap[b[1]]?.units||0)-(m.voMap[a[1]]?.units||0));
   const voRows=VO_LABELS.map(([n,k])=>{
     const units=m.voMap[k]?.units||0;
     const comm=calcCommVoDash(units);
@@ -359,7 +359,7 @@ function renderDash(){
   // Atendentes
   // faixas em core.js (META_AT_FAIXAS); aqui so o rotulo visual
   function calcMetaAt(b){const mt=metaAtendente(b);return{nivel:mt.nivel,bonus:mt.bonus,label:mt.nivel?'R$'+(mt.faixa/1000)+'k ✅':''};}
-  const AT_LABELS=AT_LABELS_ALL.slice().sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
+  const AT_LABELS=atLabelsAll().slice().sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
   const atRows=AT_LABELS.map(([n,k])=>{
     const bruto=m.atMap[k]?.brutoAcess||0;
     const comm=m.atMap[k]?.la*0.25||0;

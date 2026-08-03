@@ -64,14 +64,32 @@ const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','gabi
 // Quem saiu da loja. Marca-se com "(saiu)" no cargo do FUNC (config.js) -- o
 // cadastro FICA, senao o historico perde a atribuicao das vendas dela. Esta e a
 // UNICA leitura desse marcador: quem precisa esconder ex-funcionario chama daqui.
-function saiuDaEquipe(f){ return /\(saiu\)/i.test((f && f.cargo) || ''); }
+//
+// Duas formas, e a diferenca importa:
+//   cargo "(saiu)" sozinho -> fora de TODOS os meses. E como Pietra e Luana ja
+//     foram exportadas; mexer nisso agora mudaria fechamento antigo.
+//   saiuEm:'YYYY-MM'       -> fora so DAQUELE MES EM DIANTE. Os meses anteriores
+//     continuam com a pessoa na folha, porque ela foi paga neles. Denilson saiu
+//     em 31/07/2026: julho tem salario, hora extra e o bonus coletivo dele
+//     lancados -- se sumisse de julho, a folha ja paga mudaria de valor.
+// Periodo que nao e um mes (semana/tudo/custom) mantem a pessoa: e historico.
+function saiuDaEquipe(f, ref){
+  if(!f) return false;
+  if(f.saiuEm) return _refAnoMes(ref) >= f.saiuEm;
+  return /\(saiu\)/i.test(f.cargo || '');
+}
 
-const AT_LABELS_ALL = FUNC
-  .filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !saiuDaEquipe(f))
-  .map(f => [f.ap, f.atKey]);
-const VO_LABELS_ALL = FUNC
-  .filter(f => f.voKey && VO_KEYS.includes(f.voKey) && !saiuDaEquipe(f))
-  .map(f => [f.ap, f.voKey]);
+// Funcoes, nao constantes: com saida por mes a lista muda conforme o periodo do
+// contexto. Eram `const` avaliado uma vez na carga -- quem saiu em agosto ficaria
+// no ranking de agosto ou sumiria de julho, dependendo da ordem dos scripts.
+function atLabelsAll(ref){
+  return FUNC.filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !saiuDaEquipe(f, ref))
+             .map(f => [f.ap, f.atKey]);
+}
+function voLabelsAll(ref){
+  return FUNC.filter(f => f.voKey && VO_KEYS.includes(f.voKey) && !saiuDaEquipe(f, ref))
+             .map(f => [f.ap, f.voKey]);
+}
 
 // === Regras novas a partir de junho/2026 (NAO retroativas) ===
 // Tiers de meta coletiva e classificador de acessorio mudaram em jun/2026.
@@ -128,6 +146,19 @@ function metasColetivas(ref){
     dev:   [{qt:400,bonus:600},{qt:450,bonus:800},{qt:500,bonus:1000}],
     acess: [{val:30000,bonus:400},{val:40000,bonus:700},{val:50000,bonus:1000}],
   };
+}
+
+// Quem entra no rateio do BONUS COLETIVO do mes. Como o bonus e pago cheio para
+// cada pessoa (nao dividido), quem passou o mes fora nao gera nada e ainda assim
+// levaria ate R$2.000 -- por isso a lista SEM_BONUS_COLETIVO (config.js).
+//
+// NUNCA retroativa: antes de ago/2026 todo mundo da folha recebia, inclusive quem
+// esteve de ferias (Anne em jun/2026). Fechamento ja pago nao pode mudar de valor.
+const BONUS_COL_EXCLUI_DESDE = '2026-08';
+function entraNoBonusColetivo(id, ref){
+  const p = _refAnoMes(ref);
+  if(!p || p < BONUS_COL_EXCLUI_DESDE) return true;
+  return !(SEM_BONUS_COLETIVO[p] || []).includes(id);
 }
 
 // FONTE UNICA da META INDIVIDUAL do atendente (bruto de acessorios do mes).

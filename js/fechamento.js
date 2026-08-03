@@ -98,6 +98,16 @@ function fechTextoMetaColetivaAcess(fech){
        + ' (bônus de ' + brl(p.bonus) + ')';
 }
 
+// O bonus coletivo e pago cheio POR PESSOA. Quem passou o mes fora (ferias) fica
+// de fora do rateio -- o documento de prova precisa dizer quem e por que, senao a
+// pessoa abre a planilha e ve um total menor sem explicacao.
+function fechTextoBonusColetivo(fech){
+  const fora = fech.pessoas.filter(p => p.bonusCol === 0);
+  if(!fora.length) return 'pago cheio para cada colaborador';
+  return 'pago cheio para ' + (fech.pessoas.length - fora.length) + ' de '
+       + fech.pessoas.length + ' · fora do rateio: ' + fora.map(p => p.nome).join(', ');
+}
+
 // -- Aba de um colaborador --------------------------------------------------
 function fechAbaPessoa(p, fech, ant){
   const L = [];
@@ -224,7 +234,7 @@ function fechAbaGeral(fech, ant){
   L.push(['Aparelhos vendidos', fechNu(fech.base.aparelhos), fechTextoMetaColetivaDev(fech)]);
   L.push(['Acessórios (bruto)', fechMo(fech.base.acessBruto), fechTextoMetaColetivaAcess(fech)]);
   L.push(['Acessórios (lucro)', fechMo(fech.base.acessLucro), 'base da comissão de atendente e do bônus de 5%']);
-  L.push(['Bônus coletivo por pessoa', fechMo(fech.bonusCol), 'pago cheio para cada colaborador']);
+  L.push(['Bônus coletivo por pessoa', fechMo(fech.bonusCol), fechTextoBonusColetivo(fech)]);
   L.push(['Vendas no período', fechNu(fech.base.vendas), '']);
   vazio();
 
@@ -487,7 +497,7 @@ function fechPaginaGeral(fech, ant){
     {rotulo:'Aparelhos vendidos', valor:fech.base.aparelhos, sub:fechTextoMetaColetivaDev(fech)},
     {rotulo:'Acessórios (bruto)', valor:money(fech.base.acessBruto), sub:fechTextoMetaColetivaAcess(fech)},
     {rotulo:'Folha completa', valor:money(t.folha), tom:'marca',
-     sub:`${fech.pessoas.length} pessoas · bônus coletivo ${brl(fech.bonusCol)} cada`},
+     sub:`${fech.pessoas.length} pessoas · bônus coletivo ${brl(fech.bonusCol)} para ${fech.pessoas.filter(p=>p.bonusCol>0).length}`},
     {rotulo:'Resultado após folha e custos', valor:money(t.liquido),
      tom: t.liquido > 0 ? 'ok' : 'critico',
      sub:`lucro ${brl(fech.base.lucro)} − folha − ${brl(t.custosForaFolha)} de outros custos`},
