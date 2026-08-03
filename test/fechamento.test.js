@@ -243,6 +243,24 @@ ok(tela.includes('Julho de 2026'), 'título usa o período selecionado, não o m
 ok(tela.includes(brl(fech.totais.folha)), `total da folha ${brl(fech.totais.folha)} na tela`);
 fech.pessoas.forEach(p => ok(tela.includes(brl(p.total)), `tabela mostra ${p.nome} ${brl(p.total)}`));
 
+// Hibrido (vendedora online + atendente): a tela de Equipe contava so um lado.
+// Maria e tipo:'online' COM atKey -- os acessorios dela sumiam do card enquanto
+// a folha pagava os 25%. Os dois lados tem que bater com o fechamento.
+sec('quem é vendedora E atendente aparece inteira nos dois lados');
+const mariaFech = fech.pessoas.find(p => p.id === 'maria');
+const mariaCalc = R('calcComissaoFunc(FUNC.find(f=>f.id==="maria"), allVendas, allMovs, 0)');
+ok(mariaCalc.tipo === 'ambos', `Maria classificada como "${mariaCalc.tipo}"`);
+ok(mariaCalc.units === mariaFech.units,
+   `unidades batem com a folha (${mariaCalc.units})`);
+ok(Math.round(mariaCalc.brutoAcess) === Math.round(mariaFech.brutoAcess),
+   `bruto de acessórios bate com a folha (${brl(mariaCalc.brutoAcess)}) — era 0 na tela`);
+ok(Math.round(mariaCalc.commVo) === mariaFech.commVo,
+   `comissão de vendedora bate (${brl(mariaCalc.commVo)}) — curva de 80un, não R$25 flat`);
+ok(Math.round(mariaCalc.commAt) === mariaFech.commAt,
+   `comissão de atendente bate (${brl(mariaCalc.commAt)})`);
+ok((tela.match(/Maria/g) || []).length >= 2,
+   'Maria aparece nos dois rankings da tela (vendedores e atendentes)');
+
 R('gerarResumoEquipe()');
 fech.pessoas.forEach(p => ok(String(capturado.html).includes(brl(p.total)),
   `resumo de WhatsApp de ${p.nome} mostra ${brl(p.total)}`));

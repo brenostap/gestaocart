@@ -122,54 +122,51 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
     return (movsMap[x.id]||[]).filter(m=>isAcess(m));
   }
 
-  if(f.tipo==='socio') return { vendCount:0, units:0, comm:0, rate:0, metaBatida:false, tipo:'socio' };
-  if(f.tipo==='online'){
-    const k=f.voKey;
-    if(!k) return { vendCount:0, units:0, comm:0, rate:25, metaBatida:false, tipo:'online' };
-    let vendCount=0,units=0;
-    v.forEach(x=>{ const {vendedor}=getVendaInfo(x); const m=matchNome(vendedor,[k]); if(m){vendCount++;units+=contarIphones(x);} });
-    // Curva de comissao: fonte unica em core.js (VO_CURVA / comissaoVendedor)
-    const comm = comissaoVendedor(units);
-    const rate = units>VO_CURVA.corte ? VO_CURVA.bonus : VO_CURVA.base;
-    const metaBatida = units>VO_CURVA.corte;
-    return { vendCount, units, comm, rate, metaBatida, tipo:'online' };
-  } else if(f.voKey){
-    // presencial que tambem vende online (ex: Pietra)
-    const k=f.voKey;
-    let vendCount=0,unitsVo=0;
-    v.forEach(x=>{ const {vendedor}=getVendaInfo(x); const m=matchNome(vendedor,[k]); if(m){vendCount++;unitsVo+=contarIphones(x);} });
-    const kAt=f.atKey;
-    let la=0,qt=0,bruto=0;
+  if(f.tipo==='socio') return { vendCount:0, units:0, unitsVo:0, comm:0, rate:0, metaBatida:false, tipo:'socio' };
+
+  // Os dois lados sao contados INDEPENDENTES, igual fechamentoEquipe() faz. Antes
+  // quem decidia era o f.tipo, num if/else: Maria e tipo:'online' COM atKey, entao
+  // parava no primeiro branch e os acessorios dela nao existiam nesta tela --
+  // enquanto a folha pagava os 25% certinhos. Tela e folha tem que dizer o mesmo
+  // numero; era so questao de a Maria vender acessorio pra divergencia aparecer.
+  const ehVo = !!(f.voKey && VO_KEYS.includes(f.voKey));
+  const ehAt = !!(f.atKey && AT_KEYS.includes(f.atKey));
+
+  // -- Lado vendedor ---------------------------------------------------------
+  // Vendedor oficial segue a curva de 80 un (fonte unica em core.js). Atendente
+  // que vende device entra pelo atKey e ganha R$25/un flat, sem curva.
+  const kVend = f.voKey || f.atKey;
+  let vendCount=0, unitsVo=0;
+  if(kVend) v.forEach(x=>{
+    const {vendedor}=getVendaInfo(x);
+    if(matchNome(vendedor,[kVend])){ vendCount++; unitsVo+=contarIphones(x); }
+  });
+  const commVo = ehVo ? comissaoVendedor(unitsVo) : unitsVo*VO_CURVA.base;
+
+  // -- Lado atendente --------------------------------------------------------
+  let la=0, qt=0, bruto=0;
+  if(ehAt){
     const vAtend={};
-    v.forEach(x=>{ const {atendente}=getVendaInfo(x); const m=matchNome(atendente,[kAt]); if(m)vAtend[x.id]=true; });
+    v.forEach(x=>{ const {atendente}=getVendaInfo(x); if(matchNome(atendente,[f.atKey]))vAtend[x.id]=true; });
     v.filter(x=>vAtend[x.id]).forEach(x=>{
       getAcess(x).forEach(p=>{
-        const l=parseFloat(p.preco||0)-parseFloat(p.valor_estoque||0);
-        la+=l; bruto+=parseFloat(p.preco||0); qt++;
+        la += parseFloat(p.preco||0)-parseFloat(p.valor_estoque||0);
+        bruto += parseFloat(p.preco||0); qt++;
       });
     });
-    const bonus=f.bonus?lAcessTotal*0.05:0;
-    const commVo=unitsVo*25;
-    const commAt=la*0.25+bonus;
-    return { vendCount, unitsVo, commVo, qt, brutoAcess:bruto, lucroAcess:la, comm:commVo+commAt, bonus, tipo:'ambos' };
-  } else {
-    const k=f.atKey;
-    let la=0,qt=0,bruto=0;
-    const vAtend={};
-    v.forEach(x=>{ const {atendente}=getVendaInfo(x); const m=matchNome(atendente,[k]); if(m)vAtend[x.id]=true; });
-    v.filter(x=>vAtend[x.id]).forEach(x=>{
-      getAcess(x).forEach(p=>{
-        const l=parseFloat(p.preco||0)-parseFloat(p.valor_estoque||0);
-        la+=l; bruto+=parseFloat(p.preco||0); qt++;
-      });
-    });
-    // Atendente que vende device ganha R$25/un (flat -- sem curva de meta de 80un)
-    let vendCount=0, unitsVo=0;
-    v.forEach(x=>{ const {vendedor}=getVendaInfo(x); const m=matchNome(vendedor,[k]); if(m){vendCount++;unitsVo+=contarIphones(x);} });
-    const commVo = unitsVo * 25;
-    const bonus=f.bonus?lAcessTotal*0.05:0;
-    return { vendCount, unitsVo, commVo, qt, brutoAcess:bruto, lucroAcess:la, comm:la*0.25+bonus+commVo, bonus, tipo:'presencial' };
   }
+  const bonus  = f.bonus ? lAcessTotal*0.05 : 0;
+  const commAt = ehAt ? la*0.25 + bonus : 0;
+
+  return {
+    vendCount,
+    units: unitsVo, unitsVo,          // `units` e o nome que os rankings usam
+    commVo, commAt, comm: commVo+commAt, bonus,
+    qt, brutoAcess:bruto, lucroAcess:la,
+    rate: ehVo && unitsVo>VO_CURVA.corte ? VO_CURVA.bonus : VO_CURVA.base,
+    metaBatida: ehVo && unitsVo>VO_CURVA.corte,
+    tipo: ehVo && ehAt ? 'ambos' : ehVo ? 'online' : 'presencial',
+  };
 }
 
 // ===========================================================================
@@ -515,7 +512,11 @@ function renderEquipe(){
   }
 
   // -- Atendentes Presenciais --------------------------------
-  if(presencial.length > 0){
+  // Quem e os dois (Maria) entra nos DOIS rankings -- ela concorre a escada do
+  // atendente igual a todo mundo. Ficava so em "Vendedores Online" (todosVo), e
+  // por isso os acessorios dela nao apareciam em lugar nenhum da tela.
+  const todosAt = presencial.concat(ambos);
+  if(todosAt.length > 0){
     html += '<div>'
       + '<div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
       + '<span style="display:inline-block;width:20px;height:1px;background:var(--urban);opacity:.5"></span>'
@@ -523,8 +524,9 @@ function renderEquipe(){
       + '<span style="display:inline-block;flex:1;height:1px;background:var(--border)"></span>'
       + '</div>';
 
-    const maxBruto = Math.max.apply(null, presencial.map(function(x){return metricas[x.id]&&metricas[x.id].brutoAcess||0;}).concat([1]));
-    presencial.forEach(function(f, rank){
+    const maxBruto = Math.max.apply(null, todosAt.map(function(x){return metricas[x.id]&&metricas[x.id].brutoAcess||0;}).concat([1]));
+    todosAt.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});
+    todosAt.forEach(function(f, rank){
       const cl=COLORS[FUNC.indexOf(f)%COLORS.length];
       const comm=metricas[f.id]||{qt:0,brutoAcess:0,comm:0};
       const dividas=getDividas(f.id);

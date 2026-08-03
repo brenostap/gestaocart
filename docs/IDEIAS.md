@@ -85,8 +85,52 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   | jun/2026 | 350→500 · 400→750 · 450→1000 | 25k→200 · 30k→500 · 40k→750 |
   | jul/2026 + | 400→600 · 450→800 · 500→1000 | 30k→400 · 40k→700 · 50k→1000 |
   - ⚠️ A meta de devices conta **APARELHOS**, não número de vendas (confirmado com o dono em
-    31/jul/2026, apesar de a mensagem das metas dizer "400 Vendas"). Metas individuais de
-    atendente (4k→100 · 6k→300 · 10k→1000) **não mudaram**.
+    31/jul/2026, apesar de a mensagem das metas dizer "400 Vendas").
+  - **ago/2026 mantém a mesma tabela coletiva** (decidido em 03/ago/2026).
+- ✅ **Meta individual do atendente ganhou degrau de 15k (03/ago/2026)**: `metaAtFaixas(ref)` em
+  `core.js`. Também passou a ter **tabela por mês** — antes era lista fixa, porque as faixas nunca
+  tinham mudado.
+
+  | vigência | faixas (bruto de acessórios → bônus) |
+  |---|---|
+  | até jul/2026 | 4k→100 · 6k→300 · 10k→1000 |
+  | ago/2026 + | 4k→100 · 6k→300 · 10k→1000 · **15k→1500** |
+
+  - ⚠️ **Não podia entrar sem data**: Anne fez **R$15.830 em mar/2026** e R$13.940 em abr — sem a
+    tabela por mês o fechamento de março dela subiria sozinho de R$1.000 para R$1.500, meses depois
+    de pago.
+  - ⚠️ As telas calculavam a barra de progresso com as faixas **chumbadas na mão**
+    (`nextVal/prevVal` 4000/6000/10000 em `render.js`, `nivel===3` em `equipe.js`): quem fizesse 12k
+    apareceria como "🏆 meta máxima" e o degrau novo passaria batido. Agora `metaAtendente()`
+    devolve `total`/`maxima`/`anterior` e a tela não sabe quantas faixas existem.
+  - 💡 **Incentivo marginal cai no degrau novo**: de 6k→10k o bônus sobe R$700 por R$4k vendidos
+    (R$175/mil); de 10k→15k sobe R$500 por R$5k (**R$100/mil**). Quem já está em 10k tem menos
+    razão pra ir ao 15k do que teve pra sair do 6k. R$1.800 manteria o incentivo constante —
+    apontado ao dono em 03/ago/2026, que optou por R$1.500.
+- ✅ **Saída de funcionário passou a ter data (03/ago/2026)**: `saiuEm:'YYYY-MM'` no `FUNC`. O
+  `(saiu)` sozinho apagava a pessoa de **todos** os meses — Denilson saiu em 31/jul e sumiria de
+  julho, que já tem salário, hora extra e o bônus coletivo dele lançados. `AT_LABELS_ALL`/
+  `VO_LABELS_ALL` viraram `atLabelsAll()`/`voLabelsAll()`: eram `const` avaliado na carga, não davam
+  conta de lista que muda com o período.
+- ✅ **Quem está de férias fica fora do rateio do bônus coletivo (03/ago/2026)**:
+  `SEM_BONUS_COLETIVO` em `config.js` + `entraNoBonusColetivo()` em `core.js`. O coletivo é pago
+  **cheio por cabeça**, então quem passou o mês fora levaria até R$2.000 sem gerar nada. Vale só de
+  **ago/2026 em diante** — Anne esteve de férias em jun/2026 e recebeu; aquele fechamento fica como
+  está. Folha, resumo de WhatsApp e `.xlsx` dizem quem ficou de fora.
+- ✅ **Híbrido (vendedor + atendente) contava só um lado na tela (03/ago/2026)**: `calcComissaoFunc`
+  decidia por `if(f.tipo===...)`, e Maria é `tipo:'online'` **com** `atKey` — parava no primeiro
+  branch, então o bruto de acessórios dela aparecia **zerado** na tela de Equipe enquanto a folha
+  pagava os 25% certinhos. Agora os dois lados são contados independentes, igual `fechamentoEquipe()`
+  sempre fez, e quem é os dois entra nos **dois rankings**. Só não tinha estourado porque ela fez
+  R$410 de acessório em jul/2026.
+- 📌 **Previsão de agosto/2026** (expectativa por pessoa, **não** é configuração — o sistema tem uma
+  escada só, igual pra todos):
+  - Aparelhos: Mel 150 (já fez 162 e 157) · David 130 (média 128) · Isa 100 (patamar normal;
+    julho/72 foi fora da curva) · Maria 55 (SAC primeiro, menos leads).
+  - Acessórios: Leo 15k (ele pediu) · Anne 15k (**já fez 15.830 em mar/2026**) · Gabi 8k
+    (1º mês cheio) · Vitinho 7k (contrapartida do fixo que subiu pra R$3.000) · Maria sem meta.
+  - Soma ≈ 470 aparelhos e 45k de acessórios, contra 366 e 38.345 de julho. Sazonalidade de
+    2025 (jul→ago **+18%**) e crescimento anual (**+32%**) apontam os dois para ~430 aparelhos.
 - ✅ **Bônus viram lançamento em Custos (decidido em 01/ago/2026).** Antes só o salário entrava;
   o "Resultado após custos" desconta apenas as comissões (`voTot`+`atTot`), então os bônus saíam
   do caixa sem aparecer em lugar nenhum. Agora são **3 lançamentos por mês** na área `funcionario`:
