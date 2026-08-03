@@ -68,6 +68,14 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.
 
 ## Como trabalhar aqui (evita a bagunça de jul/2026)
-- **Um trabalho por conversa**; conversa nova quando o trabalho fecha (mantém o Claude afiado).
-- **Nunca duas sessões editando código ao mesmo tempo** — foi o que causou colisões e git embolado.
+- 🚨 **Nunca duas sessões editando código ao mesmo tempo** — foi o que causou colisões e git
+  embolado. Esta é a única regra dura; as outras são conselho.
 - **Salve (commit) entre tarefas** pra cada conversa começar de um estado limpo e conhecido.
+- **Conversa longa não é problema; contexto perdido é.** A conversa pode emendar quantos assuntos
+  o dono quiser — mudar de assunto **nunca** é motivo pra empurrar ele pra um chat novo. O que
+  degrada numa conversa comprida é o detalhe, porque o histórico vai sendo resumido. **A defesa é
+  escrever, não encerrar:** decisão vira `docs/`, jeito de trabalhar vira memória, código vira
+  commit. Feito isso, começar de novo custa uma frase ("leia `docs/X.md`") e nada se perde.
+  - Sugerir conversa nova só quando o **dono** demonstrar que quer virar a página.
+- **Toda regra daqui é editável** — inclusive esta. Elas nasceram de um erro específico, não de
+  princípio; quando uma atrapalhar em vez de proteger, mude o CLAUDE.md junto com o trabalho.
