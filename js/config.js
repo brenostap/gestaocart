@@ -19,6 +19,9 @@ const EMAIL_DONO = 'breno@phonestp.com';
 // da pra fechar o app, abrir de novo e continuar conferindo a mesma visao.
 let papelPreview = (function(){ try{ return localStorage.getItem('pc_papel_preview')||''; }catch(e){ return ''; } })();
 let allVendas=[],allMovs=[],estoqueItens=[],ajustesAcessorios=[];
+// Usuarios da FoneNinja (tabela `funcionarios`): id -> nome. E o que traduz
+// `vendas.vendedor_id` e o cadastrador em gente. So a conferencia usa hoje.
+let funcionariosFN=[];
 let currentStore='ambas',currentTab='dash',currentPeriod='mes';
 // Estado do Estoque v3
 let estoqueViewV3 = 'agrupado';       // 'agrupado' | 'lista'

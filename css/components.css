@@ -169,6 +169,8 @@
   border-radius:var(--radius-card); box-shadow:var(--shadow-xl);
   animation:c-modal-pop .18s cubic-bezier(.2,.7,.3,1);
 }
+/* modal largo: tabela de comparacao nao pode sair cortada */
+.c-modal.largo{ max-width:860px; }
 @keyframes c-modal-pop{ from{ transform:translateY(12px) scale(.98); opacity:.5 } to{ transform:none; opacity:1 } }
 .c-modal-head{
   display:flex; align-items:center; gap:10px;
@@ -864,3 +866,19 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 }
 .c-faixa-versao-txt b{ color:var(--yellow); }
 @media print{ .c-faixa-versao{ display:none !important; } }
+
+/* ============================================================================
+   CONFERÊNCIA DE FONTES (modal de "quem atendeu")
+   Cor = significado: verde a fonte que bate com a obs, vermelho a que discorda.
+   A obs em si e a referencia — texto normal, sem cor de julgamento.
+   ========================================================================= */
+.conf-fonte{ font-weight:600; }
+.conf-fonte[data-bate="ref"]{ color:var(--text); }
+.conf-fonte[data-bate="sim"]{ color:var(--success); }
+.conf-fonte[data-bate="nao"]{ color:var(--danger); }
+.conf-na{ color:var(--text4); }
+.conf-nota{
+  font-size:var(--fs-caption); line-height:1.55; color:var(--text3);
+  margin:12px 0; max-width:62ch;
+}
+.conf-nota strong{ color:var(--text); font-weight:600; }

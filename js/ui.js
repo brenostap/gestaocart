@@ -167,10 +167,12 @@ const UI = {
   linha(...campos){ return `<div class="c-field-row${campos.length > 1 ? ' dois' : ''}">${campos.join('')}</div>`; },
 
   // -- Modal central (acao focada: criar/editar) --------------------------
-  modal({titulo, corpo, foot, id, onFechar} = {}){
+  // classe:'largo' quando o conteudo e uma tabela de comparacao — os 460px
+  // padrao cortam colunas, e tabela cortada derrota o proposito de comparar.
+  modal({titulo, corpo, foot, id, onFechar, classe} = {}){
     const fechar = onFechar || 'UI.fecharModal()';
     return `<div class="c-modal-overlay" ${id ? `id="${id}"` : ''} onclick="if(event.target===this){${fechar}}">
-      <div class="c-modal">
+      <div class="c-modal${classe ? ' '+classe : ''}">
         <div class="c-modal-head">
           <div class="c-modal-title">${titulo || ''}</div>
           ${this.btn('✕', {onclick: fechar, variante:'sutil', sm:true})}

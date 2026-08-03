@@ -37,7 +37,9 @@ const ALIASES={
   'davii':'davi',                                // davi
   'ane':'anne','anen':'anne',                    // anne (erro frequente)
   'léo':'leo',                                   // leo (acento, jun/2026)
+  'leonardo':'leo',                              // leo (nome do perfil FoneNinja)
   'madu':'maria',                                // maria (erro frequente, jun/2026)
+  'gabrielli':'gabi','gabrieli':'gabi',          // gabi (nome do perfil FoneNinja)
 
   // -- Loja / Socios / IAs --------------------------------
   // (nao mapeiam para nenhum VO ou AT -- ficam como loja)

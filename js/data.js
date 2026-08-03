@@ -42,6 +42,30 @@ async function loadFromSupabase(){
     };
   });
 
+  // Cadastrador (quem estava LOGADO na FoneNinja na hora do lancamento). Nao
+  // existe coluna propria: a FoneNinja so manda esse campo junto das contas a
+  // receber, e o sync guarda o JSON cru. Pedimos so o pedaco do cadastrador --
+  // o `raw` inteiro sao 14 MB, o recorte sao 146 kB.
+  // Serve pra CONFERENCIA (ver conferenciaFontes em vendas-extra.js), nao pra
+  // comissao: quem trabalha na maquina logada do colega sai com o nome errado.
+  setProgress(63,'Carregando cadastradores...');
+  // Tabela de usuarios da FoneNinja (10 linhas): traduz vendedor_id/cadastrador
+  // em nome. Sem ela a conferencia nao tem como comparar com a obs.
+  funcionariosFN = await sbGet('funcionarios', 'select=id,nome,ativo') || [];
+  let contasCad = [];
+  for(let i=0;i<vendasIds.length;i+=100){
+    const lote = vendasIds.slice(i,i+100);
+    const cts = await sbGet('contas',
+      `select=venda_id,cad_id:raw->cadastrador->>id,cad_nome:raw->cadastrador->>nome&venda_id=in.(${lote.join(',')})`);
+    contasCad = contasCad.concat(cts||[]);
+  }
+  const cadMap={};
+  (contasCad||[]).forEach(c=>{
+    if(c.venda_id && c.cad_nome && !cadMap[c.venda_id]){
+      cadMap[c.venda_id] = { id: parseInt(c.cad_id)||null, nome: c.cad_nome };
+    }
+  });
+
   // Trocas (aparelhos de ENTRADA do upgrade) por venda -- detalhe modelo/IMEI/valor
   // que a ficha da venda mostra. So existe pras vendas ja capturadas/backfilladas.
   let trocas = [];
@@ -81,6 +105,9 @@ async function loadFromSupabase(){
     _pagamentos: pagsMap[v.id] || [],
     // Aparelhos de entrada da troca (modelo/IMEI/valor). Vazio ate o sync capturar.
     _trocas: trocasMap[v.id] || [],
+    // {id, nome} de quem estava logado ao lancar. Null quando a venda nao gerou
+    // conta a receber -- ai a conferencia simplesmente nao opina sobre ela.
+    _cadastrador: cadMap[v.id] || null,
     _produtos: (prodsMap[v.id]||[]).map(p=>({
       ...p,
       apple_id: p.apple_id,

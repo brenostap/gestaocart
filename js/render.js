@@ -773,6 +773,16 @@ function renderVendas(){
       <span>${semVend.length} venda(s) sem vendedor identificado — ficam fora da comissão</span>
     </div>`;
   }
+  // Conferencia das 3 fontes de "quem atendeu" (obs x campo vendedor x cadastrador).
+  // Medicao, nao erro: serve pra decidir se da pra trocar a regra de registro.
+  const conf = typeof conferenciaFontes === 'function' ? conferenciaFontes() : null;
+  if(conf && conf.divergentes.length){
+    alertas += `<div class="v-alerta" data-tom="alerta">
+      <span>${conf.divergentes.length} venda(s) em que a obs, o campo vendedor e o cadastrador
+        não concordam sobre quem atendeu</span>
+      ${UI.btn('Conferir', {onclick:'abrirConferencia()', sm:true})}
+    </div>`;
+  }
 
   // -- Filtros ------------------------------------------------------------
   const opt = (val, atual, texto) =>

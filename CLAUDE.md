@@ -72,6 +72,14 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     colega — justamente o caso em que a comissão sairia errada.
   - O **vendedor online** (Mel, Isa, David) não tem perfil na FoneNinja — não cadastra venda.
     Pra ele a obs é insubstituível.
+  - Existe uma **terceira fonte**, o `cadastrador` (quem estava **logado** ao lançar). A FoneNinja
+    só manda esse campo junto das **contas a receber**: ele vive em `contas.raw->cadastrador`
+    (`{id, nome}`), 100% preenchido, e **não tem coluna própria** em `vendas`. O `data.js` puxa
+    só esse recorte via jsonb path (o `raw` inteiro são 14 MB; o recorte, 146 kB).
+  - ⚠️ **Cadastrador NÃO é mais exato por ser automático** — ele mede o *login aberto*, não a
+    pessoa. Em jul/2026: campo vendedor acerta o atendente em **97,3%**, cadastrador em **90,7%**.
+    Quando os dois discordam, quem acerta é o campo vendedor. Ver a Conferência (`js/conferencia.js`,
+    botão na tela de Vendas) antes de propor trocar a regra de registro do time.
 - **Conta bancária do pagamento** (`pagamentos.conta_bancaria`) já vem do sync e alimenta a tela
   Contas. A lista de contas é montada do próprio dado — conta nova cadastrada na FoneNinja
   aparece sozinha, sem mexer no código.
