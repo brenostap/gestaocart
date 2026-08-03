@@ -358,21 +358,22 @@ function renderDash(){
 
   // Atendentes
   // faixas em core.js (META_AT_FAIXAS); aqui so o rotulo visual
-  function calcMetaAt(b){const mt=metaAtendente(b);return{nivel:mt.nivel,bonus:mt.bonus,label:mt.nivel?'R$'+(mt.faixa/1000)+'k ✅':''};}
+  function calcMetaAt(b){const mt=metaAtendente(b);return{...mt,label:mt.nivel?metaAtRotulo(mt)+' ✅':''};}
   const AT_LABELS=atLabelsAll().slice().sort((a,b)=>(m.atMap[b[1]]?.brutoAcess||0)-(m.atMap[a[1]]?.brutoAcess||0));
   const atRows=AT_LABELS.map(([n,k])=>{
     const bruto=m.atMap[k]?.brutoAcess||0;
     const comm=m.atMap[k]?.la*0.25||0;
     const meta=calcMetaAt(bruto);
-    const nextVal=meta.nivel===0?4000:meta.nivel===1?6000:meta.nivel===2?10000:10000;
-    const prevVal=meta.nivel===0?0:meta.nivel===1?4000:meta.nivel===2?6000:10000;
-    const pct=meta.nivel<3?Math.min(100,Math.round((bruto-prevVal)/(nextVal-prevVal)*100)):100;
+    // Faixas vem de metaAtendente() -- eram chumbadas aqui (4000/6000/10000) e a
+    // faixa nova de 15k passaria batido, com a barra travada em "máxima".
+    const nextVal=meta.prox, prevVal=meta.anterior;
+    const pct=meta.maxima?100:Math.min(100,Math.round((bruto-prevVal)/(nextVal-prevVal)*100));
     const barColor=meta.nivel>=2?'var(--green)':meta.nivel===1?'var(--cart)':'var(--border3)';
     return`<div class="person-row">
       <div style="flex:1">
         <div class="person-name">${n} ${meta.label?'<span style="font-size:10px;background:rgba(48,209,88,.1);color:var(--green);padding:1px 6px;border-radius:4px;font-weight:600">'+meta.label+'</span>':''} ${meta.bonus>0?'<span style="font-size:10px;color:var(--green);font-weight:700">+'+brl(meta.bonus)+'</span>':''}</div>
         <div style="font-size:12px;margin-top:2px"><span style="color:var(--urban);font-weight:600">${brl(bruto)}</span><span style="color:var(--text3)"> bruto acess. · ${m.atMap[k]?.qt||0} itens</span></div>
-        ${meta.nivel<3?`<div style="margin-top:5px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px"></div></div><div style="font-size:10px;color:var(--text3);margin-top:2px">faltam ${brl(nextVal-bruto)} para próxima meta</div>`:'<div style="font-size:10px;color:var(--green);margin-top:4px">🏆 Meta máxima atingida!</div>'}
+        ${!meta.maxima?`<div style="margin-top:5px;height:3px;background:var(--border2);border-radius:2px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:2px"></div></div><div style="font-size:10px;color:var(--text3);margin-top:2px">faltam ${brl(nextVal-bruto)} para próxima meta</div>`:'<div style="font-size:10px;color:var(--green);margin-top:4px">🏆 Meta máxima atingida!</div>'}
       </div>
       <div class="person-val">${brl(comm)}</div>
     </div>`;

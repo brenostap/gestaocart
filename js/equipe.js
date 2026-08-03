@@ -531,8 +531,9 @@ function renderEquipe(){
       const saldoDiv=dividas.reduce(function(a,d){const pago=d.parcelas.filter(function(p){return p.paga;}).reduce(function(s,p){return s+p.valor;},0);return a+(d.total-pago);},0);
       const rankMedal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
       const pctBar=Math.round((comm.brutoAcess||0)/maxBruto*100);
-      const metaNivel=metaAtendente(comm.brutoAcess).nivel; // faixas em core.js
-      const metaBadge=metaNivel===3?'🏆 R$10k':metaNivel===2?'✅ R$6k':metaNivel===1?'✅ R$4k':'';
+      const mtRank=metaAtendente(comm.brutoAcess); // faixas em core.js
+      const metaNivel=mtRank.nivel;
+      const metaBadge=metaNivel?(mtRank.maxima?'🏆 ':'✅ ')+metaAtRotulo(mtRank):'';
       const metaColor=metaNivel>=2?'var(--green)':'var(--cart)';
 
       html += '<div class="func-card" onclick="openFunc(\''+f.id+'\')">'
@@ -783,7 +784,7 @@ function renderFuncCard(id, lAcessTotal){
       const bonus5 = f.bonus ? lAcessMes*0.05 : 0;
       const comm = Math.round(lucroAcess*0.25 + bonus5);
       const _mt = metaAtendente(brutoAcess); // faixas em core.js
-      const meta = {nivel:_mt.nivel, val:_mt.bonus, label:_mt.nivel?'R$'+(_mt.faixa/1000)+'k':''};
+      const meta = {nivel:_mt.nivel, val:_mt.bonus, label:metaAtRotulo(_mt)};
       return { brutoAcess:Math.round(brutoAcess), lucroAcess:Math.round(lucroAcess), qtAcess, comm, bonus5:Math.round(bonus5), meta, tipo:'presencial' };
     }
   }
@@ -938,7 +939,7 @@ function renderFuncCard(id, lAcessTotal){
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--text4)">
             <span>R$0</span>
-            ${metaNivel<3&&proxMeta?`<span>R$${proxMeta/1000}k</span>`:'<span style="color:var(--green)">✅ máxima</span>'}
+            ${!mt.maxima&&proxMeta?`<span>R$${proxMeta/1000}k</span>`:'<span style="color:var(--green)">✅ máxima</span>'}
           </div>
         </div>`;
     }

@@ -163,30 +163,53 @@ function entraNoBonusColetivo(id, ref){
 
 // FONTE UNICA da META INDIVIDUAL do atendente (bruto de acessorios do mes).
 // Estava copiada em 8 lugares como ternario solto (equipe.js x5, render.js x2,
-// dash-v2.js x1). Diferente da meta coletiva, estas faixas nao mudaram desde que
-// existem -- por isso nao tem tabela por mes. Se um dia mudarem, este vira o
-// unico lugar a editar (e a regra de "nunca retroativa" vale igual).
-const META_AT_FAIXAS = [
-  {val:4000,  bonus:100},
-  {val:6000,  bonus:300},
-  {val:10000, bonus:1000},
-];
+// dash-v2.js x1). Este e o unico lugar a editar -- e a regra de "nunca
+// retroativa" vale igual a da meta coletiva, por isso tem tabela por mes:
+//   ate jul/2026 : 4k/6k/10k  ->  100/300/1000
+//   ago/2026 +   : 4k/6k/10k/15k -> 100/300/1000/1500
+// O degrau de 15k NAO podia entrar sem data: Anne fez R$15.830 em mar/2026 e
+// R$13.940 em abr/2026 -- sem a tabela por mes o fechamento de marco dela
+// passaria de R$1.000 para R$1.500 sozinho, meses depois de pago.
+function metaAtFaixas(ref){
+  const p = _refAnoMes(ref);
+  if(p && p < '2026-08') return [
+    {val:4000,  bonus:100},
+    {val:6000,  bonus:300},
+    {val:10000, bonus:1000},
+  ];
+  return [
+    {val:4000,  bonus:100},
+    {val:6000,  bonus:300},
+    {val:10000, bonus:1000},
+    {val:15000, bonus:1500},
+  ];
+}
 // Devolve o estado completo da meta: faixa batida, bonus, proxima faixa e quanto
 // falta. O "faltou X pra faixa de Y" do fechamento sai daqui, nao de conta na tela.
-function metaAtendente(bruto){
+// `anterior` e `total` existem para a BARRA DE PROGRESSO das telas nao precisar
+// saber quantas faixas existem -- era ternario chumbado (4000/6000/10000) em
+// render.js e equipe.js, que silenciosamente ignoraria a faixa nova.
+function metaAtendente(bruto, ref){
+  const faixas = metaAtFaixas(ref);
   const b = parseFloat(bruto||0);
-  const batida = META_AT_FAIXAS.filter(f => b >= f.val).pop() || null;
-  const prox   = META_AT_FAIXAS.find(f => b < f.val) || null;
+  const batida = faixas.filter(f => b >= f.val).pop() || null;
+  const prox   = faixas.find(f => b < f.val) || null;
+  const nivel  = batida ? faixas.indexOf(batida)+1 : 0;
   return {
-    nivel:     batida ? META_AT_FAIXAS.indexOf(batida)+1 : 0,
+    nivel,
+    total:     faixas.length,
+    maxima:    nivel === faixas.length,
     bonus:     batida ? batida.bonus : 0,
     faixa:     batida ? batida.val : 0,
+    anterior:  batida ? batida.val : 0,
     prox:      prox ? prox.val : null,
     proxBonus: prox ? prox.bonus : 0,
     falta:     prox ? prox.val - b : 0,
   };
 }
-function bonusMetaAtendente(bruto){ return metaAtendente(bruto).bonus; }
+function bonusMetaAtendente(bruto, ref){ return metaAtendente(bruto, ref).bonus; }
+// Rotulo curto da faixa batida ("R$10k"), para os badges das telas.
+function metaAtRotulo(m){ return m && m.faixa ? 'R$'+(m.faixa/1000)+'k' : ''; }
 
 // FONTE UNICA da comissao do VENDEDOR por device: R$25/un ate o corte de 80
 // unidades no mes, R$35/un nas seguintes (a curva vale para o mes inteiro, nao

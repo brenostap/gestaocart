@@ -200,6 +200,18 @@ ok(Math.round(davi.meta.falta) === 40, `faltaram ${brl(davi.meta.falta)} para R$
 ok(R('comissaoVendedor(115)') === 3225 && R('comissaoVendedor(80)') === 2000, 'curva do vendedor');
 ok(R('bonusMetaAtendente(9999)') === 300 && R('bonusMetaAtendente(10000)') === 1000,
    'faixas da meta individual');
+
+// Degrau de 15k (bônus R$1.500) entra em ago/2026. NAO pode ser retroativo: Anne
+// fez R$15.830 em mar/2026 e R$13.940 em abr -- marco dela viraria R$1.500.
+ok(R('bonusMetaAtendente(15000, "2026-07")') === 1000, 'até jul/2026 o teto é R$1.000');
+ok(R('bonusMetaAtendente(15830, "2026-03")') === 1000, 'março da Anne não muda de valor');
+ok(R('bonusMetaAtendente(15000, "2026-08")') === 1500, 'ago/2026: 15k paga R$1.500');
+ok(R('bonusMetaAtendente(14999, "2026-08")') === 1000, 'R$1 abaixo continua na faixa de 10k');
+const mt15 = R('metaAtendente(12000, "2026-08")');
+ok(mt15.nivel === 3 && mt15.prox === 15000 && mt15.falta === 3000 && !mt15.maxima,
+   'com 12k a próxima faixa é 15k (faltam R$3.000) e não é mais a máxima');
+ok(R('metaAtendente(12000, "2026-07")').maxima === true,
+   'o mesmo 12k em julho continua sendo faixa máxima');
 const comCol = fech.pessoas.filter(p => p.bonusCol > 0).length;
 ok(fech.totais.bonusCol === comCol * fech.bonusCol,
    `bônus coletivo pago cheio para cada pessoa do rateio (${comCol})`);
