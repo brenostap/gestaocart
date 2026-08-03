@@ -283,6 +283,21 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 - ✅ **Modelos mais vendidos (30/jul/2026)**: card no `renderDashV2` (dash-v2.js) — ranking por modelo+GB+cor, filtro Seminovo/Lacrado/Todos, ordena por Volume/Lucro, usa período+loja do contexto e respeita `money()`/permissões. Selo só no Lacrado (sem selo = seminovo). Parsa o `titulo` do FoneNinja (~98,5% identificável). CSS `.d2-mod-*` em dash-v2.css.
 - 💡 Quando `venda_trocas` encher: quadro de trocas (o que mais entra de upgrade, valor médio) e cruzar com o modelo vendido. **(31/jul: já encheu — 1.010 vendas cobertas, julho 100%.)**
 
+## Margem do estoque (03/ago/2026)
+- 🔨 ⭐ **Tela de margem do estoque** — a métrica principal é **R$ de lucro por aparelho**, não %
+  (é a linguagem do dono: ele prevê o mês pelo lucro travado no estoque e calcula quantas vendas
+  precisa). Cruza `estoque` × `tabela_precos` por modelo+capacidade+condição, abre por origem
+  (fornecedor × troca de cliente) e por modelo, com **alerta de encalhe** (dias parados × margem).
+  Método, queries e o retrato de 03/ago em **`docs/ANALISE-MARGEM-ESTOQUE.md`**.
+  - ⚠️ **`estoque.preco_varejo` e `estoque.created_at` estão nulos em 100% das linhas.** Preço vem
+    da `tabela_precos`; data de entrada vem de `compras.data_entrada` via `compra_produtos.imei_1`.
+  - ⚠️ A `tabela_precos` é **snapshot** (só o preço de hoje) — não dá pra reconstruir a tabela
+    vigente num mês passado. Comparar venda antiga com tabela atual é aproximação.
+  - 💡 **Trocas de cliente rendem R$827/aparelho contra R$597 do fornecedor**, com R$548 menos de
+    capital preso. Vale um quadro só delas — e pesa na decisão de quanto dar num upgrade.
+  - 💡 **Margem está nos modelos populares** (14/14 Plus/15/13 Pro: 21–26%) e não nos topo de linha
+    (16 Pro Max/17 Pro Max: 14–16%). Um ranking por R$/aparelho deixaria isso na cara.
+
 ## Cálculo de lucro (decidido em 31/jul/2026)
 - 🔨 ⭐ **Trocar o lucro do painel para a fórmula A.** Hoje 7 pontos do código somam `v.lucro` (campo da FoneNinja): `render.js` 7/403/433/574, `custos.js` 337/338, `dash-v2.js` 380. Esse campo **erra em ~1 de cada 5 vendas** — em jul/2026 mostrava R$228.933 contra R$238.826 reais (R$9.893 a menos). **Fórmula A (adotada):** `(preço − custo dos itens não-cancelados) + taxa_extra`. Ver [[como-calcular-lucro-de-venda]] na memória para as regras completas (item cancelado, troca, taxa de maquininha é GANHO e não custo).
   - ⚠️ Mudança que toca todas as telas de uma vez — conferir um mês inteiro lado a lado antes de trocar de vez.
