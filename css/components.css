@@ -490,6 +490,12 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .v-dia-lin .v-lead{ flex:1 1 auto; min-width:12px; align-self:center; height:0; border-bottom:1px dotted var(--border3); }
 .v-dia-lin .cm{ color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .v-dia-lin .cm em{ color:var(--text4); font-weight:400; font-style:normal; font-size:10.5px; }
+/* sublinha por conta bancaria dentro da forma de pagamento (Pix -> Cart/Urban) */
+.v-dia-lin.v-dia-sub{ padding:1px 0 1px 12px; font-size:11px; }
+.v-dia-lin.v-dia-sub .nm{ color:var(--text3); font-weight:500; }
+.v-dia-lin.v-dia-sub .cm{ color:var(--text3); font-weight:500; }
+.v-dia-loja{ font-family:var(--font-mono); font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--text4); font-style:normal; }
 .v-dia-vazio{ color:var(--text4); font-size:12px; padding:3px 0; }
 .v-dia-nota{ font-size:10.5px; color:var(--text4); font-style:italic; margin-top:10px; }
 

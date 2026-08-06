@@ -63,26 +63,30 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - O `líquido`/recebimento da FoneNinja **erra em ~9%** das vendas — o lucro dessas não é confiável.
 - `taxa` = custo real da maquininha; `taxa_extra` = juros repassados ao cliente (é ganho da loja, já embutido no líquido).
 - **Trocas detalhadas** (quais aparelhos o cliente entregou, IMEI/valor) **ainda não são capturadas** — só o total (`upgrade_valor`/`upgrade_qtd`).
-- **A obs da venda é a ÚNICA fonte de loja, vendedor e atendente.** `vendas.loja_id` está 100%
-  vazio e não existe campo de vendedor-nome: `loja`, `vendedor_obs` e `atendente_obs` são todos
-  parseados do texto da observação. Tirar a obs quebra as três coisas de uma vez.
-  - `vendas.vendedor_id` é **quem cadastrou** (o perfil FoneNinja de quem digitou) e casa com
-    `funcionarios.id` → nome. Ele **não** é o vendedor: é o **atendente**, e bate com
-    `atendente_obs` em ~96% de julho/2026. Os ~4% que erram são atendente usando o login do
-    colega — justamente o caso em que a comissão sairia errada.
-  - O **vendedor online** (Mel, Isa, David) não tem perfil na FoneNinja — não cadastra venda.
-    Pra ele a obs é insubstituível.
+- **A obs da venda ainda é a fonte de loja, vendedor e atendente** — e continua sendo quem paga
+  comissão. `vendas.loja_id` está 100% vazio: `loja`, `vendedor_obs` e `atendente_obs` são todos
+  parseados do texto da observação. Tirar a obs hoje quebra as três coisas de uma vez.
+  - ⚠️ **Virada em ago/2026 — `vendas.vendedor_id` troca de significado.** Até 05/ago o campo
+    vendedor da FoneNinja só tinha perfil de **atendente** (batia com `atendente_obs` em 97,3% de
+    julho). Com os perfis dos vendedores online criados, ele passa a ser **quem vendeu**. Nada no
+    banco marca a virada — quem ler a coluna sem saber disso mistura duas coisas.
+    Regra nova: campo vendedor = vendedor · origem do cliente = loja · login = atendente.
+    O time escreve **os dois** (campo + obs) até fechar. Ler `docs/REGISTRO-VENDA-2026-08.md`.
   - Existe uma **terceira fonte**, o `cadastrador` (quem estava **logado** ao lançar). A FoneNinja
     só manda esse campo junto das **contas a receber**: ele vive em `contas.raw->cadastrador`
     (`{id, nome}`), 100% preenchido, e **não tem coluna própria** em `vendas`. O `data.js` puxa
     só esse recorte via jsonb path (o `raw` inteiro são 14 MB; o recorte, 146 kB).
   - ⚠️ **Cadastrador NÃO é mais exato por ser automático** — ele mede o *login aberto*, não a
     pessoa. Em jul/2026: campo vendedor acerta o atendente em **97,3%**, cadastrador em **90,7%**.
-    Quando os dois discordam, quem acerta é o campo vendedor. Ver a Conferência (`js/conferencia.js`,
-    botão na tela de Vendas) antes de propor trocar a regra de registro do time.
+    A **Conferência** (`js/conferencia.js`, botão na tela de Vendas) mede as duas leituras ao mesmo
+    tempo — cobertura da regra nova subindo, regra antiga caindo. Ver antes de mexer na comissão.
 - **Conta bancária do pagamento** (`pagamentos.conta_bancaria`) já vem do sync e alimenta a tela
   Contas. A lista de contas é montada do próprio dado — conta nova cadastrada na FoneNinja
   aparece sozinha, sem mexer no código.
+  - Desde 04/ago/2026 são **4 contas novas** (Cart/Urban × Pix/Crédito) e o **nome da conta carrega
+    a loja** ("Cart - PicPay"); `pagContaInfo()` (render.js) separa loja e adquirente. Débito e
+    dinheiro **não** foram separados por loja. Crédito saiu do PagBank pro PicPay: mais barato de
+    6x pra cima (~R$6,2 mil/mês no mix de julho). Detalhe em `docs/REGISTRO-VENDA-2026-08.md`.
 
 ## Caderno de ideias
 - `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.

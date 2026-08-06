@@ -1040,6 +1040,19 @@ function pagFormaInfo(f){
   return ['outro', f || 'Outro'];
 }
 
+// Conta bancaria -> {loja, curto}. Desde 04/ago/2026 a FoneNinja tem uma conta
+// por loja e por forma ("Cart - PicPay", "Urban - PagSeguro"): o prefixo VIRA a
+// loja e some do rotulo, senao a linha do resumo repete "Cart" duas vezes.
+// Conta sem prefixo (PagBank do debito, Caixa do dinheiro, MercadoPago antigo)
+// nao separa loja -- devolve loja null de proposito, e o resumo mostra assim.
+function pagContaInfo(conta){
+  const nome = String(conta==null?'':conta).trim();
+  if(!nome) return { loja:null, curto:'(sem conta)' };
+  const m = nome.match(/^(cart|urban)\s*[-–]\s*(.+)$/i);
+  if(m) return { loja: m[1].toLowerCase(), curto: m[2].trim() };
+  return { loja:null, curto: nome };
+}
+
 function resumoDiaHTML(dia, diaRows, COLS){
   const verV = podeVerValor(), verM = podeVerMargem();
   const aberto = vendasDiasAbertos.has(dia);
@@ -1056,8 +1069,14 @@ function resumoDiaHTML(dia, diaRows, COLS){
     if(ak){ (atMap[ak] = atMap[ak] || {ab:0, al:0, qt:0}); atMap[ak].ab += r.acessBruto; atMap[ak].al += r.acessLucro; atMap[ak].qt++; }
     (r.pagamentos||[]).forEach(p => {
       const [k,label] = pagFormaInfo(p.forma);
-      (pgMap[k] = pgMap[k] || {label, cheio:0, liq:0});
-      pgMap[k].cheio += p.valor; pgMap[k].liq += p.liquido;
+      const pg = (pgMap[k] = pgMap[k] || {label, cheio:0, liq:0, contas:{}});
+      pg.cheio += p.valor; pg.liq += p.liquido;
+      // Quebra por conta dentro da forma: e o que mostra quanto do Pix caiu no
+      // Mercado Pago da Cart e quanto no PagSeguro da Urban.
+      const ci = pagContaInfo(p.conta);
+      const ck = ci.loja ? ci.loja+'|'+ci.curto : ci.curto;
+      const c = (pg.contas[ck] = pg.contas[ck] || {loja:ci.loja, curto:ci.curto, cheio:0, liq:0});
+      c.cheio += p.valor; c.liq += p.liquido;
     });
   });
 
@@ -1090,10 +1109,20 @@ function resumoDiaHTML(dia, diaRows, COLS){
         ${verM?`${lead}<span class="cm">${money(d.al*0.25)}</span>`:''}</div>`).join('')
       || '<div class="v-dia-vazio">—</div>';
     const ordem = ['pix','credito','debito','dinheiro','outro'];
+    // Sublinha por conta so quando a forma se divide em mais de uma: Dinheiro no
+    // Caixa nao ganha uma linha repetindo "Caixa".
     const pgRows = Object.entries(pgMap)
       .sort((a,b)=>ordem.indexOf(a[0])-ordem.indexOf(b[0]))
-      .map(([,d]) => `<div class="v-dia-lin"><span class="nm">${escapeHtml(d.label)}</span>
-        ${lead}<span class="cm">${money(d.cheio)}${verM?` <em>líq ${money(d.liq)}</em>`:''}</span></div>`).join('')
+      .map(([,d]) => {
+        const contas = Object.values(d.contas).sort((a,b)=>b.cheio-a.cheio);
+        const sub = contas.length < 2 ? '' : contas.map(c =>
+          `<div class="v-dia-lin v-dia-sub"><span class="nm">${
+            c.loja ? `<i class="v-dia-loja">${c.loja==='urban'?'Urban':'Cart'}</i> ` : ''
+          }${escapeHtml(c.curto)}</span>
+          ${lead}<span class="cm">${money(c.cheio)}</span></div>`).join('');
+        return `<div class="v-dia-lin"><span class="nm">${escapeHtml(d.label)}</span>
+          ${lead}<span class="cm">${money(d.cheio)}${verM?` <em>líq ${money(d.liq)}</em>`:''}</span></div>${sub}`;
+      }).join('')
       || '<div class="v-dia-vazio">—</div>';
 
     detalhe = `<div class="v-dia-cols">
