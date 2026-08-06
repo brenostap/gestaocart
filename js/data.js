@@ -52,6 +52,14 @@ async function loadFromSupabase(){
   // Tabela de usuarios da FoneNinja (10 linhas): traduz vendedor_id/cadastrador
   // em nome. Sem ela a conferencia nao tem como comparar com a obs.
   funcionariosFN = await sbGet('funcionarios', 'select=id,nome,ativo') || [];
+  // Catalogo de origens de cliente (9 linhas): id -> loja. Desde ago/2026 e como
+  // o time marca cart/urban. Se falhar, ORIGEM_LOJA fica vazio e a loja continua
+  // saindo so da obs -- degrada, nao quebra.
+  try {
+    const origens = await sbGet('origens_cliente', 'select=id,loja') || [];
+    ORIGEM_LOJA = {};
+    origens.forEach(o => { if(o.loja) ORIGEM_LOJA[o.id] = o.loja; });
+  } catch(e){ console.warn('[origens]', e); }
   let contasCad = [];
   for(let i=0;i<vendasIds.length;i+=100){
     const lote = vendasIds.slice(i,i+100);

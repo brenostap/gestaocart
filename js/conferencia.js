@@ -49,9 +49,19 @@ function conferenciaFontes(){
 
   const linhas = [];
   v.forEach(venda => {
-    const info = getVendaInfo(venda);
-    const campoNome = funcPorId[venda.vendedor_id] || '';
-    const cadNome = venda._cadastrador?.nome || '';
+    // ⚠️ Obs PURA, sem os fallbacks do getVendaInfo: ele ja preenche o buraco da
+    // obs com o campo novo, e comparar campo com campo daria 100% de mentira.
+    const parsed = parseObs(venda.observacoes||'');
+    const info = {
+      loja: parsed.loja,
+      vendedor: venda.vendedor_obs || parsed.vendedor,
+      atendente: venda.atendente_obs || parsed.atendente,
+    };
+    // vendedor_nome (sync novo) tem os vendedores online; funcPorId so resolve
+    // quem tem perfil em `funcionarios` e cobre as vendas ainda nao re-sincronizadas.
+    const campoNome = venda.vendedor_nome || funcPorId[venda.vendedor_id] || '';
+    const cadNome = funcNomePorId(venda.cadastrador_id) || venda._cadastrador?.nome || '';
+    const origemLoja = lojaDaOrigem(venda.origem_cliente_id);
 
     const obsAt = confChaveAtendente(info.atendente || '');
     const obsVo = confChaveVendedor(info.vendedor || '');
@@ -71,13 +81,14 @@ function conferenciaFontes(){
       data: (venda.data_saida||'').slice(0,10),
       loja: info.loja || '—',
       valor: parseFloat(venda.valor_total||0),
-      obsAt, obsVo, campoAt, campoVo, cad,
+      obsAt, obsVo, campoAt, campoVo, cad, origemLoja,
       obsAtNome: info.atendente || '', obsVoNome: info.vendedor || '',
       campoNome, cadNome,
       // regra atual (campo = atendente) e regra nova (campo = vendedor)
       campoAtBate: (obsAt && campoAt) ? campoAt === obsAt : null,
       campoVoBate: (obsVo && campoVo) ? campoVo === obsVo : null,
       cadBate:     (obsAt && cad)     ? cad     === obsAt : null,
+      lojaBate:    (info.loja && origemLoja) ? origemLoja === info.loja : null,
     });
   });
 
@@ -100,6 +111,7 @@ function conferenciaFontes(){
     vendedor: { base: comObsVo.length, comCampo: jaNoCampo, acerto: placar('campoVoBate') },
     campo: placar('campoAtBate'),
     cad:   placar('cadBate'),
+    lojaOrigem: placar('lojaBate'),
     // Divergentes = alguma fonte automatica discorda da obs. Sao as vendas em
     // que trocar a regra de registro mudaria a comissao de alguem.
     divAtendente: linhas.filter(l => l.campoAtBate === false || l.cadBate === false),
@@ -130,6 +142,9 @@ function abrirConferencia(){
     { rotulo:'E acerta quem foi', valor: confPct(c.vendedor.acerto),
       sub: c.vendedor.acerto.bate + ' de ' + c.vendedor.acerto.base + ' batem com a obs',
       tom: c.vendedor.acerto.base && c.vendedor.acerto.bate/c.vendedor.acerto.base >= 0.99 ? 'ok' : 'alerta' },
+    { rotulo:'Origem = loja da obs', valor: confPct(c.lojaOrigem),
+      sub: c.lojaOrigem.bate + ' de ' + c.lojaOrigem.base + ' vendas',
+      tom: c.lojaOrigem.base && c.lojaOrigem.bate/c.lojaOrigem.base >= 0.99 ? 'ok' : 'alerta' },
   ]);
 
   const placarAtual = UI.kpis([
@@ -175,9 +190,11 @@ function abrirConferencia(){
     classe: 'largo',
     corpo: `
       <p class="conf-nota"><strong>Regra nova (ago/2026):</strong> o campo vendedor da FoneNinja
-      passa a ser o <strong>vendedor online</strong> e o <strong>login</strong> passa a ser o
-      atendente. Enquanto a obs continuar sendo escrita, ela é a referência e é ela que paga
-      comissão — estes números dizem quando dá pra parar de escrever.</p>
+      passa a ser o <strong>vendedor online</strong>, a <strong>origem do cliente</strong> passa a
+      ser a loja e o <strong>login</strong> passa a ser o atendente. Enquanto a obs continuar sendo
+      escrita, ela é a referência e é ela que paga comissão — estes números dizem quando dá pra
+      parar de escrever. Onde a obs <em>não</em> diz nada, o campo já vale (senão a venda sumiria
+      da comissão de todo mundo).</p>
       ${placarNovo}
       ${tabelaVend}
       <p class="conf-nota" style="margin-top:22px"><strong>Regra antiga — quem atendeu.</strong>

@@ -20,8 +20,15 @@ const EMAIL_DONO = 'breno@phonestp.com';
 let papelPreview = (function(){ try{ return localStorage.getItem('pc_papel_preview')||''; }catch(e){ return ''; } })();
 let allVendas=[],allMovs=[],estoqueItens=[],ajustesAcessorios=[];
 // Usuarios da FoneNinja (tabela `funcionarios`): id -> nome. E o que traduz
-// `vendas.vendedor_id` e o cadastrador em gente. So a conferencia usa hoje.
+// `vendas.vendedor_id` e o cadastrador em gente.
+// ⚠️ NAO tem todo mundo: os perfis dos vendedores online (Mel, Isa, David) nao
+// aparecem em /refactored-funcionarios. Pra eles o nome vem em `vendedor_nome`,
+// gravado pelo sync direto do payload da venda.
 let funcionariosFN=[];
+// origem do cliente (id) -> 'cart' | 'urban'. Vem da tabela `origens_cliente`
+// (catalogo da FoneNinja, 9 linhas). Desde ago/2026 a origem e como o time marca
+// a loja. Vazio ate o data.js carregar -- quem le cai no null e usa a obs.
+let ORIGEM_LOJA={};
 let currentStore='ambas',currentTab='dash',currentPeriod='mes';
 // Estado do Estoque v3
 let estoqueViewV3 = 'agrupado';       // 'agrupado' | 'lista'

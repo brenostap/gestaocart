@@ -229,6 +229,14 @@ const SOCIOS = ['breno','gustavo','marcella','marcela','marcelo'];
 
 // Vendedores online oficiais -- SOMENTE esses recebem comissao por device
 
+// id do perfil FoneNinja -> nome. Devolve null pra id nao cadastrado (os perfis
+// dos vendedores online nao vem na tabela `funcionarios` -- ver config.js).
+function funcNomePorId(id){
+  if(!id || !Array.isArray(funcionariosFN)) return null;
+  const f = funcionariosFN.find(x => x.id === id);
+  return f ? f.nome : null;
+}
+
 function matchNome(n,lista){
   if(!n) return null;
   let nl = n.toLowerCase().trim();

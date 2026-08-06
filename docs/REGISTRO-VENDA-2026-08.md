@@ -61,18 +61,42 @@ com taxa PicPay já observada; o resto entrou com a própria taxa do PagBank).
 
 ---
 
-## 2. Vendedor no campo, loja na origem, atendente no login (começa 06/ago/2026)
+## 2. Vendedor no campo, loja na origem, atendente no login (desde 06/ago/2026)
 
-Regra nova combinada com o time — **os três dados saem da obs e viram campo estruturado**:
+Regra nova combinada com o time — **os três dados saem da obs e viram campo estruturado**. A boa
+notícia: a FoneNinja **já manda os três dentro do payload da venda**, só não estávamos lendo.
 
-| O quê | Onde passa a ficar | Onde está hoje |
+| O quê | De onde vem | Coluna em `vendas` (nova) |
 |---|---|---|
-| Quem **vendeu** (Mel, Isa, David…) | campo **vendedor** da FoneNinja → `vendas.vendedor_id` | obs → `vendedor_obs` |
-| **Loja** (cart/urban) | **origem do cliente** → `clientes.origem_id` | obs → `vendas.loja` |
-| Quem **atendeu** | **perfil logado** ao cadastrar → `contas.raw->cadastrador` | obs → `atendente_obs` |
+| Quem **vendeu** (Mel, Isa, David…) | `venda.vendedor.nome` | `vendedor_nome` |
+| **Loja** (cart/urban) | `venda.origem_cliente_id` | `origem_cliente_id` |
+| Quem **atendeu** | `venda.cadastrador_id` (quem estava logado) | `cadastrador_id` |
 
-**Durante a transição o time escreve os dois** (campo + obs). A obs continua sendo a referência
-e é ela que paga comissão enquanto a virada não fecha.
+Detalhes que economizam tempo de quem for mexer nisso:
+
+- **A origem vem na VENDA, não só no cliente** — já nasce congelada. O risco que eu tinha levantado
+  (editar o cadastro do cliente mudaria a loja de vendas antigas) **não existe** por esse caminho.
+- **O catálogo de origens é o endpoint `/origem_clientes`** (não `/origens*`, que caem no HTML da
+  SPA). São 9 linhas, sincronizadas por `syncOrigens()` na tabela `origens_cliente`, com a coluna
+  `loja` derivada do nome: `CART`, `CART (Anuncio Insta)`, `Outro (Cart)` → `cart`; idem Urban;
+  `ATACADO` → sem loja.
+- **`vendedor_nome` não depende de `funcionarios`.** O perfil da Mel (id 6438) **não aparece** em
+  `/refactored-funcionarios` — só no payload da venda. Se dependêssemos daquela tabela, o vendedor
+  online continuaria invisível.
+- **`cadastrador_id` acabou com o garimpo:** antes ele só existia dentro de `contas.raw->cadastrador`.
+  A fonte antiga continua ligada como reserva pras vendas ainda não re-sincronizadas.
+
+### A obs manda — o campo só tapa buraco
+
+`getVendaInfo()` (equipe.js) usa o campo estruturado **só onde a obs não diz nada**. Se a obs e o
+campo discordam, **vence a obs** e a diferença aparece na Conferência. Isso não é preciosismo: a
+primeira venda da regra nova (`#40596487`, 06/ago 13:00) já veio **sem observação nenhuma** — sem
+esse tapa-buraco ela sumiria da comissão de todo mundo, em silêncio.
+
+⚠️ **O filtro que evita o desastre:** até 05/ago o campo vendedor carregava o **atendente**. O
+fallback só aceita nome que seja vendedor online de verdade (`VO_KEYS`) — senão Vitinho viraria
+"vendedor" e receberia comissão de venda que não é dele. Mesma trava no cadastrador (`AT_KEYS`).
+Protegido por `test/registro-venda.test.js` (`node test/registro-venda.test.js`).
 
 ### ⚠️ O `vendedor_id` troca de significado no meio do histórico
 
@@ -81,12 +105,15 @@ obs em 97,3% (jul/2026). Com os perfis dos vendedores online criados, a mesma co
 significar **vendedor**. Nada no banco marca a virada: quem ler `vendedor_id` sem saber disso
 mistura duas coisas.
 
-A **Conferência** (botão na tela de Vendas, `js/conferencia.js`) mede as duas leituras ao mesmo
-tempo, sem data de corte:
+A **Conferência** (botão na tela de Vendas, `js/conferencia.js`) mede as leituras ao mesmo tempo,
+sem data de corte, sempre contra a **obs pura**:
 
 - **Campo já traz o vendedor** — % das vendas com vendedor na obs cujo campo aponta pra um
   vendedor online. É a **cobertura**: tem que subir até 100%.
 - **E acerta quem foi** — dessas, quantas batem com a obs. Tem que ficar em 100%.
+- **Origem = loja da obs** — a origem já vinha certa antes da virada: 97,9% em jun/2026 e 95,3% em
+  jul/2026. As divergências são, na maioria, cliente **cadastrado no mesmo dia** (erro de quem
+  escolheu a origem ou de quem escreveu a obs), não cliente recorrente.
 - **Campo vendedor = atendente** (regra antiga) — vai **cair** conforme o time adota. É esperado.
 - **Cadastrador = atendente** — mede o login. Erra quando alguém usa a máquina do colega
   (90,7% em jul/2026, contra 97,3% do campo).
@@ -94,21 +121,11 @@ tempo, sem data de corte:
 **Critério pra parar de escrever a obs:** cobertura 100% e acerto 100% por algumas semanas
 seguidas, com a Conferência aberta no período do mês.
 
-### Pendente — depende do sync (repo `phonecar-sync`)
+### O que ainda merece olho
 
-1. **Origem do cliente ainda não vira loja.** O sync grava `clientes.origem_id`, mas **não existe
-   tabela de origens** — não dá pra saber qual id é "Cart" e qual é "Urban". Falta sincronizar o
-   catálogo de origens da FoneNinja.
-2. **Origem é atributo do cliente, não da venda.** Cliente que volta e compra na outra loja tem
-   uma origem só; se alguém editar a origem dele, a loja de vendas **antigas** mudaria retroativamente.
-   Correção: o sync deve **congelar** a origem na venda (coluna nova em `vendas`, gravada no upsert).
-   Tamanho do problema hoje: 11 de 2.134 clientes (0,5%) compraram nas duas lojas em 6 meses;
-   153 são recorrentes.
-3. **Perfis novos precisam aparecer em `funcionarios`.** O `syncFuncionarios()` roda a cada hora e
-   traz sozinho — mas até rodar, o nome do vendedor no campo não resolve e a Conferência não conta
-   a venda. Em 06/ago a tabela ainda tinha só os 10 perfis antigos (sem Mel, Isa e David).
-4. **Cadastrador chega só de carona nas contas a receber** (`contas.raw->cadastrador`) — não tem
-   coluna própria em `vendas`. Na prática cobre tudo: 345 de 345 vendas de julho/2026 têm o campo
-   (toda venda gera conta a receber). O limite dele não é cobertura, é o que ele mede: o **login
-   aberto**, não quem atendeu. Se o atendente virar dado oficial, vale o sync gravar o cadastrador
-   numa coluna de `vendas`, em vez de o painel garimpar o jsonb a cada carga.
+1. **Débito e dinheiro não separam loja** (parte 1 deste doc) — se quiser, é criar as contas na
+   FoneNinja; o painel pega sozinho.
+2. **Origem `ATACADO`** não tem loja. Venda de cliente com essa origem e sem obs fica sem loja.
+3. **Histórico não foi backfillado**: `origem_cliente_id`, `cadastrador_id` e `vendedor_nome` só
+   existem para as vendas que o sync tocar (novas + janela de re-sync). Para o passado, a obs
+   continua sendo tudo — e continua funcionando.

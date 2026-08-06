@@ -16,6 +16,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Teste do fechamento** (sem browser, sem rede): `node test/fechamento.test.js`. Carrega os
   `js/*.js` reais com stubs e prova que tela e exportação saem do **mesmo** `fechamentoEquipe()`.
   Rodar depois de mexer em comissão, meta, folha ou `calc()`.
+- **Teste do registro da venda**: `node test/registro-venda.test.js`. Prova que **a obs manda** e
+  que os campos estruturados da FoneNinja (vendedor/origem/cadastrador) só tapam buraco — e que
+  atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
 
 ## ⚠️ Arquitetura que quebra fácil (leia antes de mexer em JS)
 - **Sem bundler — `<script>` clássicos, um único escopo global.** Todos os `js/*.js` são
@@ -71,11 +74,18 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     julho). Com os perfis dos vendedores online criados, ele passa a ser **quem vendeu**. Nada no
     banco marca a virada — quem ler a coluna sem saber disso mistura duas coisas.
     Regra nova: campo vendedor = vendedor · origem do cliente = loja · login = atendente.
-    O time escreve **os dois** (campo + obs) até fechar. Ler `docs/REGISTRO-VENDA-2026-08.md`.
-  - Existe uma **terceira fonte**, o `cadastrador` (quem estava **logado** ao lançar). A FoneNinja
-    só manda esse campo junto das **contas a receber**: ele vive em `contas.raw->cadastrador`
-    (`{id, nome}`), 100% preenchido, e **não tem coluna própria** em `vendas`. O `data.js` puxa
-    só esse recorte via jsonb path (o `raw` inteiro são 14 MB; o recorte, 146 kB).
+    Ler `docs/REGISTRO-VENDA-2026-08.md` antes de mexer.
+  - Os três já vêm **estruturados no payload da venda** e o sync grava em colunas próprias:
+    `vendedor_nome`, `origem_cliente_id` (→ loja, via `origens_cliente`), `cadastrador_id`.
+    **A obs manda**: `getVendaInfo()` só usa esses campos onde a obs não diz nada — venda sem obs
+    sumia da comissão em silêncio. O fallback do vendedor só aceita quem é **VO de verdade**
+    (`VO_KEYS`), senão atendente do campo antigo viraria vendedor. Trava protegida por
+    `node test/registro-venda.test.js`.
+  - `vendedor_nome` **não depende de `funcionarios`** — o perfil dos vendedores online não aparece
+    em `/refactored-funcionarios`, só no payload da venda.
+  - O `cadastrador` (quem estava **logado**) também vive em `contas.raw->cadastrador`
+    (`{id, nome}`, 100% preenchido) — fonte de reserva pras vendas que o sync ainda não tocou.
+    O `data.js` puxa só esse recorte via jsonb path (o `raw` inteiro são 14 MB; o recorte, 146 kB).
   - ⚠️ **Cadastrador NÃO é mais exato por ser automático** — ele mede o *login aberto*, não a
     pessoa. Em jul/2026: campo vendedor acerta o atendente em **97,3%**, cadastrador em **90,7%**.
     A **Conferência** (`js/conferencia.js`, botão na tela de Vendas) mede as duas leituras ao mesmo

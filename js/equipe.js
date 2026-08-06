@@ -1208,18 +1208,50 @@ function parseObs(obs){
 }
 // Helper que usa campos diretos (atendente_obs/vendedor_obs) quando disponiveis
 // Fallback para parseObs(observacoes) para compatibilidade com FoneNinja
+//
+// A OBS MANDA. Os campos estruturados da FoneNinja (virada de ago/2026, ver
+// docs/REGISTRO-VENDA-2026-08.md) entram SO onde a obs nao diz nada -- venda sem
+// obs some da comissao em silencio, e desde 06/ago ja existe venda assim.
+// Nada de sobrescrever o que a pessoa escreveu: se a obs e o campo discordarem,
+// a diferenca aparece na Conferencia e o dono decide.
 function getVendaInfo(venda){
   if(!venda) return {loja:null,vendedor:null,atendente:null};
-  // Se tem campos diretos do sync (Supabase), usa eles
-  if(venda.atendente_obs || venda.vendedor_obs){
-    const parsed = parseObs(venda.observacoes||'');
-    return {
-      loja: parsed.loja,
-      vendedor: venda.vendedor_obs || parsed.vendedor,
-      atendente: venda.atendente_obs || parsed.atendente
-    };
-  }
-  return parseObs(venda.observacoes||'');
+  const parsed = parseObs(venda.observacoes||'');
+  const obsVend = venda.vendedor_obs || parsed.vendedor;
+  const obsAtend = venda.atendente_obs || parsed.atendente;
+  return {
+    loja:      parsed.loja  || lojaDaOrigem(venda.origem_cliente_id),
+    vendedor:  obsVend      || campoVendedorVO(venda),
+    atendente: obsAtend     || cadastradorAT(venda),
+  };
+}
+
+// -- Campos estruturados (so valem como TAPA-BURACO da obs) ------------------
+// origem do cliente -> loja. O sync grava o id NA VENDA (ja congelado) e o
+// catalogo em `origens_cliente`; ORIGEM_LOJA e o mapa carregado no data.js.
+function lojaDaOrigem(origemId){
+  if(!origemId) return null;
+  return (typeof ORIGEM_LOJA !== 'undefined' && ORIGEM_LOJA[origemId]) || null;
+}
+// Campo vendedor -> so aceita quem e VENDEDOR ONLINE de verdade. Ate 05/ago esse
+// campo carregava o ATENDENTE (era o unico perfil que existia): sem este filtro,
+// Vitinho viraria vendedor e receberia comissao de venda que nao e dele.
+function campoVendedorVO(venda){
+  const nome = venda.vendedor_nome;
+  if(!nome) return null;
+  const k = matchNome(String(nome).toLowerCase().trim(), VO_KEYS)
+         || matchNome(String(nome).toLowerCase().trim().split(/\s+/)[0], VO_KEYS);
+  return k || null;
+}
+// Cadastrador (quem estava logado) -> atendente. Mesmo cuidado: so passa quem e
+// atendente oficial. `cadastrador_id` vem do sync; `_cadastrador` e a fonte
+// antiga (contas.raw), que ainda cobre as vendas nao re-sincronizadas.
+function cadastradorAT(venda){
+  const nome = (typeof funcNomePorId === 'function' ? funcNomePorId(venda.cadastrador_id) : null)
+            || venda._cadastrador?.nome;
+  if(!nome) return null;
+  const n = String(nome).toLowerCase().trim();
+  return matchNome(n, AT_KEYS) || matchNome(n.split(/\s+/)[0], AT_KEYS) || null;
 }
 function isAcess(m){return !m.imei_1&&!m.apple_id&&parseFloat(m.valor_estoque||0)<200;}
 // Helper para normalizar ultimo_fornecedor (string no Supabase, objeto no FoneNinja)
