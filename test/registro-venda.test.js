@@ -110,5 +110,24 @@ R('UI.abrirModal = o => { globalThis.__modal = o; }');
 R('abrirConferencia()');
 eq('modal monta', R('typeof __modal.corpo === "string" && __modal.corpo.length > 500'), true);
 
+// -- a tela de Vendas TEM que renderizar -----------------------------------
+// Em 06/ago/2026 a Conferência renomeou `divergentes` -> `divVendedor`/`divAtendente`
+// e o renderVendas continuou lendo `conf.divergentes.length`: TypeError na hora
+// de montar a faixa de alertas, e a tela de Vendas inteira parou de abrir. Os
+// testes de unidade passaram todos -- ninguém tinha chamado renderVendas().
+console.log('\ntela de Vendas\n');
+vm.runInContext(`
+  function podeVerDinheiro(){ return true; }
+  function podeVerCusto(){ return true; }
+  function lojaLabel(l){ return l||''; }
+  vendasSearch=''; vendasLoja='todas'; vendasVendedor='todos'; vendasAtendente='todos';
+  vendasProduto=''; vendasSortCol=''; vendasConta='todas'; currentTab='vendas';
+`, ctx);
+let htmlVendas = '';
+try { htmlVendas = R('renderVendas()'); }
+catch(e){ htmlVendas = '__ERRO__ ' + e.message; }
+eq('renderVendas() nao estoura', htmlVendas.startsWith('__ERRO__') ? htmlVendas : true, true);
+eq('renderVendas() lista as vendas do periodo', /40596487|#1\b|Cliente/.test(htmlVendas) || htmlVendas.length > 1000, true);
+
 console.log(falhas ? `\n### ${falhas} FALHA(S)\n` : '\n### tudo verde\n');
 process.exit(falhas ? 1 : 0);

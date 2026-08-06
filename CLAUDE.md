@@ -19,6 +19,8 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Teste do registro da venda**: `node test/registro-venda.test.js`. Prova que **a obs manda** e
   que os campos estruturados da FoneNinja (vendedor/origem/cadastrador) só tapam buraco — e que
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
+  Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
+  a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
 
 ## ⚠️ Arquitetura que quebra fácil (leia antes de mexer em JS)
 - **Sem bundler — `<script>` clássicos, um único escopo global.** Todos os `js/*.js` são
