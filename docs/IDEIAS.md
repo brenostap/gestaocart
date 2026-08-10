@@ -351,6 +351,31 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 - 💡 Com a tabela `perfis` no ar, `papelReal()` (shell.js) deixa de ser fixo em `'socio'` e passa a ler
   de lá — o "Ver como" continua por cima, só pro dono.
 
+## Atendimento / Chatwoot
+Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `scripts/chatwoot.js` · agente `analista-conversas`.
+- 🔨 ⭐⭐ **Preço dado e ninguém avisado**: a IA cotou preço e **não passou pra humano nenhum** em
+  457 conversas da Cart (71% das que viram preço) e 367 da Urban (75%). Lead que já passou pela
+  parte difícil e evaporou por falta de passagem de bastão. Maior buraco conhecido do funil.
+- 🔨 ⭐ **Por que ~46% (Cart) / 39% (Urban) nunca chegam a cotar preço.** Sem explicação medida.
+  - ⚠️ Não confunda com o item acima: **cartão de handoff ≠ preço**. Ler o cartão como preço
+    inflou esse número pra 73%/77% na primeira leitura (10/ago/2026). Preço se mede por `R$`.
+- 💡 ⭐ **Cart converte proposta→visita a 24,4% e a Urban a 14,8%** — mesma IA, mesmo script. Achar
+  a diferença provavelmente ensina o que consertar na Urban.
+- 💡 **Cruzar lead → venda**: a conversa tem o telefone do cliente e a venda tem o cliente. Fecharia
+  a conversão de verdade (hoje só se mede até a visita agendada).
+- 💡 **Demanda × estoque parado**: cliente da Cart pede Pro Max, o da Urban pede 11/12. Cruzar com
+  `docs/ANALISE-MARGEM-ESTOQUE.md` pra ver se a compra está seguindo a procura.
+- 💡 **148 mensagens falharam ao enviar** em ~70 conversas (~3%) — cliente que nunca recebeu
+  resposta. Suspeita não verificada: janela de 24h do WhatsApp.
+- 💡 **Ninguém fecha conversa** (`resolutions_count: 0` nas duas instâncias): todo relatório de
+  resolução do Chatwoot vem vazio. Configuração, não performance.
+- 💡 **A Urban não usa label nenhuma** (a Cart tem `lead-qualificado`/`suporte`) — sem isso não dá
+  pra medir qualificação na Urban pelo caminho nativo.
+- ⚠️ **Não dá pra medir desempenho de vendedora pelo Chatwoot**: elas não escrevem lá (0 mensagens
+  em 2.000 conversas). Se isso virar necessidade, é mudança de processo, não de código.
+- 💡 Se a análise virar rotina, ler o **Postgres do Chatwoot** em vez da API (a API exige 1 chamada
+  por conversa; varrer tudo seriam ~50 mil requisições na instância de produção).
+
 ## Geral / Infra
 - ✅ CLAUDE.md (manual do projeto).
 - ✅ Guard de colisão de nomes globais (`.git/hooks/pre-commit`).
