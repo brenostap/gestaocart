@@ -115,3 +115,21 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   - Sugerir conversa nova só quando o **dono** demonstrar que quer virar a página.
 - **Toda regra daqui é editável** — inclusive esta. Elas nasceram de um erro específico, não de
   princípio; quando uma atrapalhar em vez de proteger, mude o CLAUDE.md junto com o trabalho.
+
+## Agent skills
+
+### Issue tracker
+
+Markdown local — tarefas em `.scratch/<assunto>/`. O backlog de longo prazo continua
+sendo `docs/IDEIAS.md`. Ver `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+As cinco labels padrão (`needs-triage`, `needs-info`, `ready-for-agent`,
+`ready-for-human`, `wontfix`). Ver `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Contexto único — `CONTEXT.md` + `docs/adr/` na raiz (nenhum dos dois existe ainda;
+nascem sozinhos quando fizerem falta; o `CLAUDE.md` já faz as vezes de `CONTEXT.md`).
+Ver `docs/agents/domain.md`.

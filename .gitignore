@@ -1,1 +1,52 @@
 .DS_Store
+
+# Config de ferramenta local (MCP). Fica de fora porque a Netlify publica a raiz
+# do repo — arquivo commitado aqui vira URL publica no site.
+.mcp.json
+
+# Rascunho de trabalho em andamento (tickets/spec do que esta sendo feito agora).
+# Mesmo motivo do .mcp.json: commitar aqui vira URL publica. O backlog que fica
+# e o docs/IDEIAS.md, esse sim versionado.
+.scratch/
+
+# Skills instaladas por `npx skills add` (repo mattpocock/skills). Instalacao local,
+# reproduzivel pelo skills-lock.json — nao precisa versionar os ~36 SKILL.md.
+.agents/
+
+# Os symlinks que o instalador cria em .claude/skills/ apontam pra .agents/ (ignorado
+# acima). Commitados, virariam links quebrados pra quem clonasse.
+/.claude/skills/ask-matt
+/.claude/skills/claude-handoff
+/.claude/skills/code-review
+/.claude/skills/codebase-design
+/.claude/skills/diagnosing-bugs
+/.claude/skills/domain-modeling
+/.claude/skills/git-guardrails-claude-code
+/.claude/skills/grill-me
+/.claude/skills/grill-with-docs
+/.claude/skills/grilling
+/.claude/skills/handoff
+/.claude/skills/implement
+/.claude/skills/improve-codebase-architecture
+/.claude/skills/loop-me
+/.claude/skills/migrate-to-shoehorn
+/.claude/skills/prototype
+/.claude/skills/research
+/.claude/skills/resolving-merge-conflicts
+/.claude/skills/scaffold-exercises
+/.claude/skills/setup-matt-pocock-skills
+/.claude/skills/setup-pre-commit
+/.claude/skills/setup-ts-deep-modules
+/.claude/skills/tdd
+/.claude/skills/teach
+/.claude/skills/to-questionnaire
+/.claude/skills/to-spec
+/.claude/skills/to-tickets
+/.claude/skills/triage
+/.claude/skills/wait-what
+/.claude/skills/wayfinder
+/.claude/skills/wizard
+/.claude/skills/writing-beats
+/.claude/skills/writing-for-agents
+/.claude/skills/writing-fragments
+/.claude/skills/writing-shape
