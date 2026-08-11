@@ -67,7 +67,11 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.
 - O `líquido`/recebimento da FoneNinja **erra em ~9%** das vendas — o lucro dessas não é confiável.
 - `taxa` = custo real da maquininha; `taxa_extra` = juros repassados ao cliente (é ganho da loja, já embutido no líquido).
-- **Trocas detalhadas** (quais aparelhos o cliente entregou, IMEI/valor) **ainda não são capturadas** — só o total (`upgrade_valor`/`upgrade_qtd`).
+- **Trocas detalhadas JÁ são capturadas** — `venda_trocas` tem uma linha por aparelho entregue,
+  100% com título e valor, 96,7% com IMEI, e o total bate com `upgrade_valor`/`upgrade_qtd`
+  (213 linhas em jun+jul/2026). Dá pra analisar trade-in por aparelho.
+  - **Troca é o melhor canal de compra**: aparelho de troca dá ~1,5× a margem de um comprado de
+    fornecedor (entra pela metade do custo, sai pelo mesmo preço). Ver `docs/ANALISE-JUN-JUL-2026.md`.
 - **A obs da venda ainda é a fonte de loja, vendedor e atendente** — e continua sendo quem paga
   comissão. `vendas.loja_id` está 100% vazio: `loja`, `vendedor_obs` e `atendente_obs` são todos
   parseados do texto da observação. Tirar a obs hoje quebra as três coisas de uma vez.
@@ -130,6 +134,11 @@ As cinco labels padrão (`needs-triage`, `needs-info`, `ready-for-agent`,
 
 ### Domain docs
 
-Contexto único — `CONTEXT.md` + `docs/adr/` na raiz (nenhum dos dois existe ainda;
-nascem sozinhos quando fizerem falta; o `CLAUDE.md` já faz as vezes de `CONTEXT.md`).
+Contexto único — **`CONTEXT.md` existe** (glossário do domínio: margem bruta/operacional/real,
+carrego, reparo, canal de origem, societário). `docs/adr/` ainda não nasceu.
 Ver `docs/agents/domain.md`.
+
+⚠️ **Leia `CONTEXT.md` antes de mexer em qualquer cálculo de margem ou lucro.** A "margem" que o
+painel mostra hoje é só `preço − custo de aquisição`: falta **carrego** (capital a 3% a.m.),
+**reparo** de bancada e **taxa de cartão**. Somam R$ 250–600 por aparelho e pesam mais nos modelos
+lentos — usar margem bruta pra decidir compra inverte a decisão.
