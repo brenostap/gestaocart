@@ -61,7 +61,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Fonte:** Supabase (projeto `pfsfsibgmtbifypuyyqf`). O app **só lê**.
 - **Sync FoneNinja→Supabase:** repo separado `brenostap/phonecar-sync` (`sync.js`), GitHub Action **de hora em hora**. Grava vendas, produtos, **pagamentos**, **contas a receber**, estoque, clientes, compras.
 - **Preços** vêm do Google Sheets (fonte oficial); FoneNinja ao vivo via Edge Function proxy `fn`.
-- Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`.
+- Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`.
+- **`reparos`** — serviços de bancada por aparelho, carregados das notas das assistências por
+  `node scripts/reparos.js` (única coisa no repo que **escreve** no Supabase; usa `service_role` do
+  ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
+  somar as duas conta o mesmo dinheiro duas vezes. Ler `docs/REPAROS-ATRIBUICAO.md`.
+  - As notas ficam em `RR/` e `notas/`, **ambas no `.gitignore`** — têm IMEI de cliente e preço de
+    fornecedor, e a Netlify publica a raiz do repo.
 
 ## Verdades não óbvias (pra não errar)
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.

@@ -242,10 +242,22 @@ Contra a mesma peça vinda de troca (R$ 1.879, R$ 798 de operacional), é 14× m
 
 ## 3. Canal de origem — troca vs fornecedor
 
+> ✅ **Atualizado em 11/ago com o reparo MEDIDO por aparelho**, não estimado — as notas das duas
+> assistências foram importadas para a tabela `reparos` (ver `docs/REPAROS-ATRIBUICAO.md`).
+
 | Canal | Un | Custo médio | Preço médio | Bruta | Carrego | Reparo | Taxa | **Real** |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Troca (cliente)** | 187 | 1.573 | 2.297 | **724** | −16 | −238 | −80 | **R$ 390** |
-| Fornecedor | 364 | 3.122 | 3.631 | **509** | −31 | −100 | −127 | **R$ 251** |
+| **Troca (cliente)** | 187 | 1.573 | 2.297 | **724** | −16 | **−112** | −80 | **R$ 516** |
+| **STP** | 148 | 2.662 | 3.314 | **652** | −30 | **−60** | −116 | **R$ 446** |
+| **DESEJO** | 113 | 2.948 | 3.298 | **350** | −45 | **−5** | −115 | **R$ 185** |
+| Lacrado (ERICK/GRUPO/…) | 31 | ~6.000 | ~6.600 | ~600 | **0** | **0** | −231 | ~R$ 370 |
+
+**A troca ganha mesmo carregando a bancada mais cara** (R$ 112/un contra R$ 60 do STP). E a ressalva
+que eu tinha levantado sobre a DESEJO **está fechada e não a salva**: ela realmente entrega aparelho
+que não quebra — **4 serviços em 113 unidades** — mas isso economiza ~R$ 55/un de bancada enquanto
+ela cobra R$ 286 a mais que o STP. Sobra R$ 231/un de prejuízo, medido.
+
+**Lacrado teve ZERO reparo em 31 unidades** — confirma que ele não usa bancada nem capital.
 
 Margem bruta: 31,5% na troca contra 14,0% no fornecedor. **Mesmo depois de descontar o reparo
 integral na troca e apenas R$ 100 no fornecedor, a troca ganha 1,55×.** O aparelho de troca custa

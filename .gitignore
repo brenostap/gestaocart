@@ -9,6 +9,14 @@
 # e o docs/IDEIAS.md, esse sim versionado.
 .scratch/
 
+# Notas fiscais das assistencias (RR/LegacyPhone e Access). MESMO MOTIVO do .mcp.json,
+# e aqui e pior: a Netlify publica a raiz do repo, entao commitar deixaria IMEI de
+# cliente e preco de fornecedor baixaveis em cartsystem.phonestp.com/RR/<arquivo>.pdf.
+# O dado dessas notas entra no banco pela tabela `reparos` (scripts/reparos.js); o
+# PDF em si nunca precisa ser versionado.
+/RR/
+/notas/
+
 # Skills instaladas por `npx skills add` (repo mattpocock/skills). Instalacao local,
 # reproduzivel pelo skills-lock.json — nao precisa versionar os ~36 SKILL.md.
 .agents/
