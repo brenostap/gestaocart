@@ -35,7 +35,8 @@ Estas premissas sustentam conclusões. Se alguma estiver errada, o número muda.
 | Reparo: recondicionamento vs garantia | assumido **80/20** — não medido | 🔴 a descobrir |
 | Societário Cart | Breno 55% · Marcella 30% · Gustavo 15% | ✅ informado |
 | Societário Urban | Gustavo 50% · **Breno 40%** · Marcella 10% | ✅ informado |
-| Empréstimos | assumidos **em nome do Breno, financiando as duas lojas** | 🔴 **verificar** |
+| Empréstimos | juros entram como **custo operacional rateado entre as lojas** | ✅ informado |
+| Regra de rateio | custos "ambas" divididos **proporcionalmente ao nº de vendas** | ✅ informado (mas ver §1) |
 
 ### Vocabulário (novo)
 
@@ -112,11 +113,28 @@ Custo por venda maior. Em julho pagou proporcionalmente mais taxa de cartão que
 **A Urban é 24,6% dos aparelhos vendidos e 15,2% do seu bolso.** Ela consome o mesmo capital, a
 mesma bancada de assistência e a mesma equipe da Cart.
 
-> 🔴 **Verificar:** se os empréstimos estão no seu nome e financiam o estoque das duas lojas, você
-> paga 3% a.m. sobre o capital que gira na Urban e recebe 40% do resultado dela. Sobre os ~R$ 106
-> mil de estoque proporcional à Urban isso é ~R$ 3,2 mil/mês de juro, dos quais ~R$ 1,9 mil/mês
-> (~**R$ 23 mil/ano**) é subsídio seu aos outros dois sócios. Se a dívida for da Cart e o rateio
-> não existir, é a mesma coisa por outro caminho.
+### O viés do rateio por nº de vendas
+
+Os juros entram como custo operacional e são rateados entre as lojas **pelo número de vendas** —
+mesma regra de aluguel, marketing e folha. Para esses três está certo. **Para juros, não:** juro não
+escala com venda, escala com **capital parado**.
+
+A Urban é **24,6% dos aparelhos mas 31,5% do faturamento** — ticket 49% maior significa mais capital
+preso por unidade.
+
+| Rateio dos R$ 19.700 de juros | Cart | Urban |
+|---|---:|---:|
+| Por nº de vendas (regra atual) | 14.854 | **4.846** |
+| Por valor de estoque (proporcional ao faturamento) | 13.494 | **6.206** |
+| Diferença | −1.360 | **+1.360** |
+
+**O resultado da Urban está inflado em ~R$ 1.360/mês (~R$ 16 mil/ano)** e o da Cart penalizado no
+mesmo valor. No bolso do dono a diferença é ~R$ 200/mês (55% na Cart vs 40% na Urban), então isso
+**não é um problema de dinheiro — é um problema de decisão**: a Urban parece melhor do que é
+justamente na conta que vai decidir se ela continua.
+
+**Recomendação:** ratear **juros** por valor de estoque da loja; manter o rateio por venda para o
+resto.
 
 ---
 
@@ -393,6 +411,36 @@ A granularidade **já existe em parte**, e melhorou em julho:
 **Últimos 4 dígitos sozinhos colidem em 1 de cada 7 aparelhos.** A chave tem que ser
 **4 dígitos + modelo** — e a obs da Access já traz modelo e cor, o que leva o erro perto de zero.
 
+### Prova de conceito — feita, e funcionou
+
+Rodei a fatura da Access de **03–08/ago/2026** (12 linhas, R$ 3.565 bruto − R$ 265 de desconto
+Thiago = R$ 3.300) contra o banco, casando por **4 dígitos + modelo**:
+
+- **10 de 11 linhas com ID casaram**, cada uma num aparelho único. 1 não casou (9%).
+- **A cor confere em 9 dos 10** — e a que não confere (`8378`, nota diz "preto", banco diz
+  "14 Pro Max 128 **Dourado**") é exatamente o valor de a cor existir: ela pega erro que os 4
+  dígitos sozinhos engolem. **Pedir cor sempre.**
+- **O teste de data funciona:** `1472` (14 Pro roxo, bateria R$ 160) foi **vendido em 29/05/26** e
+  voltou à bancada em 08/08 — 71 dias depois da venda. É **garantia**, e o dado provou sozinho, sem
+  ninguém precisar estimar o 80/20.
+
+**🚩 O que a prova revelou:** **o 14 Pro Max é 4 das 11 linhas e R$ 1.640 de R$ 3.565 — 46% da
+fatura.** É o mesmo modelo que já concentra 13,9% do capital, 23 unidades e a maior idade média da
+casa. E os quatro em bancada são **Roxo Profundo (2), Preto Espacial, Dourado** — as cores atípicas
+que já dominavam a cauda do estoque.
+
+> **14 Pro Max em cor escura/atípica é o pior negócio da operação:** compra caro (DESEJO R$ 2.996,
+> o maior sobrepreço da tabela), fica ~30 dias na prateleira e consome metade do orçamento de
+> bancada. Você tem 23 unidades disso. **Parar de comprar e ser duro no trade-in.**
+
+Caso-símbolo: o item **469911** (14 Pro Max 256 Roxo Profundo, `9704`) está **121 dias** em estoque —
+o mais velho da casa — e tomou R$ 320 de Face ID em 06/08. Salva porque entrou por troca a R$ 1.780;
+com reparo + carrego o custo real dele é ~R$ 2.315.
+
+Padrão semelhante no Access de julho: o aparelho `0315` (13 Pro Max azul) voltou **duas vezes em 6
+dias** — bateria R$ 150 em 08/07 e Face ID R$ 500 em 14/07. **R$ 650 num só aparelho**, invisível
+enquanto o custo fica agregado.
+
 ### Plano
 
 1. **Pedir à RR o fechamento no formato que a Access já usa** — 4 dígitos + modelo + cor + serviço
@@ -429,6 +477,10 @@ a.m. O gargalo é capital e giro.
 4. **Renegociar ou sair da DESEJO** nos 9 modelos da tabela do §2, com os números na mão.
 5. **Não comprar 13 Pro Max nem 16 Pro de fornecedor.** 29 e 20 dias de prateleira, R$ 55 e R$ 415
    de operacional.
+6. **Parar de comprar 14 Pro Max em cor escura/atípica** (Roxo Profundo, Dourado, Preto Espacial) e
+   ser duro no trade-in dele. Concentra três problemas ao mesmo tempo: maior sobrepreço da DESEJO,
+   maior idade de prateleira e **46% da fatura de bancada** (ver §7). Já são 23 unidades e R$ 59,6
+   mil de capital.
 
 ### Preço e margem
 
