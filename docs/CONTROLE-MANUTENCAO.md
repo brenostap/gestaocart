@@ -191,9 +191,24 @@ vai precisar de conferência manual.
 
 | Fase | O quê | Entrega |
 |---|---|---|
-| **0** | tabela `bancada` + tela de captura (com lote) + selo no Estoque | mata os R$ 87 mil invisíveis |
+| ✅ **0** | tabela `bancada` + tela de captura (com lote) + selo no Estoque | mata os R$ 87 mil invisíveis |
 | **1** | `tabela_servicos` + conciliação automática na segunda + alerta de 14 dias | a nota confere sozinha |
 | **2** | estimativa "vale consertar?", prazo por fornecedor, garantia por modelo | muda decisão de compra |
+
+### ✅ Fase 0 — no ar em 12/ago/2026
+
+- Tabela `bancada` no Supabase (policy `auth_all`), `js/bancada.js`, `css/bancada.css`.
+- Menu **Operações › Bancada**. Visível pra **todos os papéis**, inclusive vendedor e atendente —
+  quem atende precisa saber que o aparelho não está na prateleira **antes** de prometer.
+- Captura: busca por 4 dígitos / etiqueta / modelo → marca um ou vários → fornecedor, serviço,
+  origem → **Registrar saída**. Lote grava as N linhas de uma vez com o mesmo `lote`.
+- Aparelho que não está no estoque (do cliente) entra pelo link *"não está no estoque"*.
+- Baixa é 1 toque em **Voltou**, e tem **desfazer** na aba *Voltaram*.
+- Estoque ganhou o KPI **Na assistência** e o selo **🔧 Na assistência · N d** na linha.
+- Protegido por `node test/bancada.test.js` — que monta a tela de Bancada **e a de Estoque**.
+
+**Ainda não tem** (é a fase 1): valor da nota, conciliação automática e a `tabela_servicos`. Por
+enquanto o `R$` continua sendo conferido na planilha na segunda.
 
 A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
 a tela não está perdendo linha. Depois morre.

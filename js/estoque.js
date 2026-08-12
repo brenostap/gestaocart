@@ -145,6 +145,9 @@ function origemDoItem(item){
 
 function renderEstoque(){
   if(!_precosCache) carregarTabelaPrecos().then(() => renderContent());
+  // Sem isso a tela mostraria como disponivel o aparelho que esta na bancada.
+  if(typeof _bancadaCache !== 'undefined' && _bancadaCache === null)
+    carregarBancada().then(() => { if(currentTab==='estoque') renderContent(); });
 
   const todos = (estoqueItens || []).map(dadosDoItem);
 
@@ -174,9 +177,15 @@ function renderEstoque(){
   const entradas = visiveis.filter(d => d.origem === 'Entrada (cliente)');
 
   // Vendedor/atendente nao ve custo nem valor de estoque (brief §2)
+  const naBancada = typeof bancadaDoApple === 'function'
+    ? visiveis.filter(d => bancadaDoApple(d.item.id, d.imei)) : [];
+
   const listaKpis = [
     { rotulo:'Aparelhos', valor: visiveis.length,
       sub: estoqueGeracao==='todas' ? 'em estoque' : 'iPhone '+estoqueGeracao },
+    { rotulo:'Na assistência', valor: naBancada.length,
+      tom: naBancada.length ? 'alerta' : undefined,
+      sub: naBancada.length ? 'não estão na loja agora' : 'nada fora' },
     { rotulo:'Entradas de cliente', valor: entradas.length,
       sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' },
   ];
@@ -366,9 +375,17 @@ function renderEstoqueTabela(dados){
         </div></td></tr>`;
     }
     const d = l.d;
-    return `<tr class="est-linha${l.aberto ? ' aberta' : ''}" onclick="alternarLinhaEstoque(${l.id})">
+    // Aparelho na assistencia continua na lista (ele e nosso e volta), mas nao
+    // pode parecer pronto pra promessa de venda -- era esse o buraco.
+    const fora = typeof bancadaDoApple === 'function' ? bancadaDoApple(l.id, d.imei) : null;
+    const diasFora = fora ? bncDias(fora.saiu_em) : 0;
+    const selo = fora
+      ? `<span class="bnc-selo" data-tom="${bncTomDias(diasFora)==='critico'?'critico':''}"
+           title="Saiu em ${escapeHtml(fora.saiu_em)} para ${escapeHtml(fora.fornecedor)}">🔧 Na assistência · ${diasFora}d</span>`
+      : '';
+    return `<tr class="est-linha${l.aberto ? ' aberta' : ''}${fora ? ' na-bancada' : ''}" onclick="alternarLinhaEstoque(${l.id})">
       <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span></td>
-      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span></td>
+      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}</td>
       <td data-rot="Cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
       <td data-rot="Bateria" class="num">${bat(d.bateria)}</td>
       <td data-rot="IMEI"><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>

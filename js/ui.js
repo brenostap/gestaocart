@@ -156,13 +156,16 @@ const UI = {
       value="${valor == null ? '' : this.esc(valor)}"
       ${placeholder ? `placeholder="${this.esc(placeholder)}"` : ''} ${extra || ''}>`;
   },
-  select({id, opcoes = [], valor} = {}){
+  // `extra` carrega atributos crus (onchange, disabled...). Sem ele a tela
+  // precisava remendar a string com .replace('<select', ...), que quebra calado
+  // no dia em que a marcacao daqui mudar.
+  select({id, opcoes = [], valor, extra} = {}){
     const opts = opcoes.map(o => {
       const v = (o && typeof o === 'object') ? o.v : o;
       const t = (o && typeof o === 'object') ? o.t : o;
       return `<option value="${this.esc(v)}"${String(v) === String(valor) ? ' selected' : ''}>${t}</option>`;
     }).join('');
-    return `<select class="c-select" id="${id}">${opts}</select>`;
+    return `<select class="c-select" id="${id}" ${extra || ''}>${opts}</select>`;
   },
   linha(...campos){ return `<div class="c-field-row${campos.length > 1 ? ' dois' : ''}">${campos.join('')}</div>`; },
 

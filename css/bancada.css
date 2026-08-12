@@ -1,0 +1,78 @@
+/* ==========================================================================
+   BANCADA — o que está na assistência
+   Só o que os componentes do kit não cobrem: a lista de candidatos do modal
+   e o selo "Na assistência" que aparece na tela de Estoque.
+   ========================================================================== */
+
+/* -- Busca do modal ------------------------------------------------------ */
+.bnc-busca-wrap{ position:relative; }
+.bnc-busca-wrap .est-busca-ico{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  color:var(--text4); font-size:15px; pointer-events:none;
+}
+.bnc-busca-wrap .c-input{ padding-left:32px; font-size:15px; }
+
+/* -- Lista de candidatos ------------------------------------------------- */
+.bnc-lista{
+  margin-top:10px; max-height:250px; overflow-y:auto;
+  border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg3);
+}
+.bnc-dica{
+  padding:18px 14px; color:var(--text3); font-size:var(--fs-caption);
+  line-height:var(--lh-body); text-align:center;
+}
+.bnc-cand{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:10px 12px; background:none; border:0; border-bottom:1px solid var(--border);
+  text-align:left; cursor:pointer; font-family:inherit; color:var(--text);
+}
+.bnc-cand:last-child{ border-bottom:0; }
+.bnc-cand:hover{ background:var(--bg4); }
+.bnc-cand.marcado{ background:var(--green-bg); }
+.bnc-check{
+  flex:0 0 20px; width:20px; height:20px; border-radius:5px;
+  border:1.5px solid var(--border3); background:var(--bg2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:var(--green);
+}
+.bnc-cand.marcado .bnc-check{ border-color:var(--green); }
+.bnc-cand-txt{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.bnc-cand-txt b{ font-size:var(--fs-body); font-weight:600; }
+.bnc-cand-txt i{ font-style:normal; font-size:var(--fs-caption); color:var(--text3); }
+.bnc-cand-meta{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.bnc-imei{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text3); }
+.bnc-custo{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text2); }
+
+/* -- Caminho do aparelho de cliente -------------------------------------- */
+.bnc-link{
+  margin-top:8px; background:none; border:0; padding:2px 0; cursor:pointer;
+  font-family:inherit; font-size:var(--fs-caption); color:var(--cart);
+  text-decoration:underline; text-underline-offset:2px;
+}
+.bnc-manual{ margin-top:8px; }
+
+.bnc-chips{ display:flex; gap:6px; flex-wrap:wrap; }
+
+/* -- Erro: grita, não morre calado --------------------------------------- */
+.bnc-erro{
+  margin-bottom:12px; padding:10px 12px; border-radius:var(--radius-sm);
+  background:var(--red-bg); color:var(--red);
+  font-size:var(--fs-caption); line-height:var(--lh-body);
+}
+
+/* -- Tabela -------------------------------------------------------------- */
+.bnc-tabela td{ vertical-align:middle; }
+.bnc-linha:hover{ background:var(--bg4); }
+
+/* -- Selo no Estoque ----------------------------------------------------- */
+/* O aparelho continua na lista (ele é seu, e volta), mas com o custo do tempo
+   à vista e sem parecer pronto pra promessa de venda. */
+.est-linha.na-bancada{ background:var(--yellow-bg); }
+.est-linha.na-bancada:hover{ filter:brightness(.98); }
+.bnc-selo{
+  display:inline-flex; align-items:center; gap:4px; margin-left:6px;
+  padding:1px 6px; border-radius:var(--radius-pill);
+  background:var(--yellow-bg); color:var(--yellow);
+  font-size:10.5px; font-weight:600; white-space:nowrap;
+}
+.bnc-selo[data-tom="critico"]{ background:var(--red-bg); color:var(--red); }

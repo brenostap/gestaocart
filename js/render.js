@@ -148,6 +148,7 @@ function renderContent(){
   else if(currentTab==='vendas')c.innerHTML=renderVendas();
   else if(currentTab==='compras')c.innerHTML=renderCompras();
   else if(currentTab==='estoque')c.innerHTML=renderEstoque();
+  else if(currentTab==='bancada')c.innerHTML=renderBancada();
   else if(currentTab==='custos')c.innerHTML=renderCustos();
   else if(currentTab==='equipe')c.innerHTML=renderEquipe();
   else if(currentTab==='movs')c.innerHTML=renderMovs();

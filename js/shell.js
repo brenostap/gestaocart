@@ -10,6 +10,7 @@ const ICO = {
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
   estoque:   '<svg viewBox="0 0 24 24"><path d="M21 8.5v7a2 2 0 0 1-1 1.7l-7 3.9a2 2 0 0 1-2 0l-7-3.9a2 2 0 0 1-1-1.7v-7a2 2 0 0 1 1-1.7l7-3.9a2 2 0 0 1 2 0l7 3.9a2 2 0 0 1 1 1.7Z"/><path d="m3.5 7.5 8.5 4.8 8.5-4.8M12 21v-8.7"/></svg>',
   movs:      '<svg viewBox="0 0 24 24"><path d="M7 4v13m0 0-3-3m3 3 3-3M17 20V7m0 0-3 3m3-3 3 3"/></svg>',
+  bancada:   '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4.5 4.5 0 0 0 5.9 5.9L21 12l-8 8a2.8 2.8 0 0 1-4-4l8-8Z"/><path d="m6.5 17.5-3 3"/></svg>',
   equipe:    '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.6M18 20a6.4 6.4 0 0 0-2-4.6"/></svg>',
   tabela:    '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 15h18M9.5 9.5V20"/></svg>',
   contas:    '<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10.5h20"/><path d="M6 15.5h4"/></svg>',
@@ -23,6 +24,7 @@ const NAV = [
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},
     {id:'estoque', label:'Estoque'},
+    {id:'bancada', label:'Bancada'},
     {id:'movs',    label:'Movimentações'},
   ]},
   { grupo:'Gestão', itens:[
@@ -43,11 +45,13 @@ const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 // PERMISSAO — a matriz do brief §2. Hoje todos os usuarios sao socios; quando
 // a fase de perfis chegar, basta papelAtual() passar a ler o perfil real.
 // ---------------------------------------------------------------------------
+// Bancada e operacao de loja, nao financeiro: quem atende precisa saber que o
+// aparelho nao esta na prateleira antes de prometer.
 const MATRIZ_ACESSO = {
-  socio:     ['dash','vendas','compras','estoque','movs','equipe','tabela','contas','custos','fechamento'],
-  gerente:   ['dash','vendas','estoque','movs','equipe'],
-  vendedor:  ['dash','vendas','estoque'],
-  atendente: ['dash','vendas','estoque'],
+  socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento'],
+  gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
+  vendedor:  ['dash','vendas','estoque','bancada'],
+  atendente: ['dash','vendas','estoque','bancada'],
 };
 
 const PAPEIS = ['socio','gerente','vendedor','atendente'];

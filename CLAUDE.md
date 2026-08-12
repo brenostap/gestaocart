@@ -39,6 +39,8 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/core.js` `js/data.js` — carga de dados (Supabase via REST; ver `loadFromSupabase`).
 - `js/render.js` — dashboard + **tela de Vendas** (`renderVendas`).
 - `js/estoque.js` `js/tabela.js` `js/custos.js` `js/equipe.js` `js/movimentacoes.js` — as outras telas.
+- `js/bancada.js` — tela **Bancada** (o que está na assistência) + `bancadaDoApple()`, que é o que
+  o `estoque.js` chama pra pôr o selo "Na assistência".
 - `js/fechamento.js` — exportação do fechamento (.xlsx, uma aba por colaborador). **Não calcula
   nada**: lê `fechamentoEquipe()` (equipe.js), que lê `calc()` (render.js). Se faltar um número,
   ele nasce em `fechamentoEquipe()`, nunca ali.
@@ -61,17 +63,26 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Fonte:** Supabase (projeto `pfsfsibgmtbifypuyyqf`). O app **só lê**.
 - **Sync FoneNinja→Supabase:** repo separado `brenostap/phonecar-sync` (`sync.js`), GitHub Action **de hora em hora**. Grava vendas, produtos, **pagamentos**, **contas a receber**, estoque, clientes, compras.
 - **Preços** vêm do Google Sheets (fonte oficial); FoneNinja ao vivo via Edge Function proxy `fn`.
-- Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`.
+- Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`, `bancada`.
+- ⚠️ **"O app só lê" vale pros dados da FoneNinja.** As tabelas do próprio painel — `custos`,
+  `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada` — têm política `auth_all` e o
+  browser **grava direto** por upsert (`setEquipeExtra()` em `equipe.js` é o modelo).
 - **`reparos`** — serviços de bancada por aparelho, carregados das notas das assistências por
-  `node scripts/reparos.js` (única coisa no repo que **escreve** no Supabase; usa `service_role` do
+  `node scripts/reparos.js` (único **script** do repo que escreve no Supabase; usa `service_role` do
   ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
   somar as duas conta o mesmo dinheiro duas vezes. Ler `docs/REPAROS-ATRIBUICAO.md`.
-  - ⚠️ **O painel não sabe que o aparelho saiu pra bancada** — ele fica `available`. Em 12/ago/2026
-    eram **43 aparelhos e R$ 87 mil (16% do estoque)** fisicamente na assistência, todos aparecendo
-    como disponíveis. O controle vive numa planilha do Vitinho; regras, colunas e rotina em
-    `docs/CONTROLE-MANUTENCAO.md`.
   - As notas ficam em `RR/` e `notas/`, **ambas no `.gitignore`** — têm IMEI de cliente e preço de
     fornecedor, e a Netlify publica a raiz do repo.
+- **`bancada`** — uma linha por **ida à assistência**; tela `js/bancada.js`. Existe porque o painel
+  não sabia que o aparelho tinha saído: ficava `available`. Em 12/ago/2026 eram **43 aparelhos e
+  R$ 87 mil (16% do estoque)** na bancada e marcados como disponíveis. Regras, colunas e rotina em
+  `docs/CONTROLE-MANUTENCAO.md`.
+  - `reparos` é o **dinheiro** (vem da nota, depois do fato); `bancada` é o **paradeiro e o tempo**
+    (vem da pessoa, durante). Não são a mesma coisa e não se somam.
+  - Casa por **`apple_id`**, com os **4 últimos do IMEI** como reserva. **Nunca por etiqueta**:
+    `E1030` e `SP1030` colidem sem o prefixo — 138 itens do estoque colidem assim.
+  - **Teste**: `node test/bancada.test.js`. Monta a tela de Bancada **e a de Estoque** — o selo
+    mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
 
 ## Verdades não óbvias (pra não errar)
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.
