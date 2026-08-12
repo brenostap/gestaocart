@@ -125,13 +125,90 @@ Só isso. Se os três estão bons, a bancada está sob controle.
 | O mais velho | **93 dias** | **nada acima de 14** |
 | Linhas da nota sem par na planilha | ? | **zero** |
 
-## Onde isso encosta no painel (fase 2, não agora)
+## O sistema — tela de Bancada no painel
 
-A fase 1 é só planilha — ela precisa rodar sozinha algumas semanas antes de virar código.
+> Correção de 12/ago: eu tinha escrito aqui que o caminho seria Google Sheets → sync. Não é.
+> **O painel já escreve no Supabase** — `custos`, `metas_mensais`, `funcionarios_config` e
+> `tabela_precos` têm política `auth_all` e gravam por upsert do próprio browser
+> (`setEquipeExtra()` em `equipe.js` é o modelo). O "app só lê" do CLAUDE.md vale pros dados da
+> FoneNinja, não pras tabelas do próprio painel. Uma tela de Bancada é caminho batido.
 
-Quando virar, o caminho mais barato é o que **já existe pros preços**: Google Sheets é a fonte,
-uma sync leva pro Supabase. Aí a tela de Estoque ganha um selo **"Na assistência · 12 dias"** e o
-aparelho para de aparecer como disponível. Não depende de ninguém lembrar de mexer na FoneNinja.
+### A tabela `bancada`
+
+Uma linha por **ida à assistência** (o mesmo aparelho pode ir várias vezes):
+
+```
+id · apple_id · imei4 · etiqueta · modelo_txt · cor_txt
+fornecedor (RR|ACCESS) · origem (estoque|cliente|garantia)
+servico_pedido · saiu_em · voltou_em · valor_previsto
+reparo_id (→ reparos, preenchido na conciliação) · quem · obs
+```
+
+Política: `auth_all` pra `authenticated`, igual às outras tabelas do painel.
+
+### A captura — 4 dígitos e 3 toques
+
+Tela aberta no celular do Vitinho:
+
+1. Digita os **4 dígitos** → aparece a lista de candidatos do estoque **com modelo, cor, custo e
+   dias de prateleira**. Ele toca no certo.
+   - É o olho que desempata, que foi exatamente o que salvou o caso da etiqueta `831`. Câmera/
+     leitor de código de barras é enfeite pra depois — não resolve nada que os 4 dígitos não
+     resolvam, e adiciona permissão de câmera.
+2. Fornecedor: dois botões. Serviço: lista das ~12 mais comuns, tirada do histórico real de
+   `reparos`.
+3. **SAIU**.
+
+Voltar é 1 toque na lista "Na bancada".
+
+⚠️ **Modo lote é obrigatório, não enfeite.** Em 11/ago saíram **26 aparelhos de uma vez** pra
+subida de bateria. Se isso custar 26 × 3 toques, ele para de usar na primeira semana. Marca vários,
+um destino, um serviço, um SAIU.
+
+### O que o sistema faz sozinho (é aqui que fica smart)
+
+| | O que faz | Precisa de |
+|---|---|---|
+| 1 | **Sabe o que é o aparelho** — modelo, cor, custo, origem, dias de prateleira. Nada digitado, nada errado | só a tabela |
+| 2 | **Tira do disponível** — selo "Na assistência · N dias" no Estoque | só a tabela |
+| 3 | **Cobra sozinho** — passou de 14 dias, aparece no dashboard | só a tabela |
+| 4 | **Estima antes de mandar** — "face id 14 Pro Max: RR R$ X · Access R$ Y" | `tabela_servicos` |
+| 5 | **Faz a conta que ninguém faz** — margem que sobra depois do reparo + carrego dos dias previstos. Aparelho de R$ 700 com tela de R$ 470 avisa na hora que não fecha | `tabela_servicos` + `tabela_precos` |
+| 6 | **Concilia a nota** — casa nota × bancada e dá três alarmes: nota sem linha (saiu sem registro), linha sem nota (não cobrado ou baixa errada), valor ≠ tabela | `reparos.js` |
+| 7 | **Mede o prazo real de cada fornecedor** — medido, não prometido, por serviço | histórico |
+| 8 | **Alimenta a compra** — reparo/unidade e % de garantia por origem e por modelo | histórico |
+
+Os itens 1 a 3 já pagam a obra: são os R$ 87 mil invisíveis.
+
+### As tabelas de preço viram dados
+
+`tabela_servicos` (`fornecedor · servico · modelo · peca · preco · vigencia`), carregada dos dois
+PDFs. É o que destrava os itens 4, 5 e 6 — sem isso, conferir a nota continua sendo trabalho de
+olho. A da Access sai limpa do PDF; a da RR é PDF de Canva com texto posicionado glifo a glifo e
+vai precisar de conferência manual.
+
+### Ordem
+
+| Fase | O quê | Entrega |
+|---|---|---|
+| **0** | tabela `bancada` + tela de captura (com lote) + selo no Estoque | mata os R$ 87 mil invisíveis |
+| **1** | `tabela_servicos` + conciliação automática na segunda + alerta de 14 dias | a nota confere sozinha |
+| **2** | estimativa "vale consertar?", prazo por fornecedor, garantia por modelo | muda decisão de compra |
+
+A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
+a tela não está perdendo linha. Depois morre.
+
+### O que NÃO fazer smart
+
+Não parsear mensagem de WhatsApp do Vitinho, não adivinhar o serviço pelo texto, não inferir que
+o aparelho voltou porque apareceu numa venda. **Sistema smart é o que sabe muito e pergunta pouco
+— não o que adivinha.** Um palpite errado aqui lança custo no aparelho errado, em silêncio.
+
+### Perguntar antes de construir
+
+**A FoneNinja tem módulo de assistência / ordem de serviço?** Se tiver, o aparelho muda de status
+lá dentro, o `phonecar-sync` traz, e nada disso precisa existir. Vale a pergunta antes da fase 0 —
+é a única coisa que pode tornar a obra desnecessária.
 
 ⚠️ Não somar `reparos` com `custos` — ver o aviso de dupla contagem em `REPAROS-ATRIBUICAO.md`.
 
