@@ -66,6 +66,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   `node scripts/reparos.js` (única coisa no repo que **escreve** no Supabase; usa `service_role` do
   ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
   somar as duas conta o mesmo dinheiro duas vezes. Ler `docs/REPAROS-ATRIBUICAO.md`.
+  - ⚠️ **O painel não sabe que o aparelho saiu pra bancada** — ele fica `available`. Em 12/ago/2026
+    eram **43 aparelhos e R$ 87 mil (16% do estoque)** fisicamente na assistência, todos aparecendo
+    como disponíveis. O controle vive numa planilha do Vitinho; regras, colunas e rotina em
+    `docs/CONTROLE-MANUTENCAO.md`.
   - As notas ficam em `RR/` e `notas/`, **ambas no `.gitignore`** — têm IMEI de cliente e preço de
     fornecedor, e a Netlify publica a raiz do repo.
 

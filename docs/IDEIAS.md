@@ -281,6 +281,20 @@ e só viram custo quando venderem. Hoje pesam inteiros no resultado do mês.
 (`"13 promax azul face id 0315"`). Casar por *últimos 4 + modelo* é arriscado. **Pedir o IMEI
 completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 
+### Aparelho na bancada aparece como disponível 🔨 (12/ago/2026)
+- ⭐ **Selo "Na assistência · N dias" na tela de Estoque.** Em 12/ago eram **43 aparelhos, R$ 87.461
+  (16% do estoque disponível)** fisicamente na bancada e marcados `available` — o mais velho parado
+  há **93 dias** (etiqueta `381`, 16 Plus Rosa, R$ 2.782). Vendedor pode prometer o que não tem.
+  Fonte = a planilha do Vitinho; caminho mais barato é o que já existe pros preços (Sheets → sync →
+  Supabase). Colunas, rotina e provas em **`docs/CONTROLE-MANUTENCAO.md`**.
+- 💡 **Alerta de bancada velha** (>14 dias) e **custo de carrego da bancada** — o dia parado na
+  assistência custa igual ao dia parado na prateleira (0,1%/dia).
+- 💡 **Separar preparo de lote de conserto individual.** Subida de bateria na chegada da remessa é
+  **125 das 175 linhas da RR** (48% do valor, R$ 25 fixo): previsível, sai e volta em lote, deveria
+  entrar no custo de recebimento sem passar pelo controle aparelho a aparelho.
+- ⚠️ **Etiqueta sem prefixo é ambígua**: `E1030` e `SP1030` viram o mesmo "1030" — **138 aparelhos
+  do estoque colidem** (67 pares). Casar por etiqueta só com o prefixo junto.
+
 ## Dashboard
 - ✅ **Modelos mais vendidos (30/jul/2026)**: card no `renderDashV2` (dash-v2.js) — ranking por modelo+GB+cor, filtro Seminovo/Lacrado/Todos, ordena por Volume/Lucro, usa período+loja do contexto e respeita `money()`/permissões. Selo só no Lacrado (sem selo = seminovo). Parsa o `titulo` do FoneNinja (~98,5% identificável). CSS `.d2-mod-*` em dash-v2.css.
 - 💡 Quando `venda_trocas` encher: quadro de trocas (o que mais entra de upgrade, valor médio) e cruzar com o modelo vendido. **(31/jul: já encheu — 1.010 vendas cobertas, julho 100%.)**
