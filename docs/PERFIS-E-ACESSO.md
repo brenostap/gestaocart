@@ -114,13 +114,20 @@ Honestidade sobre o tamanho da trava:
    esconde (`money()` devolve `—`), o banco não — RLS é por linha, não por coluna, e todos os papéis
    compartilham o mesmo role `authenticated` do Postgres. Fechar de verdade pede uma **view sem a
    coluna de custo**, com o `estoque.js` lendo a view quando o papel não vê margem.
-2. **O proxy `fn` (Edge Function)** aceita qualquer JWT válido e fala com a FoneNinja usando a chave
-   da loja. Quem tem login pode chamar endpoints da FoneNinja por ele, inclusive os que o painel
-   nem usa. Precisa checar o papel dentro da função.
+2. 🚨 **O proxy `fn` é o buraco grande — e é de ESCRITA, não só de leitura.** Li o código da Edge
+   Function em 13/ago. Ela faz duas coisas: confere que existe um usuário autenticado (qualquer um,
+   sem olhar papel) e **repassa o método da requisição como veio** —
+   `init = { method: req.method }`, com o CORS liberando `GET, POST, PUT, PATCH, DELETE`. Ou seja:
+   **quem tem login no painel pode escrever e apagar na FoneNinja**, em qualquer endpoint, com a
+   chave da loja. O `verify_jwt` da função está desligado; a checagem é a do próprio código.
 
-Nenhum dos dois é motivo pra segurar o login do Vitinho — os dois exigem abrir o console e montar
-uma chamada na mão, e o que vaza é custo de aparelho, não a folha. Mas ficam anotados porque
-"tem perfil" vai soar como "está fechado", e não está inteiramente.
+   Precisa de duas travas: **whitelist de rota + método** (o painel só usa `GET /apples`) e
+   **checagem de papel**. Enquanto isso não existir, todo login novo é um login com poder de
+   escrita no ERP.
+
+O item 1 exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho. **O
+item 2 é diferente em grau**: não vaza, destrói. Ficam anotados porque "tem perfil" vai soar como
+"está fechado", e não está.
 
 ## Testes
 
