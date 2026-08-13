@@ -76,6 +76,20 @@ sintoma certo.
 `security definer` nas três funções é necessário: sem isso a política que lê `perfis` chamaria a
 função pra decidir se pode ler `perfis`.
 
+## Estado (13/ago/2026)
+
+RLS por papel **aplicado**. Conferido simulando cada papel no banco, com
+`set local role authenticated` + `request.jwt.claims` dentro de transação:
+
+| Papel | estoque | bancada | vendas · custos · folha · compras · preços · reparos |
+|---|---:|---:|---:|
+| `socio` | 1.696 | ✅ | **tudo** (4.815 vendas, 413 custos) |
+| `bancada` | 1.696 | ✅ | **0 em todos** |
+| logado **sem** perfil | 0 | 0 | **0 em todos** |
+
+⚠️ **Usuário sem linha em `perfis` não lê nada — nem o estoque.** O padrão é negar. Isso vale pra
+qualquer conta criada de agora em diante, inclusive a de sócio.
+
 ## Criar um usuário novo
 
 1. **Supabase → Authentication → Users → Add user.** E-mail, senha, e marcar

@@ -1,13 +1,21 @@
 -- ===========================================================================
 -- RLS POR PAPEL — a parte que TROCA as políticas permissivas
 --
--- ⚠️ NÃO APLICADA AINDA. Precisa da sua aprovação: ela derruba todas as
---    políticas `to authenticated using (true)` de uma vez. Se algo estiver
---    errado aqui, o painel para pra todo mundo até rodar o rollback do fim.
+-- ✅ APLICADA em 13/ago/2026, com autorização do dono. Fica aqui pelo rollback
+--    do fim do arquivo: se o painel parar, ninguém vai ter calma pra reescrever
+--    isto na hora.
 --
 -- A parte aditiva (tabela `perfis`, funções `papel_do_usuario/eh_socio/
--- tem_perfil`, e o seed dos 4 usuários como 'socio') JÁ FOI aplicada em
--- 13/ago/2026 e não mudou comportamento nenhum sozinha.
+-- tem_perfil`, e o seed dos usuários existentes como 'socio') foi aplicada
+-- antes, e não mudava comportamento nenhum sozinha.
+--
+-- Conferido depois de aplicar, simulando cada papel com
+-- `set local role authenticated` + `request.jwt.claims` dentro de transação:
+--
+--   sócio            → vendas 4.815 · custos 413 · estoque 1.696 · folha ok
+--   bancada          → estoque 1.696 · bancada ok · vendas/custos/folha/
+--                      compras/preços/reparos = 0 · só o próprio perfil
+--   logado SEM perfil→ zero em tudo, inclusive estoque
 --
 -- O que muda aqui:
 --   antes  — qualquer pessoa logada LÊ tudo (folha, custo, lucro, fornecedor)
