@@ -186,9 +186,14 @@ function renderEstoque(){
     { rotulo:'Na assistência', valor: naBancada.length,
       tom: naBancada.length ? 'alerta' : undefined,
       sub: naBancada.length ? 'não estão na loja agora' : 'nada fora' },
-    { rotulo:'Entradas de cliente', valor: entradas.length,
-      sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' },
   ];
+  // Quanto do estoque veio de troca e leitura de compra, nao de bancada. Fora
+  // isso, no celular a grade e de 2 colunas: um terceiro card deixaria um orfao
+  // esticado sozinho na linha de baixo.
+  if(podeVerMargem()){
+    listaKpis.push({ rotulo:'Entradas de cliente', valor: entradas.length,
+      sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' });
+  }
   if(podeVerMargem()){
     listaKpis.push(
       { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
@@ -246,7 +251,8 @@ function renderEstoque(){
         <input type="text" id="est-search-v3" placeholder="Buscar por modelo, IMEI, etiqueta ou fornecedor..."
                value="${escapeHtml(estoqueSearchV3)}" oninput="setEstoqueSearchV3(this.value)">
       </div>
-      ${sel('origem', estoqueOrigem, 'todas', origens, 'setEstoqueOrigem', 'Origem')}
+      ${/* Origem = nome do fornecedor (STP, DESEJO, JAMES): informacao de compra */ ''}
+      ${podeVerMargem() ? sel('origem', estoqueOrigem, 'todas', origens, 'setEstoqueOrigem', 'Origem') : ''}
       ${sel('modelo', estoqueModelo, 'todos', modelos, 'setEstoqueModelo', 'Modelo')}
       ${filtrosAtivos ? UI.btn('Limpar filtros', {onclick:'limparFiltrosEstoque()', variante:'sutil', sm:true}) : ''}
     </div>

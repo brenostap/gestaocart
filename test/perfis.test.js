@@ -102,5 +102,25 @@ ok('mostra os dias fora, que é o que interessa pra ele', /\d+d</.test(bnc));
 const bncSocio = comoPapel('socio', '(function(){ currentTab="bancada"; return renderBancada(); })()');
 ok('sócio continua vendo o capital parado', /Capital parado/.test(bncSocio));
 
+console.log('\nbarra de baixo do celular (o bug de 13/ago)\n');
+
+eq('papel bancada vê as DUAS telas na barra do celular',
+   comoPapel('bancada','navMobile()'), ['estoque','bancada']);
+eq('sócio continua com os 5 slots do brief',
+   comoPapel('socio','navMobile()'), ['dash','vendas','estoque','equipe','custos']);
+ok('nenhum papel mostra tela que não pode ver',
+   Object.keys(R('MATRIZ_ACESSO')).every(p =>
+     comoPapel(p, 'navMobile()').every(id => comoPapel(p, "podeVer('" + id + "')"))));
+
+const estBanc = comoPapel('bancada', '(function(){ currentTab="estoque"; return renderEstoque(); })()');
+ok('Estoque do papel bancada tem 2 KPIs (grade de 2 colunas no celular, sem órfão)',
+   (estBanc.match(/class="c-kpi"/g) || []).length === 2,
+   'kpis: ' + (estBanc.match(/class="c-kpi"/g) || []).length);
+ok('sem filtro de Origem (é nome de fornecedor)', !/setEstoqueOrigem/.test(estBanc));
+
+const estSocio = comoPapel('socio', '(function(){ currentTab="estoque"; return renderEstoque(); })()');
+ok('sócio mantém os KPIs de sempre', (estSocio.match(/class="c-kpi"/g) || []).length >= 4);
+ok('sócio mantém o filtro de Origem', /setEstoqueOrigem/.test(estSocio));
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

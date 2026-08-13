@@ -41,6 +41,17 @@ const NAV = [
 // Bottom-tab do mobile: 5 slots (brief §5)
 const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 
+// ⚠️ Os 5 slots acima foram escolhidos pro socio, que tem 11 telas. Quem tem
+// POUCAS telas nao cabe nessa regra: em 13/ago/2026 o Vitinho entrou pela
+// primeira vez e viu so "Estoque" na barra de baixo -- `bancada` nao estava nos
+// 5 slots, e a intersecao com o papel dele sobrou uma tela so. No desktop as
+// duas apareciam, entao o bug so existia no celular, que e justo onde ele usa.
+// Regra: papel que cabe nos 5 slots mostra TUDO que pode ver.
+function navMobile(){
+  const permitidas = MATRIZ_ACESSO[papelAtual()] || [];
+  return permitidas.length <= 5 ? permitidas : NAV_MOBILE.filter(id => permitidas.includes(id));
+}
+
 // ---------------------------------------------------------------------------
 // PERMISSAO — a matriz do brief §2. Hoje todos os usuarios sao socios; quando
 // a fase de perfis chegar, basta papelAtual() passar a ler o perfil real.
@@ -214,8 +225,9 @@ function renderShell(){
 
   const bt = document.getElementById('bottom-tabs');
   if(bt){
+    const slots = navMobile();
     bt.innerHTML = NAV.flatMap(g => g.itens)
-      .filter(i => NAV_MOBILE.includes(i.id) && podeVer(i.id))
+      .filter(i => slots.includes(i.id) && podeVer(i.id))
       .map(i => `<button class="bt-item${currentTab===i.id?' active':''}" data-tab="${i.id}"
           onclick="setTab('${i.id}')">
           <span class="bt-ico">${ICO[i.id]||''}</span><span class="bt-label">${i.label}</span>
