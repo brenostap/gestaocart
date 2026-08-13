@@ -75,6 +75,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Fonte:** Supabase (projeto `pfsfsibgmtbifypuyyqf`). O app **só lê**.
 - **Sync FoneNinja→Supabase:** repo separado `brenostap/phonecar-sync` (`sync.js`), GitHub Action **de hora em hora**. Grava vendas, produtos, **pagamentos**, **contas a receber**, estoque, clientes, compras.
 - **Preços** vêm do Google Sheets (fonte oficial); FoneNinja ao vivo via Edge Function proxy `fn`.
+  - ⚠️ **O `fn` tem lista branca de rota+método e exige papel `socio`** (fechado em 13/ago/2026 —
+    antes repassava qualquer método, ou seja, qualquer login escrevia e apagava no ERP). Código em
+    `supabase/functions/fn/index.ts`. **Chamada nova = entrada nova na lista**, senão volta 403.
 - Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`, `bancada`.
 - ⚠️ **"O app só lê" vale pros dados da FoneNinja.** As tabelas do próprio painel — `custos`,
   `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada` — têm política `auth_all` e o

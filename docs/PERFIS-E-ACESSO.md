@@ -114,20 +114,49 @@ Honestidade sobre o tamanho da trava:
    esconde (`money()` devolve `—`), o banco não — RLS é por linha, não por coluna, e todos os papéis
    compartilham o mesmo role `authenticated` do Postgres. Fechar de verdade pede uma **view sem a
    coluna de custo**, com o `estoque.js` lendo a view quando o papel não vê margem.
-2. 🚨 **O proxy `fn` é o buraco grande — e é de ESCRITA, não só de leitura.** Li o código da Edge
-   Function em 13/ago. Ela faz duas coisas: confere que existe um usuário autenticado (qualquer um,
-   sem olhar papel) e **repassa o método da requisição como veio** —
-   `init = { method: req.method }`, com o CORS liberando `GET, POST, PUT, PATCH, DELETE`. Ou seja:
-   **quem tem login no painel pode escrever e apagar na FoneNinja**, em qualquer endpoint, com a
-   chave da loja. O `verify_jwt` da função está desligado; a checagem é a do próprio código.
+2. ⚠️ **`sync-precos`** aceita qualquer usuário autenticado (além do cron, que usa `x-sync-secret`).
+   Quem tiver login pode disparar um sync de preços. Severidade baixa — ele relê a planilha oficial
+   e aplica via RPC com guarda, então não dá pra injetar dado: o pior caso é uma re-sincronização
+   fora de hora. **A correção é a mesma do `fn`**: depois do `getUser()`, exigir
+   `perfis.papel = 'socio'`. Não apliquei junto porque o arquivo tem um regex de caracteres
+   invisíveis (`INVIS`) que eu não consigo garantir que retranscrevo byte a byte — vale editar pelo
+   painel do Supabase ou pela CLI, com o arquivo original em mãos.
 
-   Precisa de duas travas: **whitelist de rota + método** (o painel só usa `GET /apples`) e
-   **checagem de papel**. Enquanto isso não existir, todo login novo é um login com poder de
-   escrita no ERP.
+O item 1 exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho.
 
-O item 1 exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho. **O
-item 2 é diferente em grau**: não vaza, destrói. Ficam anotados porque "tem perfil" vai soar como
-"está fechado", e não está.
+## O proxy `fn` — fechado em 13/ago/2026
+
+Era o buraco grande, e era de **escrita**. A versão 1 fazia duas coisas: conferia que existia
+*algum* usuário autenticado (sem olhar papel) e **repassava o método da requisição como veio**
+(`init = { method: req.method }`), com o CORS liberando `POST, PUT, PATCH, DELETE`. Traduzindo:
+**qualquer pessoa com login no painel podia escrever e apagar qualquer coisa na FoneNinja**, com a
+chave da loja. Não vazava — destruía. Só apareceu porque o Vitinho foi o primeiro usuário que não
+é sócio.
+
+A versão 2 (`supabase/functions/fn/index.ts`, agora versionada no repo) tem **duas travas, e as
+duas precisam passar**:
+
+1. **Papel `socio`** em `perfis` (lido com `service_role`, pelo `user.id` do JWT já verificado).
+2. **Rota + método na lista branca** — só o que o painel de fato chama:
+
+   | Método | Rota | Quem usa |
+   |---|---|---|
+   | GET | `/vendas` | `data.js`, `notificacoes.js` |
+   | GET | `/vendas/:id` | detalhe da venda |
+   | GET | `/apples` | estoque "fresco" |
+   | GET | `/movimentacoes` | acessórios |
+
+   Levantada com `grep -rn "BASE+" js/` — quatro rotas, todas GET. Sem body: a lista só tem GET.
+
+**Tela nova que precise de rota nova entra na lista, de propósito.** Se voltar `403 rota nao
+permitida`, é isso — não é bug.
+
+Conferido depois do deploy: sem `Authorization` → **401**; com a chave anon → **401**; `DELETE`
+com anon → **401**; `OPTIONS` → **200**. O caminho do sócio não dá pra testar por fora (precisa de
+JWT de usuário) — a prova é o painel carregando.
+
+⚠️ Se o `/apples` for negado, o painel **não quebra**: o `loadFromSupabase()` já trata a falha do
+estoque fresco e mantém o do Supabase. O sintoma seria estoque de até 1h atrás, não tela em branco.
 
 ## Testes
 
