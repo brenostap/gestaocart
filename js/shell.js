@@ -49,17 +49,31 @@ const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 // aparelho nao esta na prateleira antes de prometer.
 const MATRIZ_ACESSO = {
   socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento'],
+  // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
+  bancada:   ['estoque','bancada'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],
 };
 
-const PAPEIS = ['socio','gerente','vendedor','atendente'];
-const LABEL_PAPEL = { socio:'Sócio', gerente:'Gerente', vendedor:'Vendedor', atendente:'Atendente' };
+// ⚠️ Só 'socio' e 'bancada' têm RLS de verdade no banco. Os outros três seguem
+// sendo PREVIA VISUAL do dono: criar um perfil 'vendedor' hoje daria uma tela
+// de Vendas aberta lendo zero linha. Por isso o CHECK da tabela `perfis` só
+// aceita os dois. Ver docs/PERFIS-E-ACESSO.md.
+const PAPEIS_COM_RLS = ['socio','bancada'];
+const PAPEIS = ['socio','bancada','gerente','vendedor','atendente'];
+const LABEL_PAPEL = { socio:'Sócio', bancada:'Bancada', gerente:'Gerente',
+                      vendedor:'Vendedor', atendente:'Atendente' };
 
-// Papel de verdade do usuario logado. Hoje todo mundo que entra e socio; quando
-// a fase de perfis chegar, e ESTA funcao que passa a ler o perfil real.
-function papelReal(){ return 'socio'; }
+// Papel de verdade do usuario logado: vem da tabela `perfis` (auth.js carrega).
+// Padrao 'socio' quando o perfil nao carregou -- e escolha de UX, nao de
+// seguranca: quem decide o que o banco entrega e o RLS. Se a leitura falhar por
+// rede, o dono continua com o menu inteiro; se falhar por falta de perfil, o
+// banco devolve zero linha e as telas ficam vazias -- que e o sintoma certo.
+function papelReal(){ return (meuPerfil && meuPerfil.papel) || 'socio'; }
+
+// Quem só cuida da bancada nao precisa (nem deve) carregar venda, custo e folha.
+function perfilSoBancada(){ return papelReal() === 'bancada'; }
 
 // So o dono. Usado pra decidir quem enxerga o seletor "Ver como".
 function ehDono(){ return usuarioEmail === EMAIL_DONO; }
@@ -101,6 +115,8 @@ function podeVer(secao){ return (MATRIZ_ACESSO[papelAtual()] || []).includes(sec
 // Duas permissoes distintas, a pedido do dono:
 //   VALOR  = por quanto foi vendido. O colaborador negociou o preco, entao ve.
 //   MARGEM = custo e lucro. So socio.
+// 'bancada' nao entra em nenhuma das duas: o Vitinho precisa do aparelho, nao
+// do preco dele. Assim money() devolve '—' em qualquer tela que ele abrir.
 const VE_VALOR  = ['socio','gerente','vendedor','atendente'];
 const VE_MARGEM = ['socio'];
 
@@ -154,6 +170,7 @@ function renderShell(){
       </div>
     </div>
 
+    ${perfilSoBancada() ? '' : `
     <div class="sb-context">
       <div class="label-mono">Loja</div>
       <div class="sb-stores">
@@ -163,7 +180,7 @@ function renderShell(){
       <div class="label-mono" style="margin-top:12px">Período</div>
       <select class="sb-period" id="psel" onchange="setPeriod()">${gerarOpcoesMeses()}</select>
       <div id="sb-dates">${gerarDatePickers()}</div>
-    </div>
+    </div>`}
 
     <nav class="sb-nav">
       ${NAV.map(g => {

@@ -56,8 +56,20 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Todo valor em R$ passa por `money()`** (respeita permissão).
 
 ## Permissões / perfis
-- Hoje é **admin (dono) — vê tudo**. `papelAtual()` (shell.js) devolve o papel; perfis reais estão planejados mas **desligados**.
-- Regra dos perfis: **colaborador vê o VALOR da venda** (negociou o preço) **mas não vê custo/lucro/margem**. `podeVerValor()` e `podeVerMargem()` são os interruptores.
+⚠️ **Ler `docs/PERFIS-E-ACESSO.md` antes de mexer em papel, RLS ou login.**
+- **Duas camadas, não confundir.** `MATRIZ_ACESSO`/`money()` são **cortina** (escondem menu e
+  número). A **fechadura** é o RLS por papel no Postgres. Perfil sem RLS é teatro.
+- `papelReal()` (shell.js) lê a tabela **`perfis`** (`user_id` → papel), carregada por
+  `carregarMeuPerfil()` **antes** do `enterApp()`. Padrão `'socio'` quando não carrega — é UX, não
+  segurança.
+- **Papéis com RLS de verdade: `socio` e `bancada`.** `gerente`/`vendedor`/`atendente` continuam
+  **só prévia visual** do dono, e o `CHECK` de `perfis` não os aceita: criar um deles hoje daria
+  tela aberta lendo zero linha. **Papel novo = escrever o RLS dele junto.**
+- `bancada` (o Vitinho) vê só Estoque + Bancada, não entra em `VE_VALOR` nem `VE_MARGEM`, e tem
+  carga própria (`loadBancadaData()` em data.js).
+- Regra dos perfis comerciais: **colaborador vê o VALOR da venda** (negociou o preço) **mas não vê
+  custo/lucro/margem**. `podeVerValor()` e `podeVerMargem()` são os interruptores.
+- **Teste**: `node test/perfis.test.js` — prova a cortina, **não** a fechadura.
 
 ## Dados
 - **Fonte:** Supabase (projeto `pfsfsibgmtbifypuyyqf`). O app **só lê**.

@@ -33,6 +33,9 @@ async function doLogin(){
     if(error) throw error;
     SB_TOKEN=data.session.access_token;
     usuarioEmail=(data.user?.email||'').toLowerCase();
+    usuarioId=data.user?.id||'';
+    // Antes do enterApp(): e o perfil que decide o menu que o renderShell desenha.
+    await carregarMeuPerfil();
     enterApp();
     await loadAllData();
   }catch(e){
@@ -45,11 +48,37 @@ async function doLogin(){
   }
 }
 
+// Le a linha do usuario em `perfis`. Precisa do user_id: a policy de leitura
+// tambem deixa o socio ver TODAS as linhas, entao sem o filtro o painel do dono
+// pegaria o papel de outra pessoa (a primeira da lista).
+async function carregarMeuPerfil(){
+  if(!usuarioId){ meuPerfil = null; return null; }
+  try{
+    const linhas = await sbGet('perfis',
+      `select=papel,nome,funcionario_id,ativo&user_id=eq.${usuarioId}`, 1);
+    meuPerfil = (linhas && linhas[0]) || null;
+  }catch(e){
+    // Nao derruba o login: o RLS ja e a trava real, e papelReal() cai no
+    // padrao. Sem perfil o banco devolve zero linha e as telas ficam vazias --
+    // que e o sintoma certo, e nao uma tela cheia de dado que nao devia.
+    console.warn('[perfil] nao consegui ler o perfil:', e.message);
+    meuPerfil = null;
+  }
+  // O papel muda o menu inteiro; a tela aberta pode nem existir pra ele.
+  if(typeof podeVer === 'function' && !podeVer(currentTab)){
+    const permitidas = (MATRIZ_ACESSO[papelAtual()] || []);
+    currentTab = permitidas[0] || 'estoque';
+  }
+  return meuPerfil;
+}
+
 async function doLogout(){
   if(_pollingInterval){clearInterval(_pollingInterval);_pollingInterval=null;}
   pararTokenKeepAlive();
   try{ await sb.auth.signOut(); }catch(e){}
-  SB_TOKEN=SB_KEY;usuarioEmail='';allVendas=[];allMovs=[];estoqueItens=[];
+  SB_TOKEN=SB_KEY;usuarioEmail='';usuarioId='';meuPerfil=null;
+  allVendas=[];allMovs=[];estoqueItens=[];
+  if(typeof _bancadaCache !== 'undefined') _bancadaCache=null;
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   const pw=document.getElementById('login-password');if(pw) pw.value='';

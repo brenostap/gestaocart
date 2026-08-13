@@ -206,7 +206,8 @@ function renderEstoque(){
         <div class="pg-desc">Aparelhos disponíveis, com custo, preço de tabela e margem por unidade.</div>
       </div>
       <div class="pg-acoes">
-        ${UI.btn('💬 Exportar WhatsApp', {onclick:'abrirWaModal()'})}
+        ${/* exportar a lista inteira e ato comercial, nao de bancada */ ''}
+        ${podeVerValor() ? UI.btn('💬 Exportar WhatsApp', {onclick:'abrirWaModal()'}) : ''}
         ${UI.btn('↻ Atualizar', {onclick:'reloadData()', variante:'primario'})}
       </div>
     </div>`;

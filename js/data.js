@@ -139,7 +139,34 @@ async function loadFromSupabase(){
   
   return { vendas: allVendas.length, estoque: estoqueItens.length };
 }
+// Carga enxuta do papel `bancada`: so estoque + bancada. Nao e otimizacao, e
+// consequencia -- o RLS por papel devolve zero linha em vendas/custos/folha, e
+// a carga cheia gastaria a franquia do celular do Vitinho pra montar array
+// vazio. Tambem evita o fetch do estoque "fresco" da FoneNinja, que traz
+// valor_estoque pelo proxy.
+async function loadBancadaData(){
+  const ov=document.getElementById('loading-overlay');
+  if(ov) ov.style.display='flex';
+  allVendas=[];allMovs=[];ajustesAcessorios=[];
+  try{
+    setProgress(30,'Carregando estoque...');
+    const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
+    estoqueItens = (estoque||[]).map(i=>({ ...i, produto:{ titulo:i.titulo } }));
+    setProgress(70,'Carregando bancada...');
+    if(typeof carregarBancada === 'function') await carregarBancada();
+    setProgress(100,'Pronto!');
+  }catch(e){
+    console.error('[bancada] carga falhou:', e);
+  }
+  if(ov) ov.style.display='none';
+  const app=document.getElementById('app');
+  if(app) app.style.display='grid';
+  updateStatusBar();
+  renderContent();
+}
+
 async function loadAllData(){
+  if(typeof perfilSoBancada === 'function' && perfilSoBancada()) return loadBancadaData();
   document.getElementById('loading-overlay').style.display='flex';
   allVendas=[];allMovs=[];estoqueItens=[];
   // Kick off carregamento da tabela de precos em paralelo (cache global)
@@ -434,6 +461,14 @@ function getLojaLabel(){
 function updateStatusBar(){
   const sb = document.getElementById('status-bar');
   if(!sb) return;
+  // Papel `bancada` nao carrega venda nem periodo -- "0 vendas" ali seria uma
+  // afirmacao falsa sobre o dia, nao um dado.
+  if(typeof perfilSoBancada === 'function' && perfilSoBancada()){
+    const fora = typeof bncAbertas === 'function' ? bncAbertas().length : 0;
+    sb.textContent = estoqueItens.length+' em estoque · '+fora+' na assistência';
+    sb.style.color = '';
+    return;
+  }
   const periodo = getPeriodoLabel();
   const loja = getLojaLabel();
   const lojaStr = loja ? ' · '+loja : '';

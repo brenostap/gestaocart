@@ -10,6 +10,9 @@ window.onload=async function(){
     if(session){
       SB_TOKEN=session.access_token;
       usuarioEmail=(session.user?.email||'').toLowerCase();
+      usuarioId=session.user?.id||'';
+      // Antes do enterApp(): e o perfil que decide o menu que o shell desenha.
+      await carregarMeuPerfil();
       enterApp();
       loadAllData();
       return;

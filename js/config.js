@@ -12,6 +12,12 @@ const sb = window.supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:
 let SB_TOKEN = SB_KEY;
 // Quem esta logado. Preenchido no login (auth.js) e ao restaurar a sessao (boot.js).
 let usuarioEmail = '';
+let usuarioId = '';
+// Linha da tabela `perfis` do usuario logado: {papel, nome, funcionario_id}.
+// null = ainda nao carregou (ou falhou). Quem le e papelReal() no shell.js.
+// ⚠️ Isto decide o MENU, nao o acesso: o acesso de verdade e o RLS por papel
+// (supabase/migrations/*_rls_por_papel.sql). Ver docs/PERFIS-E-ACESSO.md.
+let meuPerfil = null;
 // So o dono ve o seletor "Ver como" no rodape da sidebar. Ver papelAtual() em shell.js:
 // e PREVIA VISUAL, nao trava de seguranca.
 const EMAIL_DONO = 'breno@phonestp.com';
