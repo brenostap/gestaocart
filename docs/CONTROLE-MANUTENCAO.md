@@ -210,6 +210,43 @@ vai precisar de conferência manual.
 **Ainda não tem** (é a fase 1): valor da nota, conciliação automática e a `tabela_servicos`. Por
 enquanto o `R$` continua sendo conferido na planilha na segunda.
 
+### ✅ Correções de estoque — 13/ago/2026
+
+O estoque estava com **57% sem etiqueta e 45% sem bateria** (136 e 106 de 237). Quem tem essa
+informação é quem mexe no aparelho, e ele não tinha onde botar.
+
+⚠️ **Não dá pra editar `estoque` no Supabase.** O sync reescreve as 237 linhas de hora em hora —
+conferido em 13/ago: 237 de 237 tocadas nas últimas 2h. Editar ali é escrever na areia.
+
+Por isso é uma **camada de correções (`estoque_correcoes`), não um espelho.** Guarda só o delta —
+`apple_id · campo · valor_novo · valor_fn · quem` — e o painel mostra o valor corrigido por cima.
+
+**A propriedade que faz isso não apodrecer: a correção é auto-limpante.** Ela existe enquanto
+DIVERGE. Quando a FoneNinja passa a dizer o mesmo valor, ela some da lista sozinha, no próprio
+sync. Ninguém marca como resolvida, ninguém limpa nada — e é isso que impede a tabela de virar um
+segundo estoque com a pergunta semanal de "qual dos dois está certo?".
+
+| Campo | Como entra |
+|---|---|
+| **Bateria** | correção — substitui o valor exibido |
+| **Etiqueta** | correção — substitui o valor exibido |
+| **IMEI** | **só reporte** — nunca substitui |
+
+O IMEI é a chave que liga venda, reparo e bancada (`bancada` casa por `apple_id` + 4 dígitos).
+Trocar sozinho quebraria o casamento de tudo; ele só levanta a mão e um sócio decide.
+
+Quem corrige: `podeCorrigirEstoque()` = **sócio e bancada**. É eixo próprio, não um degrau da
+escada de dinheiro — o `bancada` corrige e continua sem ver um R$ sequer.
+
+O sócio vê o KPI **"A corrigir na FoneNinja"** e um **✎** na linha que ainda diverge — é a lista
+do que precisa ser digitado no ERP.
+
+Protegido por `node test/correcoes.test.js`.
+
+> **Status não virou campo editável.** "Está na assistência" já é a Bancada, e ela é melhor que um
+> status: carrega a data de saída e o fornecedor. Duplicar viraria duas verdades sobre a mesma
+> coisa. `available → sold` continua sendo a venda que decide.
+
 A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
 a tela não está perdendo linha. Depois morre.
 

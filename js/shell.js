@@ -134,6 +134,13 @@ const VE_MARGEM = ['socio'];
 function podeVerValor(){  return VE_VALOR.includes(papelAtual()); }
 function podeVerMargem(){ return VE_MARGEM.includes(papelAtual()); }
 
+// Corrigir bateria/etiqueta/IMEI do estoque. Eixo proprio, e nao um degrau da
+// escada de dinheiro: quem mexe no aparelho e quem sabe o dado, e e justamente
+// o papel `bancada` -- que nao ve valor nenhum. 57% do estoque esta sem
+// etiqueta e 45% sem bateria porque ninguem com essa informacao tinha onde por.
+const PODE_CORRIGIR = ['socio','bancada'];
+function podeCorrigirEstoque(){ return PODE_CORRIGIR.includes(papelAtual()); }
+
 // Mantido porque varias telas ja chamam; hoje significa "pode ver custo/lucro"
 function podeVerDinheiro(){ return podeVerMargem(); }
 

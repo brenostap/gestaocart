@@ -98,6 +98,12 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     `E1030` e `SP1030` colidem sem o prefixo — 138 itens do estoque colidem assim.
   - **Teste**: `node test/bancada.test.js`. Monta a tela de Bancada **e a de Estoque** — o selo
     mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
+- **`estoque_correcoes`** — ⚠️ **`estoque` não é editável**: o sync reescreve as 237 linhas de hora
+  em hora. Esta tabela guarda o **delta** (`apple_id · campo · valor_novo · valor_fn`), e
+  `dadosDoItem()` aplica por cima. **Auto-limpante**: a correção existe enquanto diverge — quando a
+  FoneNinja passa a dizer o mesmo, ela some da lista sozinha. É o que impede virar segundo estoque.
+  - **IMEI só entra como `tipo='reporte'` e NUNCA substitui** — é a chave de venda/reparo/bancada.
+  - `podeCorrigirEstoque()` = sócio e bancada. Teste: `node test/correcoes.test.js`.
 
 ## Verdades não óbvias (pra não errar)
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.

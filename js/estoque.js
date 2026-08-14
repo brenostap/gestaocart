@@ -115,14 +115,18 @@ function dadosDoItem(item){
   const custo = parseFloat(item.valor_estoque || 0);
   const preco = getPrecoVendaSync(item);
   const venda = preco && preco.varejo != null ? preco.varejo : null;
+  // A correcao do time entra por cima do que a FoneNinja mandou. IMEI nao: ele
+  // e a chave que liga venda, reparo e bancada, e so vale reportado.
+  const corr = typeof correcoesDoApple === 'function' ? correcoesDoApple(item.id) : {};
   return {
     item, titulo, modelo, capacidade, cor, condicao, custo, venda,
     margem: venda != null ? venda - custo : null,
     geracao: geracaoDe(modelo),
     origem: origemDoItem(item),
-    bateria: parseInt(item.bateria || 0),
-    etiqueta: item.serial || '',
-    imei: item.imei_1 || ''
+    bateria: parseInt((corr.bateria && corr.bateria.valor_novo) || item.bateria || 0),
+    etiqueta: (corr.etiqueta && corr.etiqueta.valor_novo) || item.serial || '',
+    imei: item.imei_1 || '',
+    corrigido: Object.keys(corr).length > 0
   };
 }
 
@@ -148,6 +152,8 @@ function renderEstoque(){
   // Sem isso a tela mostraria como disponivel o aparelho que esta na bancada.
   if(typeof _bancadaCache !== 'undefined' && _bancadaCache === null)
     carregarBancada().then(() => { if(currentTab==='estoque') renderContent(); });
+  if(typeof _correcoesCache !== 'undefined' && _correcoesCache === null)
+    carregarCorrecoes().then(() => { if(currentTab==='estoque') renderContent(); });
 
   const todos = (estoqueItens || []).map(dadosDoItem);
 
@@ -190,6 +196,14 @@ function renderEstoque(){
   // Quanto do estoque veio de troca e leitura de compra, nao de bancada. Fora
   // isso, no celular a grade e de 2 colunas: um terceiro card deixaria um orfao
   // esticado sozinho na linha de baixo.
+  // Divergencia = o time corrigiu e a FoneNinja ainda nao concorda. Some
+  // sozinha no sync seguinte quando o ERP passa a dizer o mesmo.
+  const divergindo = typeof corDivergencias === 'function'
+    ? visiveis.filter(d => corDivergencias(d.item).length) : [];
+  if(divergindo.length){
+    listaKpis.push({ rotulo:'A corrigir na FoneNinja', valor: divergindo.length,
+      tom:'processo', sub:'o time já marcou o certo aqui' });
+  }
   if(podeVerMargem()){
     listaKpis.push({ rotulo:'Entradas de cliente', valor: entradas.length,
       sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' });
@@ -376,10 +390,13 @@ function renderEstoqueTabela(dados){
         campos.push(['Margem', l.d.margem == null ? '—' : money(l.d.margem)]);
       }
 
+      const editor = (typeof podeCorrigirEstoque === 'function' && podeCorrigirEstoque()
+                      && typeof corBlocoHtml === 'function') ? corBlocoHtml(l.d) : '';
+
       return `<tr class="est-detalhe"><td colspan="${COLUNAS_ESTOQUE}">
         <div class="est-det-campos">
           ${campos.map(([r,v]) => `<div><i class="det-rot">${r}</i>${v}</div>`).join('')}
-        </div></td></tr>`;
+        </div>${editor}</td></tr>`;
     }
     const d = l.d;
     // Aparelho na assistencia continua na lista (ele e nosso e volta), mas nao
@@ -390,8 +407,10 @@ function renderEstoqueTabela(dados){
       ? `<span class="bnc-selo" data-tom="${bncTomDias(diasFora)==='critico'?'critico':''}"
            title="Saiu em ${escapeHtml(fora.saiu_em)} para ${escapeHtml(fora.fornecedor)}">🔧 Na assistência · ${diasFora}d</span>`
       : '';
+    const divs = typeof corDivergencias === 'function' ? corDivergencias(d.item) : [];
     return `<tr class="est-linha${l.aberto ? ' aberta' : ''}${fora ? ' na-bancada' : ''}" onclick="alternarLinhaEstoque(${l.id})">
-      <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span></td>
+      <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>${
+        divs.length ? `<span class="cor-marca" title="${escapeHtml(divs.map(c => COR_CAMPOS[c.campo].rotulo).join(', '))} corrigido aqui, ainda não na FoneNinja">✎</span>` : ''}</td>
       <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}</td>
       <td data-rot="Cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
       <td data-rot="Bateria" class="num">${bat(d.bateria)}</td>
