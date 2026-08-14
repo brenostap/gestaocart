@@ -200,6 +200,18 @@ function renderEstoque(){
   // sozinha no sync seguinte quando o ERP passa a dizer o mesmo.
   const divergindo = typeof corDivergencias === 'function'
     ? visiveis.filter(d => corDivergencias(d.item).length) : [];
+  // Na loja e NAO pronto pra vender: o buraco entre "chegou" e "foi pra
+  // assistencia". Antes disso o painel dizia que estavam todos disponiveis.
+  const naoProntos = typeof estadoDoApple === 'function'
+    ? visiveis.filter(d => {
+        const e = estadoDoApple(d.item.id);
+        return e && e.estado !== 'revisado'
+            && !(typeof bancadaDoApple === 'function' && bancadaDoApple(d.item.id, d.imei));
+      }) : [];
+  if(naoProntos.length){
+    listaKpis.push({ rotulo:'Não prontos', valor: naoProntos.length, tom:'alerta',
+      sub:'na loja, mas não dá pra vender' });
+  }
   if(divergindo.length){
     listaKpis.push({ rotulo:'A corrigir na FoneNinja', valor: divergindo.length,
       tom:'processo', sub:'o time já marcou o certo aqui' });
@@ -407,11 +419,18 @@ function renderEstoqueTabela(dados){
       ? `<span class="bnc-selo" data-tom="${bncTomDias(diasFora)==='critico'?'critico':''}"
            title="Saiu em ${escapeHtml(fora.saiu_em)} para ${escapeHtml(fora.fornecedor)}">🔧 Na assistência · ${diasFora}d</span>`
       : '';
+    // Estado marcado a mao (na loja e nao pronto pra vender). So aparece quando
+    // o aparelho NAO esta fora -- senao dois selos brigam dizendo onde ele esta.
+    const est = (!fora && typeof estadoDoApple === 'function') ? estadoDoApple(l.id) : null;
+    const seloEstado = est && COR_ESTADO_MAP[est.estado]
+      ? UI.badge(COR_ESTADO_MAP[est.estado].ico + ' ' + COR_ESTADO_MAP[est.estado].t,
+                 COR_ESTADO_MAP[est.estado].tom)
+      : '';
     const divs = typeof corDivergencias === 'function' ? corDivergencias(d.item) : [];
     return `<tr class="est-linha${l.aberto ? ' aberta' : ''}${fora ? ' na-bancada' : ''}" onclick="alternarLinhaEstoque(${l.id})">
       <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>${
         divs.length ? `<span class="cor-marca" title="${escapeHtml(divs.map(c => COR_CAMPOS[c.campo].rotulo).join(', '))} corrigido aqui, ainda não na FoneNinja">✎</span>` : ''}</td>
-      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}</td>
+      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}${seloEstado}</td>
       <td data-rot="Cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
       <td data-rot="Bateria" class="num">${bat(d.bateria)}</td>
       <td data-rot="IMEI"><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>

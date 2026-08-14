@@ -51,6 +51,11 @@ vm.runInContext(`
       serial:'E1382', imei_1:'350000000004743', bateria:0, valor_estoque:700, ultimo_fornecedor:'' },
   ];
 
+  _estadosCache = {
+    '101': { apple_id:101, estado:'peca',     quem:'vitor@x.com' },
+    '303': { apple_id:303, estado:'revisado', quem:'vitor@x.com' },
+  };
+
   _correcoesCache = [
     { id:1, apple_id:101, campo:'bateria',  valor_novo:'91',    valor_fn:'82', tipo:'correcao', quem:'vitor@x.com' },
     { id:2, apple_id:101, campo:'etiqueta', valor_novo:'E1700', valor_fn:'',   tipo:'correcao', quem:'vitor@x.com' },
@@ -110,6 +115,27 @@ ok('continua sem R$ pro papel bancada', !/R\$/.test(estBanc));
 
 const estVend = comoPapel('vendedor', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); return renderEstoque(); })()');
 ok('quem não pode corrigir não vê o editor', !/cor-bloco/.test(estVend));
+
+console.log('\nestado da peça — o buraco entre "chegou" e "foi pra assistência"\n');
+
+eq('estado marcado é lido', R("(estadoDoApple(101)||{}).estado"), 'peca');
+eq('aparelho sem estado devolve null', R('estadoDoApple(202)'), null);
+
+const estEstado = comoPapel('bancada', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); return renderEstoque(); })()');
+ok('selo do estado aparece na linha', /Aguardando peça/.test(estEstado));
+ok('KPI "Não prontos" conta só o que não está revisado nem fora',
+   /Não prontos[\s\S]{0,200}>1</.test(estEstado));
+ok('os 5 estados aparecem pra marcar', (estEstado.match(/cor-chip/g) || []).length === 5,
+   'chips: ' + (estEstado.match(/cor-chip/g) || []).length);
+
+console.log('\ncusto de serviço: interruptor próprio\n');
+
+eq('sócio e bancada veem custo de serviço; vendedor não',
+   ['socio','bancada','vendedor'].map(p => comoPapel(p,'podeVerCustoServico()')),
+   [true, true, false]);
+eq('moneyServico some pra quem não pode ver', comoPapel('vendedor','moneyServico(250)'), '—');
+ok('bancada vê o valor do serviço', /250/.test(comoPapel('bancada','moneyServico(250)')));
+ok('mas continua sem ver custo de aparelho', comoPapel('bancada','money(2782)') === '—');
 
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

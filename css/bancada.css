@@ -104,3 +104,20 @@
 .cor-marca{
   margin-left:5px; font-size:11px; color:var(--process); font-weight:700;
 }
+
+/* -- Estado da peça: chips de significado, não de decoração --------------- */
+.cor-estado{ display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+.cor-estado-fora{
+  font-size:10.5px; color:var(--yellow); background:var(--yellow-bg);
+  padding:6px 8px; border-radius:var(--radius-sm); line-height:var(--lh-body);
+}
+.cor-chip[data-tom="ok"].ativo       { background:var(--green-bg);  color:var(--green);  border-color:var(--green); }
+.cor-chip[data-tom="alerta"].ativo   { background:var(--yellow-bg); color:var(--yellow); border-color:var(--yellow); }
+.cor-chip[data-tom="critico"].ativo  { background:var(--red-bg);    color:var(--red);    border-color:var(--red); }
+.cor-chip[data-tom="processo"].ativo { background:var(--process-bg);color:var(--purple); border-color:var(--purple); }
+
+/* -- Valor da nota, editável na linha ------------------------------------- */
+.bnc-valor{
+  width:82px; text-align:right; padding:4px 8px; font-size:var(--fs-caption);
+  font-family:var(--font-mono);
+}

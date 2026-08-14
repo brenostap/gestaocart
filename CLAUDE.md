@@ -104,6 +104,15 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   FoneNinja passa a dizer o mesmo, ela some da lista sozinha. É o que impede virar segundo estoque.
   - **IMEI só entra como `tipo='reporte'` e NUNCA substitui** — é a chave de venda/reparo/bancada.
   - `podeCorrigirEstoque()` = sócio e bancada. Teste: `node test/correcoes.test.js`.
+- **`estoque_estado`** — estado operacional marcado à mão (revisado · avaliar · reparar · aguardando
+  peça · sem conserto). Informação **nova**, que a FoneNinja não tem — por isso **não** entra na
+  tabela auto-limpante (não teria pra onde convergir). Três coisas separadas de propósito:
+  `estoque_correcoes` = delta que converge · `estoque_estado` = informação nossa · `bancada` = saiu
+  da loja. `status` (available/sold) continua sendo a venda que decide.
+- ⚠️ **Três interruptores de dinheiro, não um.** `podeVerValor()` (valor da venda) ·
+  `podeVerMargem()` (custo/lucro/margem) · **`podeVerCustoServico()`** (o que a assistência cobra —
+  sócio e bancada). `money()` responde aos dois primeiros; **`moneyServico()`** ao terceiro. O papel
+  `bancada` vê custo de serviço e **não** vê custo de aparelho: são dinheiros diferentes.
 
 ## Verdades não óbvias (pra não errar)
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.

@@ -141,6 +141,19 @@ function podeVerMargem(){ return VE_MARGEM.includes(papelAtual()); }
 const PODE_CORRIGIR = ['socio','bancada'];
 function podeCorrigirEstoque(){ return PODE_CORRIGIR.includes(papelAtual()); }
 
+// Custo de SERVICO (o que a assistencia cobra) e categoria propria -- nao e
+// custo de aparelho nem margem. Quem leva os aparelhos e recebe as notas ja ve
+// esses numeros no papel; esconder no painel so impediria ele de conferir a
+// nota de segunda, que e o trabalho. Aparelho, preco e margem seguem fechados.
+const VE_CUSTO_SERVICO = ['socio','bancada'];
+function podeVerCustoServico(){ return VE_CUSTO_SERVICO.includes(papelAtual()); }
+
+// Irmao de money(), com outro interruptor. Existe pra que uma tela nao precise
+// escolher entre "mostrar tudo" e "esconder tudo" de dinheiro.
+function moneyServico(valor, mudo){
+  return podeVerCustoServico() ? brl(valor) : (mudo === undefined ? '—' : mudo);
+}
+
 // Mantido porque varias telas ja chamam; hoje significa "pode ver custo/lucro"
 function podeVerDinheiro(){ return podeVerMargem(); }
 

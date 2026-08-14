@@ -156,6 +156,24 @@ async function bncDesfazerBaixa(id){
   if(currentTab === 'bancada') renderContent();
 }
 
+// O valor vem na nota de segunda, sempre DEPOIS do aparelho voltar -- por isso
+// e editavel nas duas abas, e nao um campo do formulario de saida.
+async function bncSalvarValor(id, el){
+  const bruto = String(el && el.value || '').replace(/[^\d,.-]/g,'').replace(',', '.');
+  const valor = bruto === '' ? null : parseFloat(bruto);
+  if(valor !== null && !(valor >= 0)){ _bncErro = 'Valor inválido.'; renderContent(); return; }
+  try { await bncPatch(id, { valor_cobrado: valor }); }
+  catch(e){ _bncErro = 'Não gravou o valor: ' + e.message; }
+  if(currentTab === 'bancada') renderContent();
+}
+
+function bncCampoValor(l){
+  if(!podeVerCustoServico()) return '—';
+  return `<input class="c-input bnc-valor" inputmode="decimal" placeholder="—"
+     value="${l.valor_cobrado == null ? '' : l.valor_cobrado}"
+     onchange="bncSalvarValor(${l.id}, this)" onclick="event.stopPropagation()">`;
+}
+
 // ---------------------------------------------------------------------------
 // MODAL DE SAIDA
 // ---------------------------------------------------------------------------
@@ -388,6 +406,18 @@ function renderBancada(){
     kpis.splice(1, 0, { rotulo:'Capital parado', valor: money(capital),
       sub:'custo que está fora da loja' });
   }
+  // Gasto de bancada do mes corrente. Fica atras do interruptor de custo de
+  // SERVICO, nao do de margem: sao dinheiros diferentes.
+  if(podeVerCustoServico()){
+    const mes = bncHoje().slice(0,7);
+    const doMes = (_bancadaCache || []).filter(l =>
+      l.valor_cobrado != null && String(l.voltou_em || l.saiu_em).startsWith(mes));
+    const semValor = (_bancadaCache || []).filter(l => l.voltou_em && l.valor_cobrado == null).length;
+    kpis.push({ rotulo:'Serviço no mês',
+      valor: moneyServico(doMes.reduce((a,l) => a + parseFloat(l.valor_cobrado || 0), 0)),
+      tom: semValor ? 'alerta' : undefined,
+      sub: semValor ? semValor + ' sem valor da nota' : doMes.length + ' serviços lançados' });
+  }
 
   const cabecalho = `
     <div class="pg-head">
@@ -444,6 +474,7 @@ function bncTabelaAbertas(abertas){
       <td data-rot="Origem">${bncOrigemBadge(l.origem)}</td>
       <td data-rot="Saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
+      ${podeVerCustoServico() ? `<td data-rot="R$" class="num">${bncCampoValor(l)}</td>` : ''}
       <td data-rot="" class="num">${UI.btn('Voltou', {onclick:`bncBaixa(${l.id})`, sm:true})}</td>
     </tr>`;
   }).join('');
@@ -453,7 +484,8 @@ function bncTabelaAbertas(abertas){
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>IMEI</th><th>Onde</th><th>Serviço</th>
-        <th>Origem</th><th>Saiu</th><th class="num">Dias</th><th></th>
+        <th>Origem</th><th>Saiu</th><th class="num">Dias</th>
+        ${podeVerCustoServico() ? '<th class="num">R$</th>' : ''}<th></th>
       </tr></thead><tbody>${linhas}</tbody></table></div>`
   });
 }
@@ -483,16 +515,22 @@ function bncTabelaFechadas(){
       <td data-rot="Saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
       <td data-rot="Ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
+      ${podeVerCustoServico() ? `<td data-rot="R$" class="num">${bncCampoValor(l)}</td>` : ''}
       <td data-rot="" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}</td>
     </tr>`;
   }).join('');
 
+  const semValor = fechadas.filter(l => l.valor_cobrado == null).length;
   return UI.card({
-    titulo:'Voltaram', sub: fechadas.length + ' últimas', flush:true,
+    titulo:'Voltaram',
+    sub: fechadas.length + ' últimas' + (podeVerCustoServico() && semValor
+          ? ' · ' + semValor + ' sem valor da nota' : ''),
+    flush:true,
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>Onde</th><th>Serviço</th>
-        <th>Origem</th><th>Saiu</th><th>Voltou</th><th class="num">Ficou</th><th></th>
+        <th>Origem</th><th>Saiu</th><th>Voltou</th><th class="num">Ficou</th>
+        ${podeVerCustoServico() ? '<th class="num">R$</th>' : ''}<th></th>
       </tr></thead><tbody>${linhas}</tbody></table></div>`
   });
 }

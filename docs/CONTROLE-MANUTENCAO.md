@@ -243,9 +243,59 @@ do que precisa ser digitado no ERP.
 
 Protegido por `node test/correcoes.test.js`.
 
-> **Status não virou campo editável.** "Está na assistência" já é a Bancada, e ela é melhor que um
-> status: carrega a data de saída e o fornecedor. Duplicar viraria duas verdades sobre a mesma
-> coisa. `available → sold` continua sendo a venda que decide.
+### ✅ Estado da peça — 13/ago/2026
+
+O buraco entre **"chegou"** e **"foi pra assistência"**: o aparelho pode estar na loja e quebrado,
+ou esperando peça, sem ter saído. O painel dizia que estava disponível.
+
+`estoque_estado` — um estado por aparelho, marcado à mão. Cinco valores, e só:
+
+| | |
+|---|---|
+| ✓ **Revisado** | pronto pra vender |
+| ? **Avaliar** | ninguém olhou ainda |
+| ! **Precisa reparo** | tem defeito, vai pra bancada |
+| ⏳ **Aguardando peça** | parado esperando |
+| ✕ **Sem conserto** | não vale a pena |
+
+Tocar no mesmo chip desmarca. O sócio vê o KPI **"Não prontos"** — na loja e não dá pra vender.
+
+Três coisas separadas, que é o que impede virar bagunça:
+
+| | O que é | Converge pra quê |
+|---|---|---|
+| `estoque_correcoes` | **delta** do que a FoneNinja diz errado | some quando o ERP concorda |
+| `estoque_estado` | informação **nova**, que o ERP não tem | não converge — é nossa |
+| `bancada` | o aparelho **saiu** da loja | fecha quando volta |
+
+Por isso o estado **não** entra na tabela auto-limpante: não teria pra onde convergir. E quando o
+aparelho está fora, o selo da Bancada manda — o estado nem aparece na linha, senão dois selos
+brigam dizendo onde ele está.
+
+> **`status` da FoneNinja continua fora.** `available → sold` é a venda que decide; ninguém marca
+> à mão. O que você pediu — "marcar que está na assistência" — já era a Bancada, e ela é melhor:
+> carrega a data de saída e o fornecedor.
+
+### ✅ Custo do serviço na Bancada — 13/ago/2026
+
+`bancada.valor_cobrado` — o que a nota cobrou de fato (o `valor_previsto` era a estimativa antes de
+mandar). Editável **nas duas abas**, porque o valor chega na nota de segunda, sempre depois do
+aparelho voltar. O card *Voltaram* mostra quantos ainda estão **sem valor da nota** — é a lista de
+trabalho da conferência.
+
+KPI **"Serviço no mês"** soma o que foi lançado.
+
+**Novo interruptor: `podeVerCustoServico()` = sócio e bancada.** É eixo próprio, não um degrau da
+escada de dinheiro:
+
+| | `bancada` vê? |
+|---|---|
+| custo de **serviço** (o que a assistência cobra) | ✅ |
+| custo do **aparelho**, preço, margem, capital parado | ❌ |
+
+O motivo é prático: ele leva os aparelhos e recebe as notas — já vê esses números no papel.
+Esconder no painel só impediria ele de fazer a conferência de segunda, que é o trabalho.
+`moneyServico()` é o irmão de `money()` com esse interruptor.
 
 A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
 a tela não está perdendo linha. Depois morre.

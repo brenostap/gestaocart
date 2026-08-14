@@ -39,6 +39,8 @@ vm.runInContext(`
   function money(v){ return brl(v); }
   function podeVerValor(){ return true; }
   function podeVerMargem(){ return true; }
+  function podeVerCustoServico(){ return true; }
+  function moneyServico(v){ return brl(v); }
   function papelAtual(){ return 'socio'; }
   function carregarTabelaPrecos(){ return Promise.resolve(); }
   function carregarFotos(){ return Promise.resolve(); }

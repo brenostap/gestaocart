@@ -95,8 +95,12 @@ ok('o selo da assistência continua lá', /bnc-selo/.test(est));
 
 const bnc = comoPapel('bancada', '(function(){ currentTab="bancada"; _bncAba="abertas"; return renderBancada(); })()');
 ok('renderBancada() monta no papel bancada', typeof bnc === 'string' && bnc.length > 300);
-ok('sem KPI de capital parado', !/Capital parado/.test(bnc));
-ok('nenhum R$ na tela', !/R\$/.test(bnc), bnc.match(/R\$[^<]{0,12}/g)?.slice(0,3).join(' | '));
+// ⚠️ Desde 13/ago o papel bancada VÊ custo de serviço — de propósito, por um
+// interruptor próprio (podeVerCustoServico). É ele quem leva os aparelhos e
+// recebe as notas; sem isso não dá pra conferir a nota de segunda no painel.
+// O que continua fechado é dinheiro de APARELHO: custo, preço, margem, capital.
+ok('vê a coluna de custo de serviço', /Serviço no mês/.test(bnc));
+ok('NÃO vê o capital parado nos aparelhos', !/Capital parado/.test(bnc));
 ok('mostra os dias fora, que é o que interessa pra ele', /\d+d</.test(bnc));
 
 const bncSocio = comoPapel('socio', '(function(){ currentTab="bancada"; return renderBancada(); })()');
