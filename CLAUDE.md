@@ -78,10 +78,18 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   - ⚠️ **O `fn` tem lista branca de rota+método e exige papel `socio`** (fechado em 13/ago/2026 —
     antes repassava qualquer método, ou seja, qualquer login escrevia e apagava no ERP). Código em
     `supabase/functions/fn/index.ts`. **Chamada nova = entrada nova na lista**, senão volta 403.
+  - **`sync-precos` também exige `socio`** (fechado em 14/ago/2026 — antes bastava estar logado).
+    O caminho do cron (`x-sync-secret`) não mudou. Código em
+    `supabase/functions/sync-precos/index.ts`. ⚠️ O regex `INVIS` ali está em escapes `\u` de
+    propósito: era escrito com os caracteres invisíveis literais e não dava pra editar o arquivo
+    sem risco de comer um deles calado. **Não volte pra forma literal.**
 - Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`, `bancada`.
 - ⚠️ **"O app só lê" vale pros dados da FoneNinja.** As tabelas do próprio painel — `custos`,
-  `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada` — têm política `auth_all` e o
-  browser **grava direto** por upsert (`setEquipeExtra()` em `equipe.js` é o modelo).
+  `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada` — o browser **grava direto**
+  por upsert (`setEquipeExtra()` em `equipe.js` é o modelo). **Mas escrita é por papel**, não é
+  `auth_all` como já foi: `custos`, `metas_mensais`, `funcionarios_config` e `tabela_precos` pedem
+  `eh_socio()`; `bancada`, `estoque_correcoes` e `estoque_estado` pedem `pode_operar()` (sócio ou
+  bancada), e **apagar de `bancada` é só do sócio**. Detalhe em `docs/PERFIS-E-ACESSO.md`.
 - **`reparos`** — serviços de bancada por aparelho, carregados das notas das assistências por
   `node scripts/reparos.js` (único **script** do repo que escreve no Supabase; usa `service_role` do
   ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
@@ -111,6 +119,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   FoneNinja passa a dizer o mesmo, ela some da lista sozinha. É o que impede virar segundo estoque.
   - **IMEI só entra como `tipo='reporte'` e NUNCA substitui** — é a chave de venda/reparo/bancada.
   - `podeCorrigirEstoque()` = sócio e bancada. Teste: `node test/correcoes.test.js`.
+  - ⚠️ No banco quem manda é a função **`pode_operar()`** (sócio, bancada), que guarda
+    `estoque_correcoes`, `estoque_estado` e `bancada`. **Ela e `podeCorrigirEstoque()` são a mesma
+    regra em dois lugares — mudou uma, muda a outra**, senão a tela oferece o botão e a API recusa.
 - **`estoque_estado`** — estado operacional marcado à mão (revisado · avaliar · reparar · aguardando
   peça · sem conserto). Informação **nova**, que a FoneNinja não tem — por isso **não** entra na
   tabela auto-limpante (não teria pra onde convergir). Três coisas separadas de propósito:

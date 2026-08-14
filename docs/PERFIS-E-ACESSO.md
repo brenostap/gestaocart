@@ -33,8 +33,13 @@ elas, **contornando o RLS das tabelas**. Nenhuma é usada pelo app (zero referê
 | Papel | Vê | Escreve | RLS de verdade? |
 |---|---|---|---|
 | `socio` | tudo | tudo | ✅ |
-| `bancada` | Estoque e Bancada | só `bancada` | ✅ |
+| `bancada` | Estoque e Bancada | `bancada` (**sem apagar**), `estoque_correcoes`, `estoque_estado` | ✅ |
 | `gerente` · `vendedor` · `atendente` | — | — | ❌ **só prévia do dono** |
+
+A lista de quem escreve nessas três tabelas é a função **`pode_operar()`** (`socio`,
+`bancada`), que espelha `podeCorrigirEstoque()` do `js/shell.js` — **os dois mudam juntos**.
+Antes de 14/ago era `tem_perfil()`, ou seja *qualquer* perfil: papel novo já nasceria
+escrevendo no controle da bancada sem ninguém ter decidido isso.
 
 ⚠️ Os três últimos existem no `MATRIZ_ACESSO` e no seletor **"Ver como"** desde antes, e continuam
 sendo só prévia visual. Por isso o `CHECK` da tabela `perfis` **não os aceita**: criar um perfil
@@ -49,6 +54,11 @@ sendo só prévia visual. Por isso o `CHECK` da tabela `perfis` **não os aceita
   Sem custo, sem preço de venda, sem margem.
 - Sidebar sem o seletor de loja/período (nenhuma das duas telas usa).
 - Sem o botão *Exportar WhatsApp* do Estoque: mandar a lista inteira é ato comercial.
+- **Lança e edita manutenção** (`bancada`), mas **não apaga**: apagar linha é desfazer
+  histórico de paradeiro, e fica com o sócio. Não tira nada da tela dele — o front nunca
+  apagou de `bancada` (`bncGravar()` faz POST, `bncPatch()` faz PATCH, e é só isso).
+- **Corrige aparelho no Estoque** (`estoque_correcoes`) e **marca estado** (`estoque_estado`),
+  incluindo desfazer a própria correção — ali apagar é limpar o delta, não histórico.
 - Carga própria (`loadBancadaData()`): busca **só** `estoque` e `bancada`. Não é otimização, é
   consequência — o RLS devolve zero linha no resto, e a carga cheia gastaria a franquia do celular
   dele pra montar array vazio. De quebra evita o fetch do estoque "fresco" da FoneNinja.
@@ -76,16 +86,25 @@ sintoma certo.
 `security definer` nas três funções é necessário: sem isso a política que lê `perfis` chamaria a
 função pra decidir se pode ler `perfis`.
 
-## Estado (13/ago/2026)
+## Estado (14/ago/2026)
 
 RLS por papel **aplicado**. Conferido simulando cada papel no banco, com
 `set local role authenticated` + `request.jwt.claims` dentro de transação:
 
-| Papel | estoque | bancada | vendas · custos · folha · compras · preços · reparos |
-|---|---:|---:|---:|
-| `socio` | 1.696 | ✅ | **tudo** (4.815 vendas, 413 custos) |
-| `bancada` | 1.696 | ✅ | **0 em todos** |
-| logado **sem** perfil | 0 | 0 | **0 em todos** |
+| Papel | estoque | bancada | correções · estado | vendas · custos · folha · compras · preços · reparos |
+|---|---:|---:|---:|---:|
+| `socio` | 1.702 | ✅ inclusive apagar | ✅ | **tudo** (4.833 vendas) |
+| `bancada` | 1.702 | ✅ **menos** apagar | ✅ grava e desfaz | **0 em todos** |
+| logado **sem** perfil | 0 | 0 | 0 · INSERT negado | **0 em todos** |
+
+⚠️ **Armadilha ao conferir escrita:** RLS **não dá erro** em UPDATE/DELETE sem policy —
+devolve **zero linha em silêncio**. Um teste que só olha "deu erro?" lê isso como
+*permitido* e passa batido. Sempre medir com `get diagnostics n = row_count`. Foi assim
+que "o Vitinho pode alterar o estoque" apareceu como falso alarme na primeira rodada.
+
+**Prova de que funciona na vida real, não só no teste:** em 13/ago às 23h44 o Vitinho
+lançou pelo painel o iPhone 14 Pro Max 256GB Roxo (etiqueta `E1618`) para a RR, serviço
+"Face ID" — linha gravada em `bancada` com o e-mail dele em `quem`.
 
 ⚠️ **Usuário sem linha em `perfis` não lê nada — nem o estoque.** O padrão é negar. Isso vale pra
 qualquer conta criada de agora em diante, inclusive a de sócio.
@@ -114,15 +133,10 @@ Honestidade sobre o tamanho da trava:
    esconde (`money()` devolve `—`), o banco não — RLS é por linha, não por coluna, e todos os papéis
    compartilham o mesmo role `authenticated` do Postgres. Fechar de verdade pede uma **view sem a
    coluna de custo**, com o `estoque.js` lendo a view quando o papel não vê margem.
-2. ⚠️ **`sync-precos`** aceita qualquer usuário autenticado (além do cron, que usa `x-sync-secret`).
-   Quem tiver login pode disparar um sync de preços. Severidade baixa — ele relê a planilha oficial
-   e aplica via RPC com guarda, então não dá pra injetar dado: o pior caso é uma re-sincronização
-   fora de hora. **A correção é a mesma do `fn`**: depois do `getUser()`, exigir
-   `perfis.papel = 'socio'`. Não apliquei junto porque o arquivo tem um regex de caracteres
-   invisíveis (`INVIS`) que eu não consigo garantir que retranscrevo byte a byte — vale editar pelo
-   painel do Supabase ou pela CLI, com o arquivo original em mãos.
 
-O item 1 exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho.
+Exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho.
+
+*(O `sync-precos` estava aqui como item 2 e foi fechado em 14/ago — ver a seção abaixo.)*
 
 ## O proxy `fn` — fechado em 13/ago/2026
 
@@ -157,6 +171,37 @@ JWT de usuário) — a prova é o painel carregando.
 
 ⚠️ Se o `/apples` for negado, o painel **não quebra**: o `loadFromSupabase()` já trata a falha do
 estoque fresco e mantém o do Supabase. O sintoma seria estoque de até 1h atrás, não tela em branco.
+
+## O `sync-precos` — fechado em 14/ago/2026
+
+Até aqui a Edge Function `sync-precos` decidia com `permitido = !!user`: **qualquer login do
+painel disparava um sync de preços**. Severidade baixa (relê a planilha oficial e aplica via
+RPC com guarda — o pior caso é uma re-sincronização fora de hora), mas não havia motivo pra
+deixar aberto. Agora exige **papel `socio`**, no mesmo desenho do `fn`: papel lido com
+`service_role`, pelo `user.id` do JWT já verificado.
+
+O caminho do **cron continua igual** — `x-sync-secret` conferido contra `app_secrets`, com
+comparação de tempo constante, e nem chega a olhar papel. Esse bloco não foi tocado.
+
+A função agora está **versionada no repo** (`supabase/functions/sync-precos/index.ts`).
+O motivo de ela não estar antes era o regex `INVIS`, escrito com os caracteres invisíveis
+literais — não dava pra reeditar sem risco de comer um deles em silêncio, e o sync passaria a
+deixar lixo invisível nos nomes de modelo. **Agora está em escapes `\uFE00-\uFE0F\u200B-\u200D\uFEFF`**,
+que é a mesma coisa (conferido code point a code point nos 1,1 milhão de pontos: **zero
+divergência**) e deixa o arquivo editável sem medo. **Não volte pra forma literal.**
+
+⚠️ **O que está rodando ainda tem os literais.** O deploy saiu pela API (MCP), que interpreta o
+`\u` no transporte e regrava os caracteres — v3 e v4 saíram com o mesmo hash de bundle, o que
+confirma. Não é divergência de comportamento, é de grafia: os dois regex são exatamente o mesmo
+conjunto. Pra alinhar o servidor com o repo, redeployar **pela CLI**:
+`supabase functions deploy sync-precos --no-verify-jwt` — o `--no-verify-jwt` importa, o cron
+chama sem JWT, só com `x-sync-secret`.
+
+Conferido depois do deploy: sem `Authorization` → **401**; com a chave anon → **401**;
+`x-sync-secret` errado (mesmo tamanho e tamanho diferente) → **401**; `OPTIONS` → **200**.
+O caminho do sócio e o do cron não dão pra testar por fora sem JWT de usuário e sem expor o
+segredo — a prova do cron é o `sync_log` marcar `ok` no run diário das 8h. **Confira o
+`sync_log` amanhã**: é a única verificação que ficou pendente.
 
 ## Testes
 
