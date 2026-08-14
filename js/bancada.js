@@ -58,6 +58,122 @@ async function carregarBancada(){
 
 function bncAbertas(){ return (_bancadaCache || []).filter(l => !l.voltou_em); }
 
+// ---------------------------------------------------------------------------
+// CONFERÊNCIA — a nota bate com o que foi registrado?
+//
+// `reparos` é o DINHEIRO (vem da nota, depois do fato, via scripts/reparos.js).
+// `bancada` é o PARADEIRO (vem da pessoa, durante). Cruzar os dois é o que
+// transforma "achei que registrei tudo" em uma lista.
+//
+// ⚠️ A conferência SÓ COBRA a partir do dia em que a bancada começou. Em
+// 13/ago a bancada tinha 1 registro e `reparos` tinha 205 linhas de jul+ago:
+// cobrar tudo apontaria 204 faltas e ninguém olharia a tela de novo. Falta de
+// registro antes do primeiro registro não é falha, é história.
+// ---------------------------------------------------------------------------
+
+let _reparosCache = null;      // só sócio: `reparos` tem policy reparos_socio
+let _repCarregando = false;
+
+async function carregarReparosBancada(){
+  if(_repCarregando || !podeVerMargem()) return _reparosCache || [];
+  _repCarregando = true;
+  try {
+    _reparosCache = await sbGet('reparos',
+      'select=id,apple_id,fornecedor,servico,valor_liquido,data_servico,imei_nota,etiqueta_nota,modelo_nota,status&order=data_servico.desc',
+      3000) || [];
+  } catch(e){
+    console.warn('[bancada] não li reparos:', e.message);
+    _reparosCache = _reparosCache || [];
+  } finally { _repCarregando = false; }
+  return _reparosCache;
+}
+
+// Dia em que o livro da bancada começou. Antes disso não se cobra nada.
+function bncDesde(){
+  const datas = (_bancadaCache || []).map(l => l.saiu_em).filter(Boolean).sort();
+  return datas[0] || null;
+}
+
+const bncFim4 = s => String(s || '').replace(/\D/g,'').slice(-4);
+
+// Mesma chave dos dois lados: apple_id manda; sem ele, fornecedor + 4 dígitos.
+function bncChaveReparo(r){
+  if(r.apple_id) return 'a' + r.apple_id;
+  const d = bncFim4(r.imei_nota) || bncFim4(r.etiqueta_nota);
+  return d ? 'i' + r.fornecedor + d : null;
+}
+function bncChaveLinha(l){
+  if(l.apple_id) return 'a' + l.apple_id;
+  return l.imei4 ? 'i' + l.fornecedor + bncFim4(l.imei4) : null;
+}
+
+function bncConciliar(){
+  const desde = bncDesde();
+  if(!desde) return null;
+
+  const reparos = (_reparosCache || []).filter(r =>
+    r.data_servico && r.data_servico >= desde && r.status !== 'revisar');
+  const linhas = (_bancadaCache || []).filter(l => l.saiu_em >= desde);
+
+  // Por APARELHO, somando: a nota quebra um conserto em várias linhas, e
+  // comparar linha a linha inventaria divergência que não existe.
+  const porNota = {}, porReg = {};
+  reparos.forEach(r => {
+    const k = bncChaveReparo(r); if(!k) return;
+    (porNota[k] = porNota[k] || { chave:k, linhas:[], total:0, fornecedor:r.fornecedor,
+      modelo:r.modelo_nota, servicos:[] });
+    porNota[k].linhas.push(r);
+    porNota[k].total += parseFloat(r.valor_liquido || 0);
+    if(r.servico) porNota[k].servicos.push(r.servico);
+  });
+  linhas.forEach(l => {
+    const k = bncChaveLinha(l); if(!k) return;
+    (porReg[k] = porReg[k] || { chave:k, linhas:[], cobrado:0, temValor:false });
+    porReg[k].linhas.push(l);
+    if(l.valor_cobrado != null){ porReg[k].cobrado += parseFloat(l.valor_cobrado); porReg[k].temValor = true; }
+  });
+
+  const semRegistro = [], semNota = [], valorDiferente = [];
+
+  Object.values(porNota).forEach(n => {
+    if(!porReg[n.chave]) semRegistro.push(n);
+  });
+  Object.values(porReg).forEach(g => {
+    const n = porNota[g.chave];
+    // Só cobra nota de quem já VOLTOU: o que ainda está fora não foi faturado.
+    const voltou = g.linhas.some(l => l.voltou_em);
+    if(!n && voltou) semNota.push(g);
+    else if(n && g.temValor && Math.abs(n.total - g.cobrado) >= 1){
+      valorDiferente.push({ ...g, nota: n.total, dif: g.cobrado - n.total });
+    }
+  });
+
+  return { desde, semRegistro, semNota, valorDiferente,
+           notas: Object.keys(porNota).length, registros: Object.keys(porReg).length };
+}
+
+// Preço de referência: a MEDIANA do que já foi pago por este serviço neste
+// fornecedor. Nasce do próprio histórico da loja -- não de tabela transcrita à
+// mão, que erra em silêncio e produz alarme falso toda semana.
+function bncPrecoRef(fornecedor, servico){
+  const alvo = String(servico || '').toLowerCase().trim();
+  if(!alvo) return null;
+  const vals = [];
+  (_reparosCache || []).forEach(r => {
+    if(r.fornecedor === fornecedor && String(r.servico||'').toLowerCase().trim() === alvo)
+      vals.push(parseFloat(r.valor_liquido || 0));
+  });
+  (_bancadaCache || []).forEach(l => {
+    if(l.fornecedor === fornecedor && l.valor_cobrado != null &&
+       String(l.servico||'').toLowerCase().trim() === alvo)
+      vals.push(parseFloat(l.valor_cobrado));
+  });
+  if(vals.length < 3) return null;          // 2 amostras não são um padrão
+  vals.sort((a,b) => a-b);
+  const m = Math.floor(vals.length/2);
+  return { valor: vals.length % 2 ? vals[m] : (vals[m-1]+vals[m])/2, n: vals.length };
+}
+
 // Usado pela tela de Estoque pra marcar o aparelho que esta fora.
 // Chave por apple_id; o imei4 e a rede de seguranca pro aparelho que trocou de
 // id (ou que veio do estoque "fresco" da FoneNinja com outra forma).
@@ -169,9 +285,16 @@ async function bncSalvarValor(id, el){
 
 function bncCampoValor(l){
   if(!podeVerCustoServico()) return '—';
-  return `<input class="c-input bnc-valor" inputmode="decimal" placeholder="—"
+  // A referência é a mediana do que a loja já pagou por este serviço neste
+  // fornecedor. Serve pra pegar o dedo gordo na hora, não pra brigar com a nota.
+  const ref = bncPrecoRef(l.fornecedor, l.servico);
+  const fora = ref && l.valor_cobrado != null &&
+               Math.abs(parseFloat(l.valor_cobrado) - ref.valor) > ref.valor * 0.35;
+  return `<input class="c-input bnc-valor${fora ? ' fora' : ''}" inputmode="decimal" placeholder="—"
      value="${l.valor_cobrado == null ? '' : l.valor_cobrado}"
-     onchange="bncSalvarValor(${l.id}, this)" onclick="event.stopPropagation()">`;
+     ${ref ? `title="Costuma ser ${brl(ref.valor)} (${ref.n} serviços)"` : ''}
+     onchange="bncSalvarValor(${l.id}, this)" onclick="event.stopPropagation()">
+     ${ref ? `<span class="bnc-ref">~${brl(ref.valor)}</span>` : ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -431,16 +554,93 @@ function renderBancada(){
       </div>
     </div>`;
 
+  // `reparos` é de sócio (policy reparos_socio) — a conferência é controle
+  // financeiro, não trabalho de bancada.
+  if(podeVerMargem() && _reparosCache === null)
+    carregarReparosBancada().then(() => { if(currentTab === 'bancada') renderContent(); });
+
+  const conf = podeVerMargem() ? bncConciliar() : null;
+  const alertas = conf ? conf.semRegistro.length + conf.semNota.length + conf.valorDiferente.length : 0;
+
   const abas = UI.toolbar(
     UI.chip('Na bancada (' + abertas.length + ')', _bncAba === 'abertas', "setBancadaAba('abertas')"),
-    UI.chip('Voltaram', _bncAba === 'fechadas', "setBancadaAba('fechadas')")
+    UI.chip('Voltaram', _bncAba === 'fechadas', "setBancadaAba('fechadas')"),
+    podeVerMargem()
+      ? UI.chip('Conferência' + (alertas ? ' (' + alertas + ')' : ''),
+                _bncAba === 'conferencia', "setBancadaAba('conferencia')")
+      : ''
   );
 
   const erro = _bncErro && currentTab === 'bancada'
     ? `<div class="bnc-erro">${UI.esc(_bncErro)}</div>` : '';
 
-  return cabecalho + UI.kpis(kpis) + erro + abas
-       + (_bncAba === 'abertas' ? bncTabelaAbertas(abertas) : bncTabelaFechadas());
+  const corpo = _bncAba === 'conferencia' ? bncTelaConferencia(conf)
+              : _bncAba === 'fechadas'    ? bncTabelaFechadas()
+              : bncTabelaAbertas(abertas);
+
+  return cabecalho + UI.kpis(kpis) + erro + abas + corpo;
+}
+
+// ---------------------------------------------------------------------------
+// TELA DA CONFERÊNCIA
+// ---------------------------------------------------------------------------
+
+function bncTelaConferencia(conf){
+  if(!conf){
+    return UI.card({corpo: UI.vazio({
+      ico:'📋', titulo:'Ainda não há o que conferir',
+      texto:'A conferência cruza a nota da assistência com o que foi registrado aqui. Ela começa a valer no primeiro registro de saída.',
+    })});
+  }
+
+  const bloco = (titulo, sub, tom, itens, render) => {
+    if(!itens.length) return '';
+    return UI.card({
+      titulo, sub: itens.length + ' · ' + sub, flush:true,
+      corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
+        <tbody>${itens.map(render).join('')}</tbody></table></div>`
+    });
+  };
+
+  const semRegistro = bloco('Na nota, sem registro aqui',
+    'saiu da loja e ninguém registrou', 'critico', conf.semRegistro, n => `<tr>
+      <td class="forte">${UI.esc(n.modelo || '—')}</td>
+      <td><span class="est-tag">${UI.esc(n.chave.replace(/^[ai]/,''))}</span></td>
+      <td>${UI.esc(n.fornecedor)}</td>
+      <td>${UI.esc([...new Set(n.servicos)].join(', ').slice(0,60) || '—')}</td>
+      <td class="num">${moneyServico(n.total)}</td>
+    </tr>`);
+
+  const semNota = bloco('Registrado, sem nota',
+    'voltou e não apareceu na cobrança', 'alerta', conf.semNota, g => `<tr>
+      <td class="forte">${UI.esc((g.linhas[0].modelo_txt || '—').replace(/^iPhone\s*/,''))}</td>
+      <td><span class="est-tag">${UI.esc(g.linhas[0].etiqueta || '—')}</span></td>
+      <td>${UI.esc(g.linhas[0].fornecedor)}</td>
+      <td>${UI.esc(g.linhas.map(l => l.servico).filter(Boolean).join(', ').slice(0,60) || '—')}</td>
+      <td class="num">${bncFmtData(g.linhas[0].voltou_em)}</td>
+    </tr>`);
+
+  const difs = bloco('Valor diferente da nota',
+    'o que foi lançado não bate', 'alerta', conf.valorDiferente, g => `<tr>
+      <td class="forte">${UI.esc((g.linhas[0].modelo_txt || '—').replace(/^iPhone\s*/,''))}</td>
+      <td><span class="est-tag">${UI.esc(g.linhas[0].etiqueta || '—')}</span></td>
+      <td class="num">nota ${moneyServico(g.nota)}</td>
+      <td class="num">lançado ${moneyServico(g.cobrado)}</td>
+      <td class="num">${UI.badge((g.dif > 0 ? '+' : '') + moneyServico(g.dif),
+                                 g.dif > 0 ? 'critico' : 'alerta')}</td>
+    </tr>`);
+
+  const nada = !conf.semRegistro.length && !conf.semNota.length && !conf.valorDiferente.length;
+
+  return `
+    <div class="bnc-conf-nota">
+      Conferindo de <b>${bncFmtData(conf.desde)}</b> pra cá — o dia em que a bancada começou.
+      ${conf.notas} aparelhos na nota · ${conf.registros} registrados.
+      <span>Linha de nota anterior a essa data não conta como falta: é história, não falha.</span>
+    </div>
+    ${nada ? UI.card({corpo: UI.vazio({ico:'✅', titulo:'A nota bate com o registro',
+        texto:'Nenhum aparelho saiu sem registro, nada voltou sem cobrança e os valores conferem.'})})
+      : semRegistro + semNota + difs}`;
 }
 
 function bncOrigemBadge(o){

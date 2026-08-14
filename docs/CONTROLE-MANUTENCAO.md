@@ -192,7 +192,7 @@ vai precisar de conferência manual.
 | Fase | O quê | Entrega |
 |---|---|---|
 | ✅ **0** | tabela `bancada` + tela de captura (com lote) + selo no Estoque | mata os R$ 87 mil invisíveis |
-| **1** | `tabela_servicos` + conciliação automática na segunda + alerta de 14 dias | a nota confere sozinha |
+| ✅ **1** | conciliação `reparos` × `bancada` + preço de referência aprendido | a nota confere sozinha |
 | **2** | estimativa "vale consertar?", prazo por fornecedor, garantia por modelo | muda decisão de compra |
 
 ### ✅ Fase 0 — no ar em 12/ago/2026
@@ -296,6 +296,52 @@ escada de dinheiro:
 O motivo é prático: ele leva os aparelhos e recebe as notas — já vê esses números no papel.
 Esconder no painel só impediria ele de fazer a conferência de segunda, que é o trabalho.
 `moneyServico()` é o irmão de `money()` com esse interruptor.
+
+## ✅ Fase 1 — a conferência (13/ago/2026)
+
+Aba **Conferência** na Bancada, **só sócio** (`reparos` tem policy `reparos_socio`; conferir a
+nota é controle financeiro, não trabalho de bancada). Cruza as duas metades:
+
+> `reparos` é o **dinheiro** (vem da nota, depois do fato, via `scripts/reparos.js`).
+> `bancada` é o **paradeiro** (vem da pessoa, durante).
+
+Três alarmes:
+
+| | O que significa |
+|---|---|
+| **Na nota, sem registro aqui** | o aparelho saiu da loja e ninguém registrou |
+| **Registrado, sem nota** | voltou e não apareceu na cobrança — ou a baixa está errada |
+| **Valor diferente da nota** | o que foi lançado não bate com o que foi cobrado |
+
+### As três decisões que impedem alarme falso
+
+Sem elas a tela apontaria dezenas de "problemas" na primeira semana e ninguém abriria de novo.
+
+1. **Só cobra a partir do dia em que a bancada começou.** Em 13/ago a `bancada` tinha 1 registro e
+   `reparos` tinha 205 linhas de jul+ago: cobrar tudo daria 204 faltas. **Falta de registro antes
+   do primeiro registro não é falha, é história** — e a tela diz isso em cima.
+2. **Compara por aparelho, somando.** A nota quebra um conserto em várias linhas (tela + vidro +
+   bateria). Comparar linha a linha inventaria divergência que não existe.
+3. **Só cobra nota de quem já voltou.** O que ainda está fora não foi faturado.
+
+Linha com `status='revisar'` fica de fora: o próprio importador não confia nela.
+
+### Preço de referência — aprendido, não transcrito
+
+A mediana do que a loja **já pagou** por aquele serviço naquele fornecedor (de `reparos` +
+`bancada.valor_cobrado`), com **mínimo de 3 amostras** — duas não são padrão. Aparece como `~R$X`
+ao lado do campo, e o campo fica âmbar quando foge mais de 35%.
+
+⚠️ **Por que não veio dos PDFs das tabelas.** A da Access sai limpa do PDF; a da RR é um PDF do
+Canva com o texto posicionado **glifo a glifo**, e sai embaralhado — modelo e preço em listas
+separadas. Transcrever à mão é onde entra o erro, e **preço de referência errado gera alarme falso
+toda semana**, que é pior que não ter alarme nenhum. O histórico real da loja não tem esse
+problema: começa vazio e vai ficando certo sozinho.
+
+Se um dia valer travar o preço combinado (e não o praticado), o caminho é **pedir a tabela em
+texto ou planilha** ao fornecedor — não OCR de PDF de Canva.
+
+Protegido por `node test/conferencia-bancada.test.js`.
 
 A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
 a tela não está perdendo linha. Depois morre.

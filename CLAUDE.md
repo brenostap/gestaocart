@@ -94,6 +94,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   `docs/CONTROLE-MANUTENCAO.md`.
   - `reparos` é o **dinheiro** (vem da nota, depois do fato); `bancada` é o **paradeiro e o tempo**
     (vem da pessoa, durante). Não são a mesma coisa e não se somam.
+  - **Aba Conferência** (só sócio) cruza os dois: na nota sem registro · registrado sem nota ·
+    valor diferente. ⚠️ **Só cobra a partir de `min(saiu_em)` da bancada** — cobrar o passado daria
+    204 faltas no primeiro dia e ninguém abriria a tela de novo. Compara **por aparelho, somando**
+    (a nota quebra um conserto em várias linhas). Teste: `node test/conferencia-bancada.test.js`.
+  - **Preço de referência é aprendido** (mediana do histórico, mín. 3 amostras), **não transcrito
+    dos PDFs**: o da RR é Canva com texto glifo a glifo e sai embaralhado — preço errado geraria
+    alarme falso toda semana. Pra travar preço combinado, pedir a tabela em texto/planilha.
   - Casa por **`apple_id`**, com os **4 últimos do IMEI** como reserva. **Nunca por etiqueta**:
     `E1030` e `SP1030` colidem sem o prefixo — 138 itens do estoque colidem assim.
   - **Teste**: `node test/bancada.test.js`. Monta a tela de Bancada **e a de Estoque** — o selo
