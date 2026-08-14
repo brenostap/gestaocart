@@ -88,9 +88,18 @@ async function carregarReparosBancada(){
   return _reparosCache;
 }
 
-// Dia em que o livro da bancada começou. Antes disso não se cobra nada.
+// Dia em que o LIVRO começou — `criado_em`, não `saiu_em`.
+//
+// ⚠️ A diferença importa e custou um susto: ao carregar os 39 abertos da
+// planilha do Vitinho (13/ago), a saída mais antiga era de **11/mai**. Com
+// `saiu_em`, a conferência passaria a comparar julho inteiro contra um livro
+// que só existe desde agora, e cuspiria ~150 falsas "faltas de registro" no
+// primeiro dia. `criado_em` diz a verdade: o registro passou a ser confiável
+// quando foi feito, não quando o aparelho saiu.
 function bncDesde(){
-  const datas = (_bancadaCache || []).map(l => l.saiu_em).filter(Boolean).sort();
+  const datas = (_bancadaCache || [])
+    .map(l => String(l.criado_em || l.saiu_em || '').slice(0,10))
+    .filter(Boolean).sort();
   return datas[0] || null;
 }
 

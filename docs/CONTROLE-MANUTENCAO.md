@@ -317,9 +317,14 @@ Três alarmes:
 
 Sem elas a tela apontaria dezenas de "problemas" na primeira semana e ninguém abriria de novo.
 
-1. **Só cobra a partir do dia em que a bancada começou.** Em 13/ago a `bancada` tinha 1 registro e
-   `reparos` tinha 205 linhas de jul+ago: cobrar tudo daria 204 faltas. **Falta de registro antes
-   do primeiro registro não é falha, é história** — e a tela diz isso em cima.
+1. **Só cobra a partir do dia em que o LIVRO começou** — `min(criado_em)`, **não** `min(saiu_em)`.
+   Em 13/ago a `bancada` tinha 1 registro e `reparos` tinha 205 linhas de jul+ago: cobrar tudo daria
+   204 faltas. **Falta de registro antes do primeiro registro não é falha, é história** — e a tela
+   diz isso em cima.
+   ⚠️ A diferença entre os dois campos custou um susto: ao importar os 38 abertos da planilha, a
+   saída mais antiga era de **11/mai**. Com `saiu_em`, a conferência passaria a comparar julho
+   inteiro contra um livro que só existe desde agora. `criado_em` diz a verdade — o registro passou
+   a ser confiável quando foi **feito**, não quando o aparelho saiu.
 2. **Compara por aparelho, somando.** A nota quebra um conserto em várias linhas (tela + vidro +
    bateria). Comparar linha a linha inventaria divergência que não existe.
 3. **Só cobra nota de quem já voltou.** O que ainda está fora não foi faturado.
@@ -342,6 +347,37 @@ Se um dia valer travar o preço combinado (e não o praticado), o caminho é **p
 texto ou planilha** ao fornecedor — não OCR de PDF de Canva.
 
 Protegido por `node test/conferencia-bancada.test.js`.
+
+## Carga da planilha — 13/ago/2026
+
+**38 aparelhos abertos** importados da planilha do Vitinho pra dentro da `bancada`.
+
+| | |
+|---|---:|
+| Registros abertos | **38** |
+| Casaram com um aparelho do estoque | **35** |
+| Capital parado | **R$ 75.527** |
+| O mais velho | **94 dias** (etiqueta `381`, 16 Plus Rosa, saiu 11/mai) |
+
+Os 3 sem aparelho são **de cliente** (não existem no estoque, e é correto ficarem sem `apple_id`).
+
+**O casamento não foi por etiqueta.** Foi por **IMEI4 primeiro**, com a etiqueta desempatando quando
+o IMEI colidia. Prova de que a ordem importa: a linha `16 plus rosa · 7808 · etiqueta 737` — pela
+etiqueta, `737` é um **16 Pro Max Preto já vendido**; pelo IMEI, é o 16 Plus Rosa certo. Cinco
+linhas tinham IMEI ambíguo (2 candidatos) e foram resolvidas pela etiqueta com prefixo; duas foram
+resolvidas por **modelo + cor** (`9890` → 14 Plus Azul, não o 14 Pro Max Preto vendido).
+
+Na `bancada`, `etiqueta` guarda o **serial de verdade do estoque**; o número que estava escrito na
+planilha vai pra `obs` como *rótulo*. Assim a coluna não mistura as duas numerações.
+
+### Três coisas pra conferir com o Vitinho
+
+1. **`E1655` / IMEI `2880`** — está na bancada e o aparelho consta como **vendido**. Ou voltou de
+   garantia (e a origem devia ser `garantia`, não `estoque`), ou foi vendido enquanto estava fora.
+2. **`E1682` / IMEI `9893`** — a planilha diz *"14 pm branco"*, mas IMEI **e** etiqueta apontam pro
+   mesmo aparelho: um **15 Pro Max Titânio Branco**. Erro de digitação do modelo na planilha.
+3. **`E1632` / IMEI `5185`** — aparece **aberto** na aba da Access **e fechado** (saída 12/08) na
+   tabela de concluídos. Como havia data de saída explícita, **não** foi importado como aberto.
 
 A planilha continua rodando **em paralelo por uma semana** depois da fase 0 — é ela que prova que
 a tela não está perdendo linha. Depois morre.

@@ -51,19 +51,19 @@ vm.runInContext(`
     // casa com a nota e o valor bate (400 = 250 + 150, duas linhas na nota)
     { id:1, apple_id:501, imei4:'1111', etiqueta:'E1501', modelo_txt:'iPhone 13 128GB Preto',
       fornecedor:'RR', origem:'estoque', servico:'Troca de tela',
-      saiu_em:'2026-08-10', voltou_em:'2026-08-12', valor_cobrado:400 },
+      saiu_em:'2026-08-10', voltou_em:'2026-08-12', valor_cobrado:400, criado_em:'2026-08-10T09:00:00Z' },
     // casa, mas o valor lançado está errado (nota diz 180)
     { id:2, apple_id:502, imei4:'2222', etiqueta:'E1502', modelo_txt:'iPhone 12 64GB Branco',
       fornecedor:'RR', origem:'estoque', servico:'Troca de bateria',
-      saiu_em:'2026-08-11', voltou_em:'2026-08-12', valor_cobrado:300 },
+      saiu_em:'2026-08-11', voltou_em:'2026-08-12', valor_cobrado:300, criado_em:'2026-08-11T09:00:00Z' },
     // voltou e NÃO está na nota
     { id:3, apple_id:503, imei4:'3333', etiqueta:'E1503', modelo_txt:'iPhone 11 64GB Preto',
       fornecedor:'ACCESS', origem:'estoque', servico:'Face ID',
-      saiu_em:'2026-08-11', voltou_em:'2026-08-12', valor_cobrado:null },
+      saiu_em:'2026-08-11', voltou_em:'2026-08-12', valor_cobrado:null, criado_em:'2026-08-11T09:00:00Z' },
     // AINDA está fora: não pode ser cobrado de nota
     { id:4, apple_id:504, imei4:'4444', etiqueta:'E1504', modelo_txt:'iPhone 14 128GB Roxo',
       fornecedor:'RR', origem:'estoque', servico:'Subida de bateria',
-      saiu_em:'2026-08-12', voltou_em:null, valor_cobrado:null },
+      saiu_em:'2026-08-12', voltou_em:null, valor_cobrado:null, criado_em:'2026-08-12T09:00:00Z' },
   ];
 
   _reparosCache = [
@@ -105,7 +105,20 @@ const eq = (t,a,b) => ok(t, JSON.stringify(a) === JSON.stringify(b),
 
 console.log('\na conferência não cobra o passado\n');
 
-eq('a bancada começou em 10/ago', R('bncDesde()'), '2026-08-10');
+// ⚠️ É `criado_em`, não `saiu_em`: ao importar os 38 abertos da planilha do
+// Vitinho, a saída mais antiga era de 11/mai. Com `saiu_em` a conferência
+// compararia julho inteiro contra um livro que só existe desde agora, e
+// cuspiria ~150 falsas faltas no primeiro dia.
+eq('o livro começou em 10/ago', R('bncDesde()'), '2026-08-10');
+eq('saída velha NÃO puxa a régua pra trás',
+   R(`(function(){
+        const antes = bncDesde();
+        _bancadaCache.push({ id:99, apple_id:777, imei4:'9999', fornecedor:'RR', origem:'estoque',
+          servico:'tela', saiu_em:'2026-05-11', voltou_em:null, criado_em:'2026-08-13T10:00:00Z' });
+        const depois = bncDesde();
+        _bancadaCache.pop();
+        return [antes, depois];
+      })()`), ['2026-08-10','2026-08-10']);
 
 const c = R('bncConciliar()');
 eq('as 2 linhas de julho NÃO viram falta de registro',
