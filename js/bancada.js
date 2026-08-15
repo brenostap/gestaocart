@@ -715,8 +715,8 @@ function bncTabelaAbertas(abertas){
     const n = bncDias(l.saiu_em);
     return `<tr class="bnc-linha">
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
-      <td data-rot="Etiqueta" data-campo="etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
-      <td data-rot="IMEI" data-campo="imei"><span class="bnc-imei">…${UI.esc(l.imei4 || '????')}</span></td>
+      <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
+      <td data-rot="IMEI" data-campo="imei">${(l.imei4 && l.imei4 !== '0000') ? `<span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
       <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
       <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
@@ -756,7 +756,7 @@ function bncTabelaFechadas(){
       : 0;
     return `<tr>
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
-      <td data-rot="Etiqueta" data-campo="etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
+      <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
       <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
       <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>

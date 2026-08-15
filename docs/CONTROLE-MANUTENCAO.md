@@ -512,3 +512,14 @@ A planilha escreve `up`, `bat`, `tela`; a nota (`reparos`) escreve `Subida de Ba
 `~R$` de referência **não aparece**. Não quebra nada — a Conferência cruza por *aparelho*, não
 por serviço — mas o palpite de preço só volta a funcionar quando o serviço for escolhido na
 lista do painel (`BNC_SERVICOS`), que é o que acontece em todo lançamento novo.
+
+### ⚠️ Aparelho de cliente NUNCA tem `apple_id`
+
+Achado na revisão de 15/ago. O import casou um aparelho **de cliente** (IMEI ⋯3059) com o apple
+`339662` do nosso estoque — os 4 dígitos batiam. O aparelho do cliente não é nosso, então o
+vínculo é falso por definição, e o estrago é sério: aquele aparelho do estoque passaria a exibir
+o selo *"Na assistência"* estando na loja. É exatamente o erro que esta tela existe pra impedir,
+com o sinal invertido.
+
+**Regra:** `origem = 'cliente'` ⇒ `apple_id` nulo, sempre. O casamento por 4 dígitos só vale para
+`estoque` e `garantia`.

@@ -688,8 +688,13 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .bnc-tabela td[data-campo="origem"]  { order:7; }
   .bnc-tabela td[data-campo="saiu"]    { order:8; font-size:12px; color:var(--text4); }
   .bnc-tabela tbody tr.bnc-linha::after{ order:9; }
-  .bnc-tabela td[data-campo="servico"] { order:10; flex:1 1 auto; min-width:0;
-                                         font-size:12.5px; color:var(--text2); }
+  /* servico longo ("Troca de tela + Troca de bateria") empurrava o [Voltou]
+     pra uma quarta linha e deixava o cartao torto no meio da lista. Uma linha
+     so, com reticencias -- o texto inteiro fica no title e na tela cheia. */
+  .bnc-tabela td[data-campo="servico"] { order:10; flex:1 1 0; min-width:0;
+                                         font-size:12.5px; color:var(--text2);
+                                         overflow:hidden; text-overflow:ellipsis;
+                                         white-space:nowrap; }
   .bnc-tabela td[data-campo="valor"]   { order:11; }
   .bnc-tabela td[data-campo="acao"]    { order:12; margin-left:auto; }
   /* "Estoque" e a origem de 33 dos 39: repetido em todo cartao vira ruido.
