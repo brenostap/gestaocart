@@ -32,6 +32,40 @@ mas seguem em `css/direcoes.css` para comparar de novo se der vontade.
 | `styleguide.html` | guia vivo — componentes reais, números fictícios |
 | `direcoes.html` | comparador das 4 direções lado a lado |
 
+## Mobile: dois níveis de tabela (ago/2026)
+
+No celular (`≤720px`) tabela não rola: cada linha vira cartão. Há **dois** tratamentos, e
+saber qual está em jogo evita mexer no lugar errado:
+
+| | Onde | O que faz |
+|---|---|---|
+| **Genérico** | `.c-tabela` em `components.css` | rede de segurança: cada célula vira `RÓTULO ⋯⋯ valor`. Serve qualquer tabela, não sabe o que é importante |
+| **Cartão desenhado** | `.est-tabela` e `.bnc-tabela` | 2–3 linhas com hierarquia: título forte, meta em mono apagado, número ancorado à direita |
+
+O genérico é honesto mas caro nas telas de lista: 9 células viravam 9 linhas, um aparelho
+ocupava ~250px e o modelo — o que a pessoa procura — competia com "ORIGEM" e "COR". Sete
+aparelhos davam 1.750px de rolagem. No Estoque a primeira célula é a **etiqueta**, então o
+cartão abria pelo código e o aparelho vinha depois.
+
+**Como o desenhado funciona:** cada `<td>` recebeu um `data-campo` no JS; o CSS só decide
+`order` e onde quebrar. As quebras são `tr::before` e `tr::after` com `flex-basis:100%` —
+**duas réguas, no máximo três linhas**. Mexer numa `order` sem olhar as réguas embaralha o
+cartão. O markup do desktop segue intocado (lá continua `table-row`).
+
+Três decisões que valem para cartão novo:
+
+1. **Rótulo some.** No cartão a informação se explica pela forma (`E1381` é etiqueta, `88%` é
+   bateria, `⋯3324` é final de IMEI). Campo que *precisa* de rótulo não pertence ao cartão —
+   pertence ao detalhe que abre no toque.
+2. **Estado repetido não é informação.** O badge `Estoque` aparecia em 33 dos 39: virou ruído.
+   Só a exceção (`Garantia`, `Cliente`) fica visível.
+3. **Alerta que pinta tudo para de alertar.** Com 16% do estoque na assistência, o fundo âmbar
+   virava o fundo da tela — passou a ser uma barra de 3px na lateral.
+
+Conferir mudança de mobile com screenshot de viewport real (Puppeteer), **não** com
+`chrome --headless --window-size`: ele renderiza numa largura e corta noutra, e inventa um
+overflow que não existe.
+
 ## Regras que não podem quebrar
 
 1. **Tela nova não escreve HTML de card/tabela na mão** — usa `UI.*`. Se falta um

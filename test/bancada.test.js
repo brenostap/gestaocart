@@ -143,8 +143,11 @@ ok('aba Voltaram mostra quantos dias ficou fora', /3d/.test(fech));
 
 const est = R('(function(){ currentTab = "estoque"; return renderEstoque(); })()');
 ok('renderEstoque() continua montando', typeof est === 'string' && est.length > 500);
-ok('selo aparece nos 2 que estão fora', (est.match(/bnc-selo/g) || []).length === 2,
-   'selos: ' + (est.match(/bnc-selo/g) || []).length);
+// `class="bnc-selo"` exato, não /bnc-selo/: o selo carrega um
+// <span class="bnc-selo-txt"> (o texto que some no cartão do celular), e o
+// regex solto contava 2 por aparelho.
+ok('selo aparece nos 2 que estão fora', (est.match(/class="bnc-selo"/g) || []).length === 2,
+   'selos: ' + (est.match(/class="bnc-selo"/g) || []).length);
 ok('linha do que está fora ganha a classe na-bancada',
    (est.match(/na-bancada/g) || []).length === 2);
 ok('KPI "Na assistência" mostra 2', /Na assistência[\s\S]{0,200}>2</.test(est));

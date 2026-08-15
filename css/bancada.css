@@ -69,6 +69,16 @@
    à vista e sem parecer pronto pra promessa de venda. */
 .est-linha.na-bancada{ background:var(--yellow-bg); }
 .est-linha.na-bancada:hover{ filter:brightness(.98); }
+/* No celular a linha vira cartao, e pintar o cartao inteiro de ambar nao
+   funciona: com 6 de 10 aparelhos fora (16% do estoque em 12/ago), o "alerta"
+   vira o fundo da tela e para de alertar. Barra na lateral diz a mesma coisa
+   sem tomar a leitura. Fica aqui, e nao em components.css, porque bancada.css
+   carrega DEPOIS -- e a regra de cima precisa perder. */
+@media (max-width:720px){
+  .est-tabela tbody tr.est-linha.na-bancada{
+    background:var(--bg2); border-left:3px solid var(--yellow);
+  }
+}
 .bnc-selo{
   display:inline-flex; align-items:center; gap:4px; margin-left:6px;
   padding:1px 6px; border-radius:var(--radius-pill);

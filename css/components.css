@@ -285,6 +285,8 @@
 }
 .est-prod{ font-weight:650; color:var(--text); }
 .est-imei{ font-family:var(--font-mono); font-size:11.5px; color:var(--text4); }
+/* versao curta (…6601) — so o cartao do celular usa; ver bloco mobile no fim */
+.est-imei-fim{ display:none; font-family:var(--font-mono); font-size:11.5px; color:var(--text4); }
 .est-bat{ font-family:var(--font-mono); font-size:11.5px; font-weight:600; color:var(--text4); }
 .est-bat[data-tom="ok"]      { color:var(--success); }
 .est-bat[data-tom="alerta"]  { color:var(--warning); }
@@ -588,6 +590,120 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .c-kpi-value{ font-size:21px; }
   .est-barra{ flex-direction:column; align-items:stretch; }
   .est-sel select{ max-width:none; width:100%; }
+}
+
+/* ============================================================================
+   MOBILE — CARTÃO DESENHADO (Estoque e Assistência)
+   ============================================================================
+   O empilhamento generico logo acima resolve QUALQUER tabela: transforma cada
+   celula numa linha "RÓTULO ......... valor". Serve como rede de seguranca,
+   mas nas duas telas que se olha em pe, no balcao, ele custa caro:
+   9 celulas viram 9 linhas de ~28px, um aparelho ocupa 250px de altura, e
+   tudo tem o mesmo peso -- o modelo, que e o que a pessoa procura, disputa
+   atencao com "ORIGEM" e "COR". Sete aparelhos viravam 1.750px de rolagem.
+   No Estoque era pior: a primeira celula e a ETIQUETA, entao o cartao abria
+   pelo codigo e o aparelho vinha na segunda linha.
+
+   Aqui essas duas tabelas viram cartao de verdade: 2-3 linhas, hierarquia por
+   peso e posicao, o numero ancorado a direita. Cada `td` recebeu um
+   `data-campo` no JS (estoque.js / bancada.js) e o CSS so decide a ORDEM e a
+   quebra -- o markup do desktop segue intocado.
+
+   Como a quebra funciona: `tr` vira flex com wrap, os campos ganham `order`,
+   e `::before`/`::after` com `flex-basis:100%` sao as reguas que forcam a
+   quebra de linha entre os grupos. Sao duas reguas => no maximo tres linhas.
+   Mexer numa `order` sem olhar as reguas embaralha o cartao.
+
+   ⚠️ Os rotulos (`data-rot`) somem aqui de proposito: no cartao desenhado a
+   informacao se explica pela forma (E1381 e etiqueta, 88% e bateria, ⋯3324 e
+   final de IMEI). Se um campo novo precisar de rotulo, ele nao pertence a
+   estas duas linhas -- pertence ao detalhe que abre no toque.
+   ========================================================================= */
+@media (max-width:720px){
+
+  .est-tabela tbody tr.est-linha,
+  .bnc-tabela tbody tr.bnc-linha{
+    display:flex; flex-wrap:wrap; align-items:baseline;
+    column-gap:7px; row-gap:2px;
+    padding:11px 13px 12px;
+  }
+  /* sem rotulo e sem a faixa cinza que o generico poe na primeira celula */
+  .est-tabela tbody tr.est-linha td::before,
+  .bnc-tabela tbody tr.bnc-linha td::before{ content:none; }
+  .est-tabela tbody tr.est-linha td,
+  .bnc-tabela tbody tr.bnc-linha td{
+    display:inline; padding:0; background:transparent; margin:0; width:auto;
+    text-align:left;
+  }
+  /* as duas reguas de quebra */
+  .est-tabela tbody tr.est-linha::before,
+  .est-tabela tbody tr.est-linha::after,
+  .bnc-tabela tbody tr.bnc-linha::before,
+  .bnc-tabela tbody tr.bnc-linha::after{
+    content:''; flex-basis:100%; height:0;
+  }
+
+  /* -- ESTOQUE -----------------------------------------------------------
+     linha 1: aparelho .............. custo
+     linha 2: etiqueta · cor · bat · imei ..... venda                      */
+  .est-tabela td[data-campo="produto"]{ order:1; flex:1 1 auto; min-width:0; font-size:15px; }
+  .est-tabela td[data-campo="custo"]  { order:2; margin-left:auto; font-size:15px;
+                                        font-weight:700; color:var(--text); white-space:nowrap; }
+  .est-tabela tbody tr.est-linha::before{ order:3; }
+  .est-tabela td[data-campo="etiqueta"]{ order:4; }
+  .est-tabela td[data-campo="cor"]     { order:5; font-size:12px; color:var(--text3); }
+  .est-tabela td[data-campo="bateria"] { order:6; }
+  .est-tabela td[data-campo="imei"]    { order:7; }
+  .est-tabela td[data-campo="venda"]   { order:8; margin-left:auto; white-space:nowrap; }
+  .est-tabela tbody tr.est-linha::after{ order:9; height:0; }
+  /* o produto carrega os selos (assistencia / estado). O selo ganha linha
+     propria DENTRO da celula: sem isso ele alarga o titulo, empurra o custo
+     pra linha de baixo e o cartao fica torto -- uns com R$ em cima, outros
+     nao. Assim o titulo continua curto e o custo fica sempre ancorado. */
+  .est-tabela td[data-campo="produto"]{ display:flex; flex-wrap:wrap;
+                                        align-items:baseline; gap:4px 5px; }
+  /* o selo encolhe pra "🔧 50d": a barra ambar na lateral do cartao ja diz
+     "na assistencia", e o texto inteiro empurrava o custo pra linha de baixo
+     nos modelos de nome longo (12 Pro Max, 16 Pro Max). */
+  .bnc-selo-txt{ display:none; }
+  .est-tabela .est-prod{ font-size:15px; }
+  .est-tabela td[data-campo="venda"] .est-venda{ font-size:12.5px; font-weight:600;
+                                                 color:var(--text3); }
+  /* a seta de expandir nao tem funcao no cartao: o cartao inteiro e o alvo */
+  .est-tabela td[data-campo="etiqueta"] .est-seta{ display:none; }
+  /* IMEI: so os 4 finais (o numero inteiro empurrava "sem tabela" pra 3a linha) */
+  .est-tabela td[data-campo="imei"] .est-imei{ display:none; }
+  .est-tabela td[data-campo="imei"] .est-imei-fim{ display:inline; }
+
+  /* -- ASSISTÊNCIA -------------------------------------------------------
+     linha 1: aparelho ......................... dias
+     linha 2: etiqueta · imei · onde · origem · saiu
+     linha 3: servico .......................... R$   [Voltou]             */
+  .bnc-tabela td[data-campo="aparelho"]{ order:1; flex:1 1 auto; min-width:0; font-size:15px; }
+  .bnc-tabela td[data-campo="dias"]    { order:2; margin-left:auto; }
+  .bnc-tabela tbody tr.bnc-linha::before{ order:3; }
+  .bnc-tabela td[data-campo="etiqueta"]{ order:4; }
+  .bnc-tabela td[data-campo="imei"]    { order:5; }
+  .bnc-tabela td[data-campo="onde"]    { order:6; font-size:12px; color:var(--text3); }
+  .bnc-tabela td[data-campo="origem"]  { order:7; }
+  .bnc-tabela td[data-campo="saiu"]    { order:8; font-size:12px; color:var(--text4); }
+  .bnc-tabela tbody tr.bnc-linha::after{ order:9; }
+  .bnc-tabela td[data-campo="servico"] { order:10; flex:1 1 auto; min-width:0;
+                                         font-size:12.5px; color:var(--text2); }
+  .bnc-tabela td[data-campo="valor"]   { order:11; }
+  .bnc-tabela td[data-campo="acao"]    { order:12; margin-left:auto; }
+  /* "Estoque" e a origem de 33 dos 39: repetido em todo cartao vira ruido.
+     So a excecao (garantia, cliente) merece o badge. */
+  .bnc-tabela td[data-campo="origem"][data-origem="estoque"]{ display:none; }
+
+  /* a terceira linha respira: e onde mora a acao */
+  .bnc-tabela td[data-campo="servico"],
+  .bnc-tabela td[data-campo="valor"],
+  .bnc-tabela td[data-campo="acao"]{ margin-top:7px; }
+  .bnc-tabela td[data-campo="acao"] .c-btn{ min-height:32px; }
+  /* o valor da nota so existe depois da volta: aqui ele e campo de espera,
+     nao pode disputar tamanho com "Voltou", que e a acao da linha */
+  .bnc-tabela td[data-campo="valor"] input{ width:64px; }
 }
 
 /* ============================================================================

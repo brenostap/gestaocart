@@ -417,7 +417,7 @@ function renderEstoqueTabela(dados){
     const diasFora = fora ? bncDias(fora.saiu_em) : 0;
     const selo = fora
       ? `<span class="bnc-selo" data-tom="${bncTomDias(diasFora)==='critico'?'critico':''}"
-           title="Saiu em ${escapeHtml(fora.saiu_em)} para ${escapeHtml(fora.fornecedor)}">🔧 Na assistência · ${diasFora}d</span>`
+           title="Saiu em ${escapeHtml(fora.saiu_em)} para ${escapeHtml(fora.fornecedor)}">🔧 <span class="bnc-selo-txt">Na assistência · </span>${diasFora}d</span>`
       : '';
     // Estado marcado a mao (na loja e nao pronto pra vender). So aparece quando
     // o aparelho NAO esta fora -- senao dois selos brigam dizendo onde ele esta.
@@ -428,14 +428,14 @@ function renderEstoqueTabela(dados){
       : '';
     const divs = typeof corDivergencias === 'function' ? corDivergencias(d.item) : [];
     return `<tr class="est-linha${l.aberto ? ' aberta' : ''}${fora ? ' na-bancada' : ''}" onclick="alternarLinhaEstoque(${l.id})">
-      <td data-rot="Etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>${
+      <td data-rot="Etiqueta" data-campo="etiqueta"><span class="est-seta">${l.aberto ? '▾' : '▸'}</span><span class="est-tag">${escapeHtml(d.etiqueta || '—')}</span>${
         divs.length ? `<span class="cor-marca" title="${escapeHtml(divs.map(c => COR_CAMPOS[c.campo].rotulo).join(', '))} corrigido aqui, ainda não na FoneNinja">✎</span>` : ''}</td>
-      <td data-rot="Produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}${seloEstado}</td>
-      <td data-rot="Cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
-      <td data-rot="Bateria" class="num">${bat(d.bateria)}</td>
-      <td data-rot="IMEI"><span class="est-imei">${escapeHtml(d.imei || '—')}</span></td>
-      ${podeVerMargem() ? `<td data-rot="Custo" class="num">${money(d.custo)}</td>` : ''}
-      <td data-rot="Venda" class="num">${d.venda == null ? '<span class="est-sempreco">sem tabela</span>' : `<span class="est-venda">${money(d.venda)}</span>`}</td>
+      <td data-rot="Produto" data-campo="produto" class="forte"><span class="est-prod">${escapeHtml(d.modelo.replace(/^iPhone\s*/,''))} ${escapeHtml(d.capacidade)}</span>${selo}${seloEstado}</td>
+      <td data-rot="Cor" data-campo="cor">${escapeHtml(d.cor === '?' ? '—' : d.cor)}</td>
+      <td data-rot="Bateria" data-campo="bateria" class="num">${bat(d.bateria)}</td>
+      <td data-rot="IMEI" data-campo="imei"><span class="est-imei">${escapeHtml(d.imei || '—')}</span><span class="est-imei-fim">…${escapeHtml(String(d.imei || '').replace(/\D/g,'').slice(-4) || '????')}</span></td>
+      ${podeVerMargem() ? `<td data-rot="Custo" data-campo="custo" class="num">${money(d.custo)}</td>` : ''}
+      <td data-rot="Venda" data-campo="venda" class="num">${d.venda == null ? '<span class="est-sempreco">sem tabela</span>' : `<span class="est-venda">${money(d.venda)}</span>`}</td>
     </tr>`;
   }).join('');
 

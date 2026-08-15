@@ -714,16 +714,16 @@ function bncTabelaAbertas(abertas){
   const linhas = abertas.map(l => {
     const n = bncDias(l.saiu_em);
     return `<tr class="bnc-linha">
-      <td data-rot="Aparelho" class="forte">${bncProduto(l)}</td>
-      <td data-rot="Etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
-      <td data-rot="IMEI"><span class="bnc-imei">…${UI.esc(l.imei4 || '????')}</span></td>
-      <td data-rot="Onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço">${UI.esc(l.servico || '—')}</td>
-      <td data-rot="Origem">${bncOrigemBadge(l.origem)}</td>
-      <td data-rot="Saiu">${bncFmtData(l.saiu_em)}</td>
-      <td data-rot="Dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
-      ${podeVerCustoServico() ? `<td data-rot="R$" class="num">${bncCampoValor(l)}</td>` : ''}
-      <td data-rot="" class="num">${UI.btn('Voltou', {onclick:`bncBaixa(${l.id})`, sm:true})}</td>
+      <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
+      <td data-rot="Etiqueta" data-campo="etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
+      <td data-rot="IMEI" data-campo="imei"><span class="bnc-imei">…${UI.esc(l.imei4 || '????')}</span></td>
+      <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
+      <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
+      <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
+      <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
+      <td data-rot="Dias" data-campo="dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
+      ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
+      <td data-rot="" data-campo="acao" class="num">${UI.btn('Voltou', {onclick:`bncBaixa(${l.id})`, sm:true})}</td>
     </tr>`;
   }).join('');
 
@@ -755,16 +755,16 @@ function bncTabelaFechadas(){
       ? Math.max(0, Math.round((new Date(l.voltou_em+'T12:00:00') - new Date(l.saiu_em+'T12:00:00')) / 86400000))
       : 0;
     return `<tr>
-      <td data-rot="Aparelho" class="forte">${bncProduto(l)}</td>
-      <td data-rot="Etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
-      <td data-rot="Onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço">${UI.esc(l.servico || '—')}</td>
-      <td data-rot="Origem">${bncOrigemBadge(l.origem)}</td>
-      <td data-rot="Saiu">${bncFmtData(l.saiu_em)}</td>
+      <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
+      <td data-rot="Etiqueta" data-campo="etiqueta"><span class="est-tag">${UI.esc(l.etiqueta || '—')}</span></td>
+      <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
+      <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
+      <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
+      <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
       <td data-rot="Ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
-      ${podeVerCustoServico() ? `<td data-rot="R$" class="num">${bncCampoValor(l)}</td>` : ''}
-      <td data-rot="" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}</td>
+      ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
+      <td data-rot="" data-campo="acao" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}</td>
     </tr>`;
   }).join('');
 
