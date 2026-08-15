@@ -459,3 +459,56 @@ Três decisões que não são óbvias:
    mesma lista.
 
 Protegido por `node test/bancada.test.js` — inclusive a parte de não vazar `R$`.
+
+## A planilha foi aposentada (15/ago/2026)
+
+A partir daqui **o painel é a fonte**. A planilha do Vitinho foi importada inteira e não deve
+mais receber lançamento — manter as duas era garantir que divergissem, e a Conferência passaria
+a acusar "falta de registro" que na verdade era falta de sync.
+
+**O que a planilha era:** 5 abas, 3 com dado vivo. `Lucas 2.0` e `Acess 2.0` = o que está fora
+agora (linha sem `DATA SAIDA`). `Agosto Baixa` = o que saiu e voltou, com **duas tabelas lado a
+lado** (LUCAS nas colunas A–G, ACESS nas I–O). `Lucas` e `Acess` são versões antigas de 4 colunas,
+sem data — ignoradas.
+
+⚠️ **A semântica inverte.** Na planilha as datas são do ponto de vista da *assistência*:
+`DATA ENTRADA` = entrou lá = **nosso `saiu_em`**. `DATA SAIDA` = saiu de lá = **nosso `voltou_em`**.
+Ler ao contrário deixa o controle inteiro de cabeça pra baixo.
+
+**O que entrou:** 103 registros no total (era 40). 41 fora, 62 já com baixa — o histórico de
+24/jul a 14/ago que o painel nunca soube que existiu.
+
+| O que | Quantos |
+|---|---:|
+| Baixas aplicadas (o painel dizia "fora", a planilha já tinha a volta) | 4 |
+| Idas novas ainda fora | 7 |
+| Histórico de baixas importado | 59 |
+
+**Duas armadilhas que custaram correção manual depois de aplicar:**
+
+1. **A chave de uma ida é `(imei4, saiu_em)` — mas aparelho de cliente não tem IMEI.** Vira
+   `'0000'`, e dois clientes que saíram no mesmo dia colidem. Aconteceu duas vezes: um
+   "12 Pro Azul" recebeu a baixa que era do "15 preto", e dois clientes de 05/ago viraram uma
+   linha só com serviço `"bat / conector"`. **Sem IMEI, o modelo entra na chave.**
+2. **As abas se contradizem.** O `12 pro azul E1632` (IMEI ⋯5185) está aberto na `Acess 2.0` e
+   baixado na `Agosto Baixa` (voltou 12/ago), mesma data de saída. Regra adotada: **a baixa
+   manda** — a aba de baixa é preenchida no ato da volta, a "2.0" é que fica pra trás.
+
+**Sobraram dois casos, de propósito:** o `E1632` acima (aplicado como fechado) e o
+`14 Pro Max Roxo Profundo E1618`, que o Vitinho lançou direto no painel e nunca anotou na
+planilha — esse é o comportamento novo, e é o certo.
+
+**`apple_id` só quando o casamento é único.** Dos 96 com IMEI, 78 casaram com um aparelho só do
+estoque, 16 ficaram ambíguos (4 dígitos colidem) e 2 não têm par. Ambíguo fica **null** — id
+errado é pior que id nenhum, e o `imei4` ainda casa como reserva.
+
+Importador em `scripts/bancada-planilha.js`. Ele **não grava**: imprime o SQL pra ser lido antes
+de aplicar. Import de histórico é operação de uma vez, e esta precisou de olho duas vezes.
+
+### ⚠️ O serviço veio abreviado — e isso desliga o preço de referência
+
+A planilha escreve `up`, `bat`, `tela`; a nota (`reparos`) escreve `Subida de Bateria`,
+`Troca de Tela`. `bncPrecoRef()` casa por **texto exato**, então nos 102 registros importados o
+`~R$` de referência **não aparece**. Não quebra nada — a Conferência cruza por *aparelho*, não
+por serviço — mas o palpite de preço só volta a funcionar quando o serviço for escolhido na
+lista do painel (`BNC_SERVICOS`), que é o que acontece em todo lançamento novo.
