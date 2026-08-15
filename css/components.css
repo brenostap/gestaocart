@@ -660,12 +660,27 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
      propria DENTRO da celula: sem isso ele alarga o titulo, empurra o custo
      pra linha de baixo e o cartao fica torto -- uns com R$ em cima, outros
      nao. Assim o titulo continua curto e o custo fica sempre ancorado. */
-  .est-tabela td[data-campo="produto"]{ display:flex; flex-wrap:wrap;
-                                        align-items:baseline; gap:4px 5px; }
+  /* ⚠️ o seletor precisa ser MAIS especifico que a regra de celula generica
+     (`.est-tabela tbody tr.est-linha td`) logo acima, senao o `display:inline`
+     dela vence e a celula nunca vira flex -- foi o que segurou a observacao do
+     estado na mesma linha do titulo por duas tentativas. */
+  .est-tabela tbody tr.est-linha td[data-campo="produto"]{
+    display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 5px;
+    /* teto de largura reservando a faixa do custo: sem ele, um titulo com selo
+       + observacao empurra o R$ pra linha de baixo e o cartao fica torto no
+       meio da lista. O custo tem lugar fixo, sempre. */
+    max-width:calc(100% - 88px);
+  }
   /* o selo encolhe pra "🔧 50d": a barra ambar na lateral do cartao ja diz
      "na assistencia", e o texto inteiro empurrava o custo pra linha de baixo
      nos modelos de nome longo (12 Pro Max, 16 Pro Max). */
   .bnc-selo-txt{ display:none; }
+  /* mesma historia com a observacao do estado: no mesmo flex-line ela alarga o
+     titulo e joga o custo pra linha de baixo, deixando uns cartoes com R$ em
+     cima e outros nao. Linha propria dentro do titulo resolve. */
+  .est-tabela tbody tr.est-linha td[data-campo="produto"] .est-estado-obs{
+    flex-basis:100%; max-width:100%; margin-left:0;
+  }
   .est-tabela .est-prod{ font-size:15px; }
   .est-tabela td[data-campo="venda"] .est-venda{ font-size:12.5px; font-weight:600;
                                                  color:var(--text3); }

@@ -202,10 +202,13 @@ function renderEstoque(){
     ? visiveis.filter(d => corDivergencias(d.item).length) : [];
   // Na loja e NAO pronto pra vender: o buraco entre "chegou" e "foi pra
   // assistencia". Antes disso o painel dizia que estavam todos disponiveis.
-  const naoProntos = typeof estadoDoApple === 'function'
+  // Antes isto era "tudo que não é `revisado`". Com o conjunto novo de estados
+  // (15/ago) a pergunta ficou direta: quais tiram o aparelho da venda de hoje?
+  // `saldao` NÃO entra -- ele é o contrário, é pra vender logo.
+  const naoProntos = (typeof estadoDoApple === 'function' && typeof COR_ESTADOS_NAO_VENDE !== 'undefined')
     ? visiveis.filter(d => {
         const e = estadoDoApple(d.item.id);
-        return e && e.estado !== 'revisado'
+        return e && COR_ESTADOS_NAO_VENDE.includes(e.estado)
             && !(typeof bancadaDoApple === 'function' && bancadaDoApple(d.item.id, d.imei));
       }) : [];
   if(naoProntos.length){
@@ -422,9 +425,15 @@ function renderEstoqueTabela(dados){
     // Estado marcado a mao (na loja e nao pronto pra vender). So aparece quando
     // o aparelho NAO esta fora -- senao dois selos brigam dizendo onde ele esta.
     const est = (!fora && typeof estadoDoApple === 'function') ? estadoDoApple(l.id) : null;
+    // A observação vai no title do selo: em "Outro" ela é a informação inteira,
+    // e ficaria escondida dentro do editor se não aparecesse aqui.
+    // Selo e observacao sao IRMAOS, sem span em volta: no cartao do celular a
+    // celula do produto e um flex container, e so filho direto consegue pedir
+    // linha propria. Envolvidos, a obs alargava o titulo e derrubava o custo.
     const seloEstado = est && COR_ESTADO_MAP[est.estado]
       ? UI.badge(COR_ESTADO_MAP[est.estado].ico + ' ' + COR_ESTADO_MAP[est.estado].t,
                  COR_ESTADO_MAP[est.estado].tom)
+        + (est.obs ? `<span class="est-estado-obs" title="${escapeHtml(est.obs)}">${escapeHtml(est.obs)}</span>` : '')
       : '';
     const divs = typeof corDivergencias === 'function' ? corDivergencias(d.item) : [];
     return `<tr class="est-linha${l.aberto ? ' aberta' : ''}${fora ? ' na-bancada' : ''}" onclick="alternarLinhaEstoque(${l.id})">

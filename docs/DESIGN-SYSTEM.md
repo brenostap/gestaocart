@@ -62,6 +62,12 @@ Três decisões que valem para cartão novo:
 3. **Alerta que pinta tudo para de alertar.** Com 16% do estoque na assistência, o fundo âmbar
    virava o fundo da tela — passou a ser uma barra de 3px na lateral.
 
+⚠️ **Especificidade:** a regra genérica de célula do bloco mobile
+(`.est-tabela tbody tr.est-linha td`) é mais específica que `.est-tabela td[data-campo="x"]`.
+Quem quiser mudar o `display` de uma célula precisa do caminho completo, senão o `display:inline`
+dela vence calado — e o sintoma não parece CSS: o conteúdo simplesmente não quebra onde deveria.
+Custou duas tentativas em 15/ago. **Confira com `getComputedStyle` do elemento em vez de deduzir.**
+
 Conferir mudança de mobile com screenshot de viewport real (Puppeteer), **não** com
 `chrome --headless --window-size`: ele renderiza numa largura e corta noutra, e inventa um
 overflow que não existe.

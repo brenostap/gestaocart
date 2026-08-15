@@ -28,13 +28,31 @@ const COR_CAMPOS = {
 // Por isso mora em tabela própria e não na camada auto-limpante: não teria pra
 // onde convergir. E é diferente da Bancada: aqui o aparelho está NA LOJA e não
 // está pronto pra vender. Era o buraco entre "chegou" e "foi pra assistência".
+//
+// O conjunto mudou em 15/ago/2026 e o EIXO mudou junto. O antigo (revisado,
+// avaliar, reparar, peça, sem conserto) descrevia o estado TÉCNICO. O novo
+// descreve por que o aparelho não é uma venda normal agora — o que inclui
+// motivo comercial, que o eixo técnico não sabia dizer.
+//
+// Cor = significado (docs/DESIGN-SYSTEM.md), e aqui ela responde "posso vender
+// este aparelho hoje?":
+//   saldão    → sem tom: dá pra vender, só que com desconto. Não é problema.
+//   reparo    → âmbar:   precisa de ação antes de vender.
+//   bloqueado → vermelho: não vende, ponto.
+//   reservado → violeta: está num processo, tem dono.
+//   outro     → sem tom: quem explica é a observação.
 const COR_ESTADOS = [
-  { v:'revisado',     t:'Revisado',        tom:'ok',       ico:'✓' },
-  { v:'avaliar',      t:'Avaliar',         tom:'processo', ico:'?' },
-  { v:'reparar',      t:'Precisa reparo',  tom:'alerta',   ico:'!' },
-  { v:'peca',         t:'Aguardando peça', tom:'alerta',   ico:'⏳' },
-  { v:'sem_conserto', t:'Sem conserto',    tom:'critico',  ico:'✕' },
+  { v:'saldao',    t:'Saldão',        tom:'',         ico:'🏷️' },
+  { v:'reparo',    t:'Precisa reparo', tom:'alerta',   ico:'🔧' },
+  { v:'bloqueado', t:'Bloqueado',     tom:'critico',  ico:'⛔' },
+  { v:'reservado', t:'Reservado',     tom:'processo', ico:'🔒' },
+  { v:'outro',     t:'Outro',         tom:'',         ico:'✎' },
 ];
+
+// Estados que TIRAM o aparelho da venda de hoje. `saldao` fica de fora de
+// propósito: ele é o contrário — é pra vender logo. `outro` também, porque
+// ninguém sabe o que ele significa sem ler a observação.
+const COR_ESTADOS_NAO_VENDE = ['reparo', 'bloqueado', 'reservado'];
 const COR_ESTADO_MAP = Object.fromEntries(COR_ESTADOS.map(e => [e.v, e]));
 
 let _correcoesCache = null;     // null = nunca carregou
@@ -66,8 +84,11 @@ function estadoDoApple(appleId){
   return (_estadosCache || {})[String(appleId)] || null;
 }
 
-async function corSalvarEstado(appleId, estado){
+// `obs` chega como undefined quando só o chip mudou -- nesse caso a observação
+// que já estava lá é preservada. Passar '' apaga de verdade.
+async function corSalvarEstado(appleId, estado, obs){
   _corErro = '';
+  const anterior = estadoDoApple(appleId);
   try {
     if(!estado){
       const r = await fetch(`${SB_URL}/rest/v1/estoque_estado?apple_id=eq.${appleId}`,
@@ -76,6 +97,7 @@ async function corSalvarEstado(appleId, estado){
       delete (_estadosCache || {})[String(appleId)];
     } else {
       const linha = { apple_id: Number(appleId), estado,
+        obs: (obs === undefined ? (anterior && anterior.obs) : obs) || null,
         quem: (typeof usuarioEmail === 'string' ? usuarioEmail : '') || null,
         atualizado_em: new Date().toISOString() };
       const r = await fetch(SB_URL + '/rest/v1/estoque_estado', {
@@ -104,6 +126,16 @@ async function corSalvarEstado(appleId, estado){
 function corMarcarEstado(appleId, estado){
   const atual = estadoDoApple(appleId);
   return corSalvarEstado(appleId, (atual && atual.estado === estado) ? null : estado);
+}
+
+// A observação grava sozinha, sem mexer no estado. Desmarcar o estado apaga a
+// linha inteira -- e a observação junto, que é o certo: ela descreve aquele
+// estado, não o aparelho.
+function corSalvarObs(appleId){
+  const el = document.getElementById('cor-obs-' + appleId);
+  const atual = estadoDoApple(appleId);
+  if(!el || !atual) return;
+  return corSalvarEstado(appleId, atual.estado, el.value.trim());
 }
 
 // apple_id -> { campo: linha }
@@ -245,8 +277,18 @@ function corBlocoHtml(d){
             data-tom="${e.tom}" onclick="event.stopPropagation();corMarcarEstado(${id},'${e.v}')"
             >${e.ico} ${e.t}</button>`).join('')}
       </div>
-      ${est ? `<span class="cor-antes">marcado por ${UI.esc((est.quem||'').split('@')[0])} ·
-        toque de novo pra desmarcar</span>` : ''}
+      ${est ? `
+        <div class="cor-linha cor-obs">
+          <input class="c-input" id="cor-obs-${id}" placeholder="${
+            est.estado === 'outro' ? 'O que está acontecendo com este aparelho?'
+                                   : 'Observação (opcional)'}"
+                 value="${UI.esc(est.obs || '')}"
+                 onclick="event.stopPropagation()"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();corSalvarObs(${id})}">
+          ${UI.btn('Salvar', {onclick:`event.stopPropagation();corSalvarObs(${id})`, sm:true})}
+        </div>
+        <span class="cor-antes">marcado por ${UI.esc((est.quem||'').split('@')[0])} ·
+          toque no mesmo estado pra desmarcar</span>` : ''}
     </div>`;
 
   return `<div class="cor-bloco" onclick="event.stopPropagation()">

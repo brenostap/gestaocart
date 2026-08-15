@@ -128,8 +128,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   - ⚠️ No banco quem manda é a função **`pode_operar()`** (sócio, bancada), que guarda
     `estoque_correcoes`, `estoque_estado` e `bancada`. **Ela e `podeCorrigirEstoque()` são a mesma
     regra em dois lugares — mudou uma, muda a outra**, senão a tela oferece o botão e a API recusa.
-- **`estoque_estado`** — estado operacional marcado à mão (revisado · avaliar · reparar · aguardando
-  peça · sem conserto). Informação **nova**, que a FoneNinja não tem — por isso **não** entra na
+- **`estoque_estado`** — estado operacional marcado à mão: **saldão · precisa reparo · bloqueado ·
+  reservado · outro**, mais um campo de **observação** livre (é ela que manda quando o estado é
+  *outro*). ⚠️ O conjunto mudou em 15/ago/2026 e o **eixo** mudou junto: o antigo (revisado ·
+  avaliar · reparar · peça · sem conserto) descrevia o estado *técnico*; o novo diz **por que este
+  aparelho não é uma venda normal agora**, o que inclui motivo comercial. Sem linha = aparelho
+  normal. `saldao` **não** conta no KPI "Não prontos" — é o contrário, é pra vender logo
+  (`COR_ESTADOS_NAO_VENDE` em `correcoes.js`). Informação **nova**, que a FoneNinja não tem — por isso **não** entra na
   tabela auto-limpante (não teria pra onde convergir). Três coisas separadas de propósito:
   `estoque_correcoes` = delta que converge · `estoque_estado` = informação nossa · `bancada` = saiu
   da loja. `status` (available/sold) continua sendo a venda que decide.

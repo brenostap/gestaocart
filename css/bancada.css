@@ -121,6 +121,19 @@
   font-size:10.5px; color:var(--yellow); background:var(--yellow-bg);
   padding:6px 8px; border-radius:var(--radius-sm); line-height:var(--lh-body);
 }
+/* `saldao` e `outro` nao tem tom: dar cor a eles seria dizer "problema" onde
+   nao ha. Ativo, ficam com o tint da marca -- que e o que "selecionado"
+   significa no resto do painel. */
+.cor-chip[data-tom=""].ativo         { background:var(--bg4);       color:var(--text);   border-color:var(--cart); }
+.cor-obs{ margin-top:2px; }
+/* a observacao ao lado do selo, na linha do Estoque. Uma linha so: se for
+   longa, o title mostra inteira. */
+.est-estado-obs{
+  font-size:11px; color:var(--text4); margin-left:6px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  max-width:22ch; display:inline-block; vertical-align:bottom;
+}
+.cor-obs .c-input{ flex:1; font-size:12.5px; }
 .cor-chip[data-tom="ok"].ativo       { background:var(--green-bg);  color:var(--green);  border-color:var(--green); }
 .cor-chip[data-tom="alerta"].ativo   { background:var(--yellow-bg); color:var(--yellow); border-color:var(--yellow); }
 .cor-chip[data-tom="critico"].ativo  { background:var(--red-bg);    color:var(--red);    border-color:var(--red); }

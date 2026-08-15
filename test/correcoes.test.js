@@ -52,8 +52,8 @@ vm.runInContext(`
   ];
 
   _estadosCache = {
-    '101': { apple_id:101, estado:'peca',     quem:'vitor@x.com' },
-    '303': { apple_id:303, estado:'revisado', quem:'vitor@x.com' },
+    '101': { apple_id:101, estado:'reparo',   quem:'vitor@x.com', obs:'aguardando tela' },
+    '303': { apple_id:303, estado:'saldao',   quem:'vitor@x.com' },
   };
 
   _correcoesCache = [
@@ -118,12 +118,15 @@ ok('quem não pode corrigir não vê o editor', !/cor-bloco/.test(estVend));
 
 console.log('\nestado da peça — o buraco entre "chegou" e "foi pra assistência"\n');
 
-eq('estado marcado é lido', R("(estadoDoApple(101)||{}).estado"), 'peca');
+eq('estado marcado é lido', R("(estadoDoApple(101)||{}).estado"), 'reparo');
 eq('aparelho sem estado devolve null', R('estadoDoApple(202)'), null);
 
 const estEstado = comoPapel('bancada', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); return renderEstoque(); })()');
-ok('selo do estado aparece na linha', /Aguardando peça/.test(estEstado));
-ok('KPI "Não prontos" conta só o que não está revisado nem fora',
+ok('selo do estado aparece na linha', /Precisa reparo/.test(estEstado));
+// a obs vale mais que o rotulo quando o estado e 'outro': tem que sair na linha
+ok('a observação aparece junto do selo', /aguardando tela/.test(estEstado));
+//  (o 303) NAO conta: ele e pra vender, nao o contrario.
+ok('KPI "Não prontos" nao conta saldão nem quem está fora',
    /Não prontos[\s\S]{0,200}>1</.test(estEstado));
 ok('os 5 estados aparecem pra marcar', (estEstado.match(/cor-chip/g) || []).length === 5,
    'chips: ' + (estEstado.match(/cor-chip/g) || []).length);
