@@ -156,8 +156,10 @@ const wa = R('bncTextoWhatsApp()');
 ok('lista os 2 que saíram do estoque',
    wa.includes('iPhone 16 128GB Rosa') && wa.includes('iPhone 16 Plus 128GB Rosa'));
 ok('traz os 4 últimos do IMEI', wa.includes('final 8580') && wa.includes('final 3324'));
-ok('ordena por modelo, não por data de saída',
-   wa.indexOf('iPhone 16 128GB Rosa') < wa.indexOf('iPhone 16 Plus 128GB Rosa'));
+// Mesma ordem da tela (saiu_em crescente): o 16 Plus saiu em 11/mai, o 16 em
+// 10/ago. Conferir a lista colada no grupo contra a tela não pode dar trabalho.
+ok('ordena por data de saída, igual à tela — mais velho primeiro',
+   wa.indexOf('iPhone 16 Plus 128GB Rosa') < wa.indexOf('iPhone 16 128GB Rosa'));
 // O que já voltou está de novo disponível: anunciar como "não vender" seria
 // tirar da venda um aparelho que está na prateleira.
 ok('NÃO inclui o que já voltou', !wa.includes('iPhone 16 128GB Preto'));

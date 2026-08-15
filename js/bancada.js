@@ -530,16 +530,17 @@ function setBancadaAba(a){ _bncAba = a; if(currentTab === 'bancada') renderConte
 // ---------------------------------------------------------------------------
 function bncTextoWhatsApp(){
   const abertas = bncAbertas();
+  // Mesma ordem da tela: saiu_em crescente, o mais velho no topo. A lista que
+  // se cola no grupo e a que se olha aqui sao a mesma lista, na mesma ordem --
+  // conferir uma contra a outra nao pode exigir procurar.
   const doEstoque = abertas.filter(l => l.origem === 'estoque')
-    .sort((a, b) => String(a.modelo_txt || '').localeCompare(String(b.modelo_txt || ''), 'pt-BR'));
+    .sort((a, b) => String(a.saiu_em).localeCompare(String(b.saiu_em)));
   const outros = abertas.length - doEstoque.length;
   const hoje = bncFmtData(bncHoje());
 
   if(!doEstoque.length)
     return '🔧 Assistência — ' + hoje + '\n\nNenhum aparelho do estoque está fora agora.';
 
-  // Ordenado por MODELO, nao por data: quem le o grupo procura pelo aparelho,
-  // nao pela ordem em que sairam.
   const linhas = doEstoque.map(l => {
     const fim = (l.imei4 && l.imei4 !== '0000') ? ' · final ' + l.imei4 : '';
     return '• ' + (l.modelo_txt || 'sem modelo') + fim;
