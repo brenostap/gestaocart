@@ -65,7 +65,7 @@ function bncAbertas(){ return (_bancadaCache || []).filter(l => !l.voltou_em); }
 // `bancada` é o PARADEIRO (vem da pessoa, durante). Cruzar os dois é o que
 // transforma "achei que registrei tudo" em uma lista.
 //
-// ⚠️ A conferência SÓ COBRA a partir do dia em que a bancada começou. Em
+// ⚠️ A conferência SÓ COBRA a partir do dia em que o controle começou. Em
 // 13/ago a bancada tinha 1 registro e `reparos` tinha 205 linhas de jul+ago:
 // cobrar tudo apontaria 204 faltas e ninguém olharia a tela de novo. Falta de
 // registro antes do primeiro registro não é falha, é história.
@@ -515,10 +515,46 @@ async function bncSalvar(){
 
 function setBancadaAba(a){ _bncAba = a; if(currentTab === 'bancada') renderContent(); }
 
+// ---------------------------------------------------------------------------
+// EXPORTAR PRA WHATSAPP -- a lista do que nao pode ser vendido
+//
+// A baixa acontece no grupo, nao no painel: quem esta no balcao nao abre esta
+// tela, mas le o grupo. Sem preco nenhum DE PROPOSITO -- e aviso de "nao venda
+// isto", nao lista comercial. Por isso o papel `bancada` tambem exporta, ao
+// contrario do "Exportar WhatsApp" do Estoque, que sai atras de podeVerValor().
+//
+// So entra quem saiu do ESTOQUE. Aparelho de cliente e de garantia tambem esta
+// fora da loja, mas nao ha o que dar baixa: nunca esteve disponivel pra venda,
+// e os de cliente nem IMEI tem (imei4 = '0000'). Em vez de sumirem calados,
+// viram uma linha de contagem no rodape.
+// ---------------------------------------------------------------------------
+function bncTextoWhatsApp(){
+  const abertas = bncAbertas();
+  const doEstoque = abertas.filter(l => l.origem === 'estoque')
+    .sort((a, b) => String(a.modelo_txt || '').localeCompare(String(b.modelo_txt || ''), 'pt-BR'));
+  const outros = abertas.length - doEstoque.length;
+  const hoje = bncFmtData(bncHoje());
+
+  if(!doEstoque.length)
+    return '🔧 Assistência — ' + hoje + '\n\nNenhum aparelho do estoque está fora agora.';
+
+  // Ordenado por MODELO, nao por data: quem le o grupo procura pelo aparelho,
+  // nao pela ordem em que sairam.
+  const linhas = doEstoque.map(l => {
+    const fim = (l.imei4 && l.imei4 !== '0000') ? ' · final ' + l.imei4 : '';
+    return '• ' + (l.modelo_txt || 'sem modelo') + fim;
+  });
+
+  return '🔧 NA ASSISTÊNCIA — ' + hoje + '\n'
+       + 'Não vender, estão fora da loja (' + doEstoque.length + '):\n\n'
+       + linhas.join('\n')
+       + (outros ? '\n\n+ ' + outros + ' de cliente/garantia (não são do estoque).' : '');
+}
+
 function renderBancada(){
   if(_bancadaCache === null){
     carregarBancada().then(() => { if(currentTab === 'bancada') renderContent(); });
-    return UI.card({corpo: UI.vazio({ico:'🔧', titulo:'Carregando a bancada…'})});
+    return UI.card({corpo: UI.vazio({ico:'🔧', titulo:'Carregando a assistência…'})});
   }
 
   const abertas = bncAbertas().slice().sort((a,b) => String(a.saiu_em).localeCompare(String(b.saiu_em)));
@@ -527,7 +563,7 @@ function renderBancada(){
   const atrasadas = abertas.filter(l => bncDias(l.saiu_em) >= BNC_DIAS_ALERTA);
 
   const kpis = [
-    { rotulo:'Na bancada', valor: abertas.length, sub:'fora da loja agora' },
+    { rotulo:'Na assistência', valor: abertas.length, sub:'fora da loja agora' },
     { rotulo:'Mais velho', valor: abertas.length ? maisVelho + ' dias' : '—',
       tom: abertas.length ? bncTomDias(maisVelho) : undefined,
       sub: abertas.length ? bncFmtData(abertas[0].saiu_em) : 'nada fora' },
@@ -555,10 +591,12 @@ function renderBancada(){
     <div class="pg-head">
       <div>
         <div class="pg-kicker">Operações</div>
-        <h1 class="pg-title">Bancada</h1>
+        <h1 class="pg-title">Assistência</h1>
         <div class="pg-desc">O que está na assistência agora. Aparelho não sai sem linha, não volta sem baixa.</div>
       </div>
       <div class="pg-acoes">
+        ${UI.btn('📋 Copiar lista', {onclick:'copiarTextoWa(bncTextoWhatsApp())',
+          titulo:'Lista pra colar no grupo: modelo e final do IMEI, sem preço'})}
         ${UI.btn('+ Registrar saída', {onclick:'bncAbrirSaida()', variante:'primario'})}
       </div>
     </div>`;
@@ -572,7 +610,7 @@ function renderBancada(){
   const alertas = conf ? conf.semRegistro.length + conf.semNota.length + conf.valorDiferente.length : 0;
 
   const abas = UI.toolbar(
-    UI.chip('Na bancada (' + abertas.length + ')', _bncAba === 'abertas', "setBancadaAba('abertas')"),
+    UI.chip('Na assistência (' + abertas.length + ')', _bncAba === 'abertas', "setBancadaAba('abertas')"),
     UI.chip('Voltaram', _bncAba === 'fechadas', "setBancadaAba('fechadas')"),
     podeVerMargem()
       ? UI.chip('Conferência' + (alertas ? ' (' + alertas + ')' : ''),
@@ -643,7 +681,7 @@ function bncTelaConferencia(conf){
 
   return `
     <div class="bnc-conf-nota">
-      Conferindo de <b>${bncFmtData(conf.desde)}</b> pra cá — o dia em que a bancada começou.
+      Conferindo de <b>${bncFmtData(conf.desde)}</b> pra cá — o dia em que o controle começou.
       ${conf.notas} aparelhos na nota · ${conf.registros} registrados.
       <span>Linha de nota anterior a essa data não conta como falta: é história, não falha.</span>
     </div>
@@ -689,7 +727,7 @@ function bncTabelaAbertas(abertas){
   }).join('');
 
   return UI.card({
-    titulo:'Na bancada', sub: abertas.length + ' aparelhos · do mais velho pro mais novo', flush:true,
+    titulo:'Na assistência', sub: abertas.length + ' aparelhos · do mais velho pro mais novo', flush:true,
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>IMEI</th><th>Onde</th><th>Serviço</th>

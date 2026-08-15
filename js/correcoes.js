@@ -16,7 +16,7 @@
 
 // ⚠️ Escopo global compartilhado (ver CLAUDE.md): prefixo `cor`/`correcoes`.
 
-// `imei_1` é só reporte: é a chave que liga venda, reparo e bancada. Trocar
+// `imei_1` é só reporte: é a chave que liga venda, reparo e assistência. Trocar
 // sozinho quebraria o casamento de tudo.
 const COR_CAMPOS = {
   bateria:  { rotulo:'Bateria',  tipo:'correcao', sufixo:'%' },
@@ -239,7 +239,7 @@ function corBlocoHtml(d){
     <div class="cor-estado">
       <i class="det-rot">Estado da peça</i>
       ${fora ? `<div class="cor-estado-fora">Está na assistência desde ${UI.esc(fora.saiu_em)} —
-        isso vem da Bancada e não se marca aqui.</div>` : ''}
+        isso vem da Assistência e não se marca aqui.</div>` : ''}
       <div class="bnc-chips">
         ${COR_ESTADOS.map(e => `<button class="c-chip cor-chip${est && est.estado === e.v ? ' ativo' : ''}"
             data-tom="${e.tom}" onclick="event.stopPropagation();corMarcarEstado(${id},'${e.v}')"
@@ -259,7 +259,7 @@ function corBlocoHtml(d){
       ${campo('etiqueta', d.etiqueta || '', 'placeholder="E1585"')}
       ${campo('imei_1',   d.imei || '', 'inputmode="numeric"')}
     </div>
-    <span class="cor-nota">IMEI só levanta a mão: é a chave que liga venda, reparo e bancada,
+    <span class="cor-nota">IMEI só levanta a mão: é a chave que liga venda, reparo e assistência,
       então quem troca de verdade é um sócio na FoneNinja.</span>
   </div>`;
 }

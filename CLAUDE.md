@@ -39,7 +39,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/core.js` `js/data.js` — carga de dados (Supabase via REST; ver `loadFromSupabase`).
 - `js/render.js` — dashboard + **tela de Vendas** (`renderVendas`).
 - `js/estoque.js` `js/tabela.js` `js/custos.js` `js/equipe.js` `js/movimentacoes.js` — as outras telas.
-- `js/bancada.js` — tela **Bancada** (o que está na assistência) + `bancadaDoApple()`, que é o que
+- `js/bancada.js` — tela **Assistência** (⚠️ chamava-se *Bancada* até 15/ago/2026; **só o rótulo
+  mudou** — arquivo, tabela `bancada`, aba `currentTab='bancada'` e funções `bnc*` seguem iguais,
+  então procure por "bancada" no código e por "Assistência" na tela) + `bancadaDoApple()`, que é o que
   o `estoque.js` chama pra pôr o selo "Na assistência".
 - `js/fechamento.js` — exportação do fechamento (.xlsx, uma aba por colaborador). **Não calcula
   nada**: lê `fechamentoEquipe()` (equipe.js), que lê `calc()` (render.js). Se faltar um número,
@@ -65,7 +67,7 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Papéis com RLS de verdade: `socio` e `bancada`.** `gerente`/`vendedor`/`atendente` continuam
   **só prévia visual** do dono, e o `CHECK` de `perfis` não os aceita: criar um deles hoje daria
   tela aberta lendo zero linha. **Papel novo = escrever o RLS dele junto.**
-- `bancada` (o Vitinho) vê só Estoque + Bancada, não entra em `VE_VALOR` nem `VE_MARGEM`, e tem
+- `bancada` (o Vitinho) vê só Estoque + Assistência, não entra em `VE_VALOR` nem `VE_MARGEM`, e tem
   carga própria (`loadBancadaData()` em data.js).
 - Regra dos perfis comerciais: **colaborador vê o VALOR da venda** (negociou o preço) **mas não vê
   custo/lucro/margem**. `podeVerValor()` e `podeVerMargem()` são os interruptores.
@@ -111,7 +113,11 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     alarme falso toda semana. Pra travar preço combinado, pedir a tabela em texto/planilha.
   - Casa por **`apple_id`**, com os **4 últimos do IMEI** como reserva. **Nunca por etiqueta**:
     `E1030` e `SP1030` colidem sem o prefixo — 138 itens do estoque colidem assim.
-  - **Teste**: `node test/bancada.test.js`. Monta a tela de Bancada **e a de Estoque** — o selo
+  - **Botão "📋 Copiar lista"** (tela Assistência) gera o texto de "não vender" pro grupo do
+    WhatsApp: modelo + final do IMEI, **sem preço**, só quem saiu do `estoque` (cliente e garantia
+    viram contagem no rodapé). É por não ter preço que o papel `bancada` também exporta — o
+    *Exportar WhatsApp* do Estoque continua atrás de `podeVerValor()`.
+  - **Teste**: `node test/bancada.test.js`. Monta a tela de Assistência **e a de Estoque** — o selo
     mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
 - **`estoque_correcoes`** — ⚠️ **`estoque` não é editável**: o sync reescreve as 237 linhas de hora
   em hora. Esta tabela guarda o **delta** (`apple_id · campo · valor_novo · valor_fn`), e

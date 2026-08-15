@@ -150,5 +150,28 @@ ok('linha do que está fora ganha a classe na-bancada',
 ok('KPI "Na assistência" mostra 2', /Na assistência[\s\S]{0,200}>2</.test(est));
 ok('o que voltou NÃO ganha selo', !/SP1030[\s\S]{0,200}bnc-selo/.test(est));
 
+console.log('\nexportar pra WhatsApp — a lista de "não vender"\n');
+
+const wa = R('bncTextoWhatsApp()');
+ok('lista os 2 que saíram do estoque',
+   wa.includes('iPhone 16 128GB Rosa') && wa.includes('iPhone 16 Plus 128GB Rosa'));
+ok('traz os 4 últimos do IMEI', wa.includes('final 8580') && wa.includes('final 3324'));
+ok('ordena por modelo, não por data de saída',
+   wa.indexOf('iPhone 16 128GB Rosa') < wa.indexOf('iPhone 16 Plus 128GB Rosa'));
+// O que já voltou está de novo disponível: anunciar como "não vender" seria
+// tirar da venda um aparelho que está na prateleira.
+ok('NÃO inclui o que já voltou', !wa.includes('iPhone 16 128GB Preto'));
+// Aparelho de cliente não é estoque — não há o que dar baixa. Mas some da
+// lista contado, não calado.
+ok('aparelho de cliente fica fora da lista', !wa.includes('(cliente)'));
+ok('mas aparece contado no rodapé', /\+ 1 de cliente\/garantia/.test(wa));
+// Sem preço: é aviso operacional, não lista comercial. É o que permite o papel
+// `bancada` exportar, ao contrário do Exportar WhatsApp do Estoque.
+ok('não vaza preço nenhum', !/R\$/.test(wa));
+
+R('_bancadaCache = [];');
+ok('bancada vazia não gera lista falsa',
+   /Nenhum aparelho do estoque/.test(R('bncTextoWhatsApp()')));
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

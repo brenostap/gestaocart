@@ -3,6 +3,14 @@
 Plano de registro das manutenções com o Vitinho. Escrito em 12/ago/2026, a partir da planilha
 que ele começou em 11/ago e do cruzamento com `estoque`/`reparos` no Supabase.
 
+> ⚠️ **A tela se chama "Assistência" desde 15/ago/2026** (era "Bancada"). Mudou **só o rótulo**:
+> a tabela `bancada`, o arquivo `js/bancada.js`, a aba `currentTab='bancada'` e as funções `bnc*`
+> continuam com o nome antigo. Este doc usa os dois: "bancada" quando fala de código e dados,
+> "Assistência" quando fala do que o usuário vê.
+>
+> A tela também exporta a lista de "não vender" pro grupo do WhatsApp — ver
+> *Exportar pro grupo*, no fim.
+
 > Irmão deste doc: **`REPAROS-ATRIBUICAO.md`** — lá é como a *nota* vira custo por aparelho
 > (depois do fato). Aqui é como o *aparelho* é acompanhado enquanto está fora (durante o fato).
 > Um mede dinheiro, o outro mede tempo e paradeiro.
@@ -144,7 +152,8 @@ servico_pedido · saiu_em · voltou_em · valor_previsto
 reparo_id (→ reparos, preenchido na conciliação) · quem · obs
 ```
 
-Política: `auth_all` pra `authenticated`, igual às outras tabelas do painel.
+Política (desde 14/ago/2026): escrita por **`pode_operar()`** — sócio ou bancada —, e **apagar é
+só do sócio**. Não é mais `auth_all`. Ver `docs/PERFIS-E-ACESSO.md`.
 
 ### A captura — 4 dígitos e 3 toques
 
@@ -419,3 +428,34 @@ modelo — e as 125 subidas de bateria do período foram **todas** na RR. Está 
 ⚠️ Comparar tela é mais delicado: a Access separa **Original × Importada OLED × Genuína × S/MSG**
 e a RR trabalha com "sem mensagem". Não são a mesma peça — comparar preço sem comparar a peça
 inverte a decisão.
+
+## Exportar pro grupo — o botão "📋 Copiar lista"
+
+Existe porque **a baixa acontece no grupo, não no painel**. Quem está no balcão não abre a tela
+de Assistência, mas lê o grupo do WhatsApp — então a lista precisa ir até lá. O botão fica no
+cabeçalho da tela, ao lado de *+ Registrar saída*, e copia um texto pronto pra colar:
+
+```
+🔧 NA ASSISTÊNCIA — 15/ago
+Não vender, estão fora da loja (33):
+
+• iPhone 11 128GB Preto · final 6601
+• iPhone 12 Pro 128GB Azul Pacífico · final 2422
+...
+
++ 6 de cliente/garantia (não são do estoque).
+```
+
+Três decisões que não são óbvias:
+
+1. **Sem preço nenhum, de propósito.** É aviso operacional ("não venda isto"), não lista
+   comercial. É exatamente por isso que o papel `bancada` também exporta — o *Exportar WhatsApp*
+   do Estoque, que manda preço, continua atrás de `podeVerValor()`.
+2. **Só quem saiu do `estoque`.** Aparelho de cliente e de garantia também está fora da loja, mas
+   não há o que dar baixa: nunca esteve disponível pra venda, e os de cliente nem IMEI têm
+   (`imei4 = '0000'`). Em vez de sumirem calados, viram a linha de contagem do rodapé.
+3. **Ordenado por modelo, não por data de saída.** A tela ordena por tempo, porque lá o que
+   importa é o que está atrasado; o grupo procura pelo aparelho. São leituras diferentes da
+   mesma lista.
+
+Protegido por `node test/bancada.test.js` — inclusive a parte de não vazar `R$`.

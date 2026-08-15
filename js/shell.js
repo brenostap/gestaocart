@@ -24,7 +24,8 @@ const NAV = [
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},
     {id:'estoque', label:'Estoque'},
-    {id:'bancada', label:'Bancada'},
+    // O id continua 'bancada' (tabela, arquivo, funcoes bnc*). So o rotulo mudou.
+    {id:'bancada', label:'Assistência'},
     {id:'movs',    label:'Movimentações'},
   ]},
   { grupo:'Gestão', itens:[
@@ -73,7 +74,7 @@ const MATRIZ_ACESSO = {
 // aceita os dois. Ver docs/PERFIS-E-ACESSO.md.
 const PAPEIS_COM_RLS = ['socio','bancada'];
 const PAPEIS = ['socio','bancada','gerente','vendedor','atendente'];
-const LABEL_PAPEL = { socio:'Sócio', bancada:'Bancada', gerente:'Gerente',
+const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', gerente:'Gerente',
                       vendedor:'Vendedor', atendente:'Atendente' };
 
 // Papel de verdade do usuario logado: vem da tabela `perfis` (auth.js carrega).
