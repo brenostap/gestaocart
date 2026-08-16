@@ -14,6 +14,9 @@ possa agir em cima — e, quando o número não explicar nada sozinho, **ler as 
 node scripts/chatwoot.js baixar <cart|urban> [paginas]   # 1 página = 25 conversas; guarda em .scratch/chatwoot/
 node scripts/chatwoot.js funil <cart|urban>              # etapas, conversão, modelos, falhas de envio
 node scripts/chatwoot.js sem-preco <cart|urban> [n]      # despeja as conversas que não chegaram a preço
+node scripts/chatwoot.js qualificar <cart|urban>         # a régua: frequência dos sinais + os 3 vazamentos
+node scripts/chatwoot.js pendentes <cart|urban> [n]      # conversas paradas no cliente, com telefone
+node scripts/chatwoot.js amostra <cart|urban> [n]        # amostra estratificada pra você ler
 ```
 
 O cache é reaproveitado entre execuções. **Não rebaixe sem motivo** — baixar 1.200 conversas leva
@@ -54,6 +57,20 @@ Estas coisas foram medidas em 10/ago/2026 sobre 2.000 conversas. Detalhe em
   a diferença entre as lojas é pista, não ruído.
 - `message_type`: `0` = cliente, `1` = loja, `2` = evento do sistema, `3` = template.
   `private: true` é nota interna — **não foi pro cliente**, não conte como resposta.
+- **A contagem de demanda por modelo é piso, não total.** O padrão do `funil` exige a palavra
+  "iphone", e o cliente escreve "tem 13 pro?". A régua (`qualificar`) usa padrão próprio, mais
+  largo. Não misture os dois números nem "corrija" o do funil sem recontar tudo.
+
+## A régua (`qualificar`) — estratégia em `docs/QUALIFICACAO-CONVERSAS.md`
+
+⚠️ **A régua mede frequência, não dá nota.** Peso de sinal se aprende casando conversa com venda
+(camada 0, ainda não construída). Se te pedirem "a nota das conversas", explique isto antes —
+somar sinais com peso chutado dá ranking bonito e falso.
+
+⚠️ **Os padrões de texto ainda não foram calibrados em conversa real** (foram escritos sem token no
+ambiente). **Na primeira rodada com dado de verdade, leia ~20 conversas e confira sinal por sinal**
+antes de qualquer número virar decisão. A tabela `SINAIS` está toda no topo de `scripts/chatwoot.js`,
+num lugar só, feita pra ser editada.
 
 ## Como trabalhar
 

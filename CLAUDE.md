@@ -21,6 +21,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
   Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
   a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
+- **Teste da régua de conversa**: `node test/qualificacao.test.js` (sem rede, sem token). Protege os
+  sinais de `scripts/chatwoot.js` — o vazamento "preço sem handoff", nota interna não contando como
+  fala com o cliente, e a normalização do nono dígito do telefone. Ver `docs/QUALIFICACAO-CONVERSAS.md`.
 
 ## ⚠️ Arquitetura que quebra fácil (leia antes de mexer em JS)
 - **Sem bundler — `<script>` clássicos, um único escopo global.** Todos os `js/*.js` são

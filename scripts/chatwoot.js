@@ -15,6 +15,9 @@
  *   node scripts/chatwoot.js baixar <loja> [paginas]   # busca e guarda em cache
  *   node scripts/chatwoot.js funil  <loja>             # etapas + demanda (determinístico)
  *   node scripts/chatwoot.js sem-preco <loja> [n]      # despeja conversas que não chegaram a preço
+ *   node scripts/chatwoot.js qualificar <loja>         # a régua: frequência dos sinais + vazamentos
+ *   node scripts/chatwoot.js pendentes <loja> [n]      # conversas mortas no cliente (lista de hoje)
+ *   node scripts/chatwoot.js amostra <loja> [n]        # amostra estratificada pro juiz IA
  *
  * O cache vive em .scratch/chatwoot/ (fora do git — a Netlify publica a raiz do repo).
  */
@@ -164,6 +167,218 @@ function temPreco(msgs) {
   return msgs.some((m) => m.message_type === LOJA && !m.private && PRECO.test(m.content || ''));
 }
 
+// ===========================================================================
+// A RÉGUA — camada 1 da estratégia de qualificação (docs/QUALIFICACAO-CONVERSAS.md)
+//
+// Sinais binários por conversa, casados por texto. Custo zero, roda em tudo, e
+// o dono confere na mão. Cada sinal só entra aqui se tiver dinheiro atrás nesta
+// operação — não é coaching de vendas genérico.
+//
+// ⚠️ ISTO MEDE FREQUÊNCIA, NÃO DÁ NOTA. O peso de cada sinal se aprende
+// comparando a taxa de venda de quem tem o sinal contra quem não tem — e isso
+// exige a camada 0 (casar conversa com venda). Somar sinais com peso chutado
+// produz ranking bonito e falso.
+//
+// ⚠️ OS PADRÕES PRECISAM DE CALIBRAÇÃO NA PRIMEIRA RODADA. Foram escritos sem
+// os tokens no ambiente: casam o português esperado, não o medido. Antes de
+// qualquer número virar decisão, leia umas 20 conversas e confira se cada sinal
+// pega o que promete. É pra isso que a tabela está toda aqui, num lugar só.
+// ===========================================================================
+
+/**
+ * `ruim: true` marca sinal onde porcentagem ALTA é problema. Sem isso, um
+ * relatório com "morreu no cliente 38%" se lê como conquista.
+ */
+/**
+ * "O cliente disse o que quer?" — padrão PRÓPRIO, diferente do `MODELO` do funil.
+ *
+ * Duas razões:
+ *
+ * 1. `MODELO` tem flag /g, e `.test()` em regex global guarda `lastIndex` entre
+ *    chamadas: usá-lo aqui daria acerto e erro alternados na MESMA frase.
+ * 2. `MODELO` exige a palavra "iphone", e no WhatsApp quase ninguém escreve —
+ *    o cliente manda "tem 13 pro?". ⚠️ Isso significa que a contagem de demanda
+ *    do `funil` (e a de docs/CHATWOOT-ANALISE.md) é **piso, não total**.
+ *
+ * Aqui o número solto só vale acompanhado de sufixo (`13 pro`) ou capacidade
+ * (`11 128gb`) — sem isso, "dia 13" e "R$ 13" viravam intenção de compra.
+ * `MODELO` segue intocado porque é dele que saem os números já publicados.
+ */
+const MODELO_CITADO = new RegExp(
+  '(iphone|ip)\\s*(1[1-9]|xr|xs|se)\\b' +          // iphone 13 · ip 15
+  '|\\b1[1-9]\\s*(pro\\s*max|pro|plus|mini)\\b' +  // 13 pro · 15 pro max
+  '|\\b1[1-9]\\s*(64|128|256|512)\\s*(gb)?\\b',    // 11 64gb · 13 128
+  'i'
+);
+
+const SINAIS = [
+  // — a loja apareceu?
+  ['respondeu', 'a loja respondeu alguma coisa', (c) => c.loja.length > 0],
+
+  // — qualificação: os fatos que decidem a venda
+  ['identificou_modelo', 'cliente disse qual aparelho quer', (c) => MODELO_CITADO.test(c.txtCliente)],
+  ['perguntou_troca', '⭐ falou de aparelho na troca', (c) => /\btroca(r|ndo)?\b|dar de entrada|aparelho (usado|atual)|seu (aparelho|iphone|celular) (atual|de agora)/i.test(c.txtLoja)],
+  ['perguntou_pagamento', 'falou de forma de pagamento', (c) => /parcel|[àa] vista|cart[ãa]o|\bpix\b|financi|quantas vezes/i.test(c.txtLoja)],
+  ['perguntou_cidade', 'falou de cidade / vir à loja', (c) => /cidade|onde voc[êe] (est[áa]|mora)|regi[ãa]o|vem at[ée]|passar (aqui|na loja)|endere[çc]o|qual bairro/i.test(c.txtLoja)],
+  ['perguntou_prazo', 'falou de prazo / urgência', (c) => /quando (voc[êe] )?(pretende|pensa|quer|planeja)|[ée] (pra|para) (hoje|agora|essa semana)|com que urg[êe]ncia|tem pressa/i.test(c.txtLoja)],
+
+  // — oferta
+  ['cotou_preco', 'passou valor pro cliente', (c) => PRECO.test(c.txtLoja)],
+  ['ofereceu_acessorio', 'ofereceu capinha/película/carregador', (c) => /capinha|pel[íi]cula|carregador|fone|cabo|acess[óo]rio/i.test(c.txtLoja)],
+
+  // — fechamento
+  ['passou_pra_humano', 'emitiu cartão de handoff', (c) => c.etapa !== null],
+  ['preco_sem_handoff', '⭐⭐ cotou preço e não avisou ninguém', (c) => PRECO.test(c.txtLoja) && c.etapa === null, true],
+  ['propos_visita', 'chegou a visita agendada', (c) => c.etapa === 'visita' || c.etapa === 'confirmar_visita'],
+  ['reengajou', 'mandou 2ª mensagem sem o cliente responder', (c) => c.temFollowUp],
+  ['morreu_no_cliente', '⭐ última palavra é do cliente, sem resposta', (c) => c.ultimo === CLIENTE, true],
+  ['sumiu_apos_preco', '⭐ viu preço e parou de responder', (c) => PRECO.test(c.txtLoja) && c.ultimo === LOJA && !c.temFollowUp, true],
+
+  // — higiene
+  ['falha_envio', 'mensagem que não chegou no cliente', (c) => c.falhou, true],
+];
+
+/**
+ * Dois sinais da régua NÃO estão aqui porque dependem de cruzar com o estoque,
+ * que este script não lê: **cotou algo que existe** (o modelo citado está
+ * `available` e não está na bancada) e **ofereceu alternativa quando não tinha**.
+ * São os dois que ligam a conversa ao aparelho parado — valem a próxima rodada.
+ */
+const SINAIS_PENDENTES = ['cotou_com_estoque', 'ofereceu_alternativa'];
+
+/** Junta de uma vez tudo que os sinais precisam ler da conversa. */
+function contexto(msgs) {
+  // Nota interna (`private`) não foi pro cliente — não conta como fala da loja.
+  const uteis = msgs.filter((m) => !m.private && (m.message_type === CLIENTE || m.message_type === LOJA));
+  const cliente = uteis.filter((m) => m.message_type === CLIENTE);
+  const loja = uteis.filter((m) => m.message_type === LOJA);
+  const texto = (ms) => ms.map((m) => m.content || '').join('\n');
+
+  // Follow-up = a loja voltou a falar sem o cliente ter respondido no meio.
+  // É o que separa "cliente sumiu e ninguém correu atrás" de "sumiu mesmo".
+  let temFollowUp = false;
+  for (let i = 1; i < uteis.length; i++) {
+    if (uteis[i].message_type === LOJA && uteis[i - 1].message_type === LOJA) temFollowUp = true;
+  }
+
+  return {
+    cliente, loja,
+    txtCliente: texto(cliente),
+    txtLoja: texto(loja),
+    etapa: etapaDe(msgs),
+    ultimo: uteis.length ? uteis[uteis.length - 1].message_type : null,
+    temFollowUp,
+    falhou: msgs.some((m) => m.status === 'failed'),
+  };
+}
+
+/** Roda a régua numa conversa. Devolve `{sinal: true|false}`. */
+function regua(msgs) {
+  const c = contexto(msgs);
+  const out = {};
+  for (const [chave, , testa] of SINAIS) out[chave] = !!testa(c);
+  return out;
+}
+
+/**
+ * Chave de telefone pra casar conversa com venda (camada 0).
+ *
+ * ⚠️ O nono dígito. Celular brasileiro anda escrito de quatro jeitos
+ * (+5511987654321 · 5511987654321 · 11987654321 · 1187654321) e a FoneNinja e o
+ * Chatwoot não combinaram nada. Casar sem normalizar erra EM SILÊNCIO: parece
+ * que o lead não converteu, quando foi a chave que não bateu.
+ *
+ * Os 8 últimos dígitos são o que sobrevive a todas as variações. Colidem? Sim,
+ * raramente — por isso o casamento final deve conferir também o DDD quando os
+ * dois lados tiverem.
+ */
+function telChave(bruto) {
+  const d = String(bruto == null ? '' : bruto).replace(/\D/g, '');
+  return d.length >= 8 ? d.slice(-8) : null;
+}
+
+/** Telefone do cliente da conversa — o campo muda conforme o canal. */
+function telDaConversa(conv) {
+  const s = (conv && conv.meta && conv.meta.sender) || {};
+  return telChave(s.phone_number || s.identifier || '');
+}
+
+function qualificar(nome) {
+  const dados = lerCache(nome).filter((d) => d.msgs);
+  const soma = new Map(SINAIS.map(([k]) => [k, 0]));
+  for (const { msgs } of dados) {
+    const r = regua(msgs);
+    for (const k of soma.keys()) if (r[k]) soma.set(k, soma.get(k) + 1);
+  }
+
+  const n = dados.length;
+  const pct = (v) => `${((100 * v) / n).toFixed(1)}%`;
+  console.log(`\n${nome.toUpperCase()} — régua em ${n} conversas`);
+  console.log(`(⚠️ = porcentagem alta é problema)\n`);
+  for (const [k, desc, , ruim] of SINAIS) {
+    const v = soma.get(k);
+    console.log(`${ruim ? '⚠️ ' : '   '}${k.padEnd(20)} ${String(v).padStart(5)}  ${pct(v).padStart(6)}  ${desc}`);
+  }
+
+  console.log(`\nsinais que faltam (dependem de cruzar com o estoque): ${SINAIS_PENDENTES.join(', ')}`);
+  console.log(`\nOs três vazamentos — lead que já custou dinheiro pra chegar aqui:`);
+  console.log(`  1. preço dado, ninguém avisado ..... ${soma.get('preco_sem_handoff')}`);
+  console.log(`  2. morreu no cliente ............... ${soma.get('morreu_no_cliente')}`);
+  console.log(`  3. viu preço e sumiu, sem follow-up  ${soma.get('sumiu_apos_preco')}`);
+  console.log(`\n⚠️ Frequência, não nota. Peso de sinal se aprende casando conversa com venda`);
+  console.log(`   (camada 0) — ver docs/QUALIFICACAO-CONVERSAS.md.`);
+}
+
+/** Imprime a conversa em texto legível — pro dono ou pro juiz IA ler. */
+function despejar(conv, msgs, marca) {
+  const tel = telDaConversa(conv);
+  console.log(`## conversa ${conv.id} · inbox ${conv.inbox_id} · ${msgs.length} mensagens` +
+    (tel ? ` · tel ...${tel}` : '') + (marca ? ` · ${marca}` : ''));
+  for (const m of msgs) {
+    if (m.message_type !== CLIENTE && m.message_type !== LOJA) continue;
+    if (m.private) continue; // nota interna, não foi pro cliente
+    const quem = m.message_type === CLIENTE ? 'CLIENTE' : 'IA';
+    console.log(`  [${quem}] ${(m.content || '(anexo)').replace(/\s+/g, ' ').slice(0, 300)}`);
+  }
+  console.log('');
+}
+
+/** Conversas em que a última palavra é do cliente — dinheiro na mesa, hoje. */
+function pendentes(nome, quantas) {
+  const dados = lerCache(nome)
+    .filter((d) => d.msgs && regua(d.msgs).morreu_no_cliente)
+    .sort((a, b) => (b.conv.last_activity_at || 0) - (a.conv.last_activity_at || 0));
+  console.log(`# ${nome} — ${dados.length} conversas paradas no cliente; mostrando ${Math.min(quantas, dados.length)}`);
+  console.log(`# (mais recentes primeiro — só leitura, responder é decisão do dono)\n`);
+  for (const { conv, msgs } of dados.slice(0, quantas)) {
+    despejar(conv, msgs, regua(msgs).cotou_preco ? 'JÁ VIU PREÇO' : 'sem preço');
+  }
+}
+
+/**
+ * Amostra estratificada pro juiz IA (camada 2). Divide a cota entre os três
+ * grupos em que o número determinístico já não explica nada sozinho.
+ *
+ * ⚠️ Quando a camada 0 existir, trocar estes grupos por "fez certo e perdeu" /
+ * "fez errado e ganhou" — que é onde o aprendizado de verdade mora.
+ */
+function amostra(nome, quantas) {
+  const dados = lerCache(nome).filter((d) => d.msgs);
+  const grupos = [
+    ['sem_preco', (r) => !r.cotou_preco && r.respondeu],
+    ['preco_sem_handoff', (r) => r.preco_sem_handoff],
+    ['morreu_no_cliente', (r) => r.morreu_no_cliente],
+  ];
+  const cota = Math.max(1, Math.floor(quantas / grupos.length));
+  console.log(`# ${nome} — amostra de ${cota} por grupo\n`);
+  for (const [rotulo, filtro] of grupos) {
+    // Conversa de uma mensagem só não tem o que explicar — atrapalha mais que ajuda.
+    const lote = dados.filter((d) => filtro(regua(d.msgs)) && contexto(d.msgs).cliente.length >= 2);
+    console.log(`# ===== ${rotulo} (${lote.length} no total) =====\n`);
+    for (const { conv, msgs } of lote.slice(0, cota)) despejar(conv, msgs, rotulo);
+  }
+}
+
 function funil(nome) {
   const dados = lerCache(nome).filter((d) => d.msgs);
   const etapas = new Map();
@@ -227,17 +442,26 @@ function semPreco(nome, quantas) {
   }
 }
 
-const [cmd, nome, arg] = process.argv.slice(2);
-const acoes = {
-  baixar: () => baixar(nome, Number(arg) || 40),
-  funil: () => funil(nome),
-  'sem-preco': () => semPreco(nome, Number(arg) || 40),
-};
-if (!acoes[cmd] || !nome) {
-  console.error('uso: node scripts/chatwoot.js <baixar|funil|sem-preco> <cart|urban> [n]');
-  process.exit(1);
+// A régua é testada sem rede por test/qualificacao.test.js, que carrega este
+// arquivo como módulo — por isso o CLI só roda quando ele é o programa.
+module.exports = { SINAIS, SINAIS_PENDENTES, regua, contexto, telChave, telDaConversa, etapaDe, temPreco };
+
+if (require.main === module) {
+  const [cmd, nome, arg] = process.argv.slice(2);
+  const acoes = {
+    baixar: () => baixar(nome, Number(arg) || 40),
+    funil: () => funil(nome),
+    'sem-preco': () => semPreco(nome, Number(arg) || 40),
+    qualificar: () => qualificar(nome),
+    pendentes: () => pendentes(nome, Number(arg) || 30),
+    amostra: () => amostra(nome, Number(arg) || 30),
+  };
+  if (!acoes[cmd] || !nome) {
+    console.error('uso: node scripts/chatwoot.js <baixar|funil|sem-preco|qualificar|pendentes|amostra> <cart|urban> [n]');
+    process.exit(1);
+  }
+  Promise.resolve(acoes[cmd]()).catch((e) => {
+    console.error(e.message);
+    process.exit(1);
+  });
 }
-Promise.resolve(acoes[cmd]()).catch((e) => {
-  console.error(e.message);
-  process.exit(1);
-});

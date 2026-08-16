@@ -367,6 +367,26 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 
 ## Atendimento / Chatwoot
 Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `scripts/chatwoot.js` · agente `analista-conversas`.
+**Estratégia de qualificação: `docs/QUALIFICACAO-CONVERSAS.md`** (16/ago/2026) — as 4 camadas, a
+régua e o que decidir sobre os vendedores.
+- 🔨 ⭐⭐ **Camada 0 — casar conversa com venda pelo telefone.** Sem desfecho (ganhou/perdeu), toda
+  "nota de conversa" é opinião com cara de número. `telChave()` (normaliza o nono dígito) já existe
+  e está testado; falta o lado da venda. **É o primeiro passo de tudo.**
+- ✅ **Camada 1 — a régua** (16/ago/2026): 14 sinais binários por conversa + os 3 vazamentos.
+  `node scripts/chatwoot.js qualificar|pendentes|amostra`. Teste: `node test/qualificacao.test.js`.
+  - ⚠️ **Padrões ainda não calibrados em conversa real** (escritos sem token). Primeira rodada é pra
+    conferir sinal por sinal na mão.
+- 💡 **Os 2 sinais que faltam** dependem de cruzar com estoque: *cotou algo que existe* (available e
+  fora da bancada) e *ofereceu alternativa quando não tinha*. São os que ligam conversa a aparelho
+  parado — e parado custa carrego.
+- 💡 ⭐ **Follow-up de quem viu preço e sumiu.** Não existe nenhum hoje. Mudança de **fluxo**, não de
+  prompt, e atinge exatamente quem já demonstrou interesse e preço.
+- ⚠️ **A contagem de demanda por modelo é piso, não total**: o padrão do `funil` exige a palavra
+  "iphone" e o cliente escreve "tem 13 pro?". A régua usa padrão próprio, mais largo. Recontar a
+  demanda com ele é tarefa própria — não "corrigir" o do funil, que sustenta os números publicados.
+- 💡 **Changelog datado das mudanças de prompt da IA.** Nada no dado marca quando o prompt mudou —
+  mesma armadilha do `vendas.vendedor_id` em ago/2026. Sem isso, comparar semana com semana compara
+  IAs diferentes achando que é a mesma.
 - 🔨 ⭐⭐ **Preço dado e ninguém avisado**: a IA cotou preço e **não passou pra humano nenhum** em
   457 conversas da Cart (71% das que viram preço) e 367 da Urban (75%). Lead que já passou pela
   parte difícil e evaporou por falta de passagem de bastão. Maior buraco conhecido do funil.
