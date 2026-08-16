@@ -341,7 +341,11 @@ async function buscarOrigem(appleId){
 }
 
 function alternarLinhaEstoque(id){
-  if(estoqueAbertos.has(id)) estoqueAbertos.delete(id);
+  if(estoqueAbertos.has(id)){
+    estoqueAbertos.delete(id);
+    // fechou a linha, fecha a edição junto: reabrir volta ao modo de leitura
+    if(typeof corFecharEdicao === 'function') corFecharEdicao(id);
+  }
   else {
     estoqueAbertos.add(id);
     if(_origem[id] === undefined){

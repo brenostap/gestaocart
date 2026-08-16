@@ -39,8 +39,34 @@ const NAV = [
   ]},
 ];
 
-// Bottom-tab do mobile: 5 slots (brief §5)
+// Bottom-tab do mobile: 4 slots fixos + "Mais" (brief §5)
 const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
+const ICO_MAIS = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>';
+
+// A folha do "Mais" vive fora do #content: ela precisa abrir de qualquer tela,
+// e o renderContent() redesenha o miolo inteiro a cada troca de aba.
+function abrirNavMais(){
+  fecharNavMais();
+  const { mais } = navMobile();
+  const itens = NAV.flatMap(g => g.itens).filter(i => mais.includes(i.id) && podeVer(i.id));
+  const el = document.createElement('div');
+  el.id = 'nav-mais';
+  el.className = 'c-modal-overlay';
+  el.onclick = e => { if(e.target === el) fecharNavMais(); };
+  el.innerHTML = `<div class="c-modal nav-mais-sheet">
+    <div class="c-modal-head"><div class="c-modal-title">Todas as telas</div>
+      <button class="c-btn c-btn-sm sutil" onclick="fecharNavMais()">Fechar</button></div>
+    <div class="c-modal-body nav-mais-grade">
+      ${itens.map(i => `<button class="nav-mais-item${currentTab===i.id?' ativo':''}"
+          onclick="fecharNavMais();setTab('${i.id}')">
+          <span class="nav-mais-ico">${ICO[i.id]||''}</span>${i.label}</button>`).join('')}
+    </div></div>`;
+  document.body.appendChild(el);
+}
+function fecharNavMais(){
+  const el = document.getElementById('nav-mais');
+  if(el) el.remove();
+}
 
 // ⚠️ Os 5 slots acima foram escolhidos pro socio, que tem 11 telas. Quem tem
 // POUCAS telas nao cabe nessa regra: em 13/ago/2026 o Vitinho entrou pela
@@ -48,9 +74,16 @@ const NAV_MOBILE = ['dash','vendas','estoque','equipe','custos'];
 // 5 slots, e a intersecao com o papel dele sobrou uma tela so. No desktop as
 // duas apareciam, entao o bug so existia no celular, que e justo onde ele usa.
 // Regra: papel que cabe nos 5 slots mostra TUDO que pode ver.
+// ⚠️ Ate 15/ago isto devolvia SO os 5 slots, e o resto ficava inalcancavel no
+// celular: o socio tem 11 telas e seis delas -- Compras, Assistencia,
+// Movimentacoes, Tabela, Contas, Fechamento -- nao existiam no telefone. Nao
+// havia como rolar a barra nem descobrir que faltava coisa; simplesmente nao
+// estavam la. Agora as 4 primeiras ficam fixas e o resto vai pro botao "Mais".
 function navMobile(){
   const permitidas = MATRIZ_ACESSO[papelAtual()] || [];
-  return permitidas.length <= 5 ? permitidas : NAV_MOBILE.filter(id => permitidas.includes(id));
+  if(permitidas.length <= 5) return { fixas: permitidas, mais: [] };
+  const fixas = NAV_MOBILE.filter(id => permitidas.includes(id)).slice(0, 4);
+  return { fixas, mais: permitidas.filter(id => !fixas.includes(id)) };
 }
 
 // ---------------------------------------------------------------------------
@@ -246,13 +279,19 @@ function renderShell(){
 
   const bt = document.getElementById('bottom-tabs');
   if(bt){
-    const slots = navMobile();
-    bt.innerHTML = NAV.flatMap(g => g.itens)
-      .filter(i => slots.includes(i.id) && podeVer(i.id))
-      .map(i => `<button class="bt-item${currentTab===i.id?' active':''}" data-tab="${i.id}"
-          onclick="setTab('${i.id}')">
-          <span class="bt-ico">${ICO[i.id]||''}</span><span class="bt-label">${i.label}</span>
-        </button>`).join('');
+    const { fixas, mais } = navMobile();
+    const btn = i => `<button class="bt-item${currentTab===i.id?' active':''}" data-tab="${i.id}"
+        onclick="setTab('${i.id}')">
+        <span class="bt-ico">${ICO[i.id]||''}</span><span class="bt-label">${i.label}</span>
+      </button>`;
+    const todos = NAV.flatMap(g => g.itens);
+    // O "Mais" acende quando a tela aberta esta dentro dele -- senao a barra
+    // fica sem nenhum item ativo e parece que voce nao esta em lugar nenhum.
+    const dentroDoMais = mais.includes(currentTab);
+    bt.innerHTML = todos.filter(i => fixas.includes(i.id) && podeVer(i.id)).map(btn).join('')
+      + (mais.length ? `<button class="bt-item${dentroDoMais ? ' active' : ''}" onclick="abrirNavMais()">
+          <span class="bt-ico">${ICO_MAIS}</span><span class="bt-label">Mais</span>
+        </button>` : '');
   }
 
   if(typeof updateHeaderLogo === 'function') updateHeaderLogo();

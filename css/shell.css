@@ -180,3 +180,21 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) body::before{ opacity:.45; }
 }
+
+/* -- Folha "Mais" do mobile ------------------------------------------------
+   O socio tem 11 telas e a barra de baixo cabe 4. Ate 15/ago as outras seis
+   simplesmente nao existiam no celular -- sem rolagem, sem aviso. Esta folha e
+   a porta pra elas. Reusa .c-modal (que ja vira sheet no mobile). */
+.nav-mais-sheet{ max-width:520px; }
+.nav-mais-grade{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.nav-mais-item{
+  display:flex; align-items:center; gap:9px;
+  padding:13px 12px; min-height:48px;          /* alvo de toque, brief §7.6 */
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  background:var(--bg3); color:var(--text2);
+  font-family:inherit; font-size:13.5px; font-weight:600; text-align:left; cursor:pointer;
+}
+.nav-mais-item:active{ background:var(--bg4); }
+.nav-mais-item.ativo{ border-color:var(--cart); color:var(--cart); }
+.nav-mais-ico svg{ width:19px; height:19px; fill:none; stroke:currentColor;
+                   stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }

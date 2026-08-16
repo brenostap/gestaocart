@@ -107,7 +107,13 @@ console.log('\na tela monta com o editor no meio\n');
 const estBanc = comoPapel('bancada', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); return renderEstoque(); })()');
 ok('renderEstoque() monta com a linha aberta', typeof estBanc === 'string' && estBanc.length > 500);
 ok('editor aparece pra quem pode corrigir', /cor-bloco/.test(estBanc));
-ok('mostra o que a FoneNinja diz hoje', /FoneNinja diz/.test(estBanc));
+// Abrir o aparelho mostra INFO. Os campos (etiqueta, IMEI) so aparecem depois
+// de pedir -- o IMEI estava a um toque de ser trocado sem querer.
+ok('editor de campos NAO abre junto com a linha', !/FoneNinja diz/.test(estBanc));
+ok('oferece o botão de corrigir', /Corrigir dados do aparelho/.test(estBanc));
+const estEdit = comoPapel('bancada', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); corAbrirEdicao(101); return renderEstoque(); })()');
+ok('depois de pedir, mostra o que a FoneNinja diz hoje', /FoneNinja diz/.test(estEdit));
+ok('e só então o campo de IMEI existe', /data-campo|imei_1/.test(estEdit));
 ok('marca ✎ na linha que ainda diverge', (estBanc.match(/cor-marca/g) || []).length === 1,
    'marcas: ' + (estBanc.match(/cor-marca/g) || []).length);
 ok('KPI "A corrigir na FoneNinja" conta 1', /A corrigir na FoneNinja[\s\S]{0,200}>1</.test(estBanc));

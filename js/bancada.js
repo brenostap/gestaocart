@@ -541,14 +541,25 @@ function bncTextoWhatsApp(){
   if(!doEstoque.length)
     return '🔧 Assistência — ' + hoje + '\n\nNenhum aparelho do estoque está fora agora.';
 
-  const linhas = doEstoque.map(l => {
-    const fim = (l.imei4 && l.imei4 !== '0000') ? ' · final ' + l.imei4 : '';
-    return '• ' + (l.modelo_txt || 'sem modelo') + fim;
-  });
+  // "iPhone" em toda linha e ruido: sao 33 linhas dizendo a mesma coisa. O
+  // "final" tambem -- 4 digitos depois do modelo so podem ser o fim do IMEI.
+  const linha = l => '• ' + String(l.modelo_txt || 'sem modelo').replace(/^i?[Pp]hone\s*/i, '')
+                   + ((l.imei4 && l.imei4 !== '0000') ? ' · ' + l.imei4 : '');
+
+  // Separado por assistencia: quem cobra, cobra numa de cada vez.
+  const blocos = [['RR / Legacy', 'RR'], ['Access', 'ACCESS']]
+    .map(([titulo, forn]) => {
+      const doForn = doEstoque.filter(l => l.fornecedor === forn);
+      return doForn.length ? `\n${titulo} (${doForn.length}):\n` + doForn.map(linha).join('\n') : '';
+    }).filter(Boolean);
+
+  // Fornecedor fora dos dois conhecidos nao pode sumir da lista.
+  const orfaos = doEstoque.filter(l => l.fornecedor !== 'RR' && l.fornecedor !== 'ACCESS');
+  if(orfaos.length) blocos.push('\nOutros (' + orfaos.length + '):\n' + orfaos.map(linha).join('\n'));
 
   return '🔧 NA ASSISTÊNCIA — ' + hoje + '\n'
-       + 'Não vender, estão fora da loja (' + doEstoque.length + '):\n\n'
-       + linhas.join('\n')
+       + 'Não vender, estão fora da loja (' + doEstoque.length + '):\n'
+       + blocos.join('\n')
        + (outros ? '\n\n+ ' + outros + ' de cliente/garantia (não são do estoque).' : '');
 }
 

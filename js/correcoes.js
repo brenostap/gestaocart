@@ -59,7 +59,9 @@ let _correcoesCache = null;     // null = nunca carregou
 let _estadosCache   = null;     // apple_id -> linha de estoque_estado
 let _corCarregando  = false;
 let _corErro        = '';
-let _corSalvando    = '';       // 'apple_id:campo' em gravação
+let _corSalvando    = '';       // 'apple_id:campo' em gravacao
+// Quem pediu pra editar os campos de correcao. Zera ao fechar a linha.
+const _corEditando  = new Set();
 
 async function carregarCorrecoes(){
   if(_corCarregando) return _correcoesCache || [];
@@ -291,9 +293,13 @@ function corBlocoHtml(d){
           toque no mesmo estado pra desmarcar</span>` : ''}
     </div>`;
 
-  return `<div class="cor-bloco" onclick="event.stopPropagation()">
-    ${_corErro ? `<div class="bnc-erro">${UI.esc(_corErro)}</div>` : ''}
-    ${estadoBloco}
+  // ⚠️ Os campos de correção ficam FECHADOS até pedirem. Abrir o aparelho é o
+  // gesto de "quero ver", e ele acontece o dia todo; a etiqueta e o IMEI
+  // estavam a um toque de distância de serem trocados sem querer -- e o IMEI é
+  // a chave que liga venda, reparo e assistência. O estado da peça continua à
+  // vista de propósito: é a marcação do dia a dia, e um toque a desfaz.
+  const editando = _corEditando.has(String(id));
+  const camposBloco = editando ? `
     <div class="cor-titulo">Corrigir o que está errado
       <span class="cor-sub">a FoneNinja continua sendo a fonte — isto marca a diferença</span></div>
     <div class="cor-grade">
@@ -302,6 +308,23 @@ function corBlocoHtml(d){
       ${campo('imei_1',   d.imei || '', 'inputmode="numeric"')}
     </div>
     <span class="cor-nota">IMEI só levanta a mão: é a chave que liga venda, reparo e assistência,
-      então quem troca de verdade é um sócio na FoneNinja.</span>
+      então quem troca de verdade é um sócio na FoneNinja.</span>`
+    : UI.btn('✎ Corrigir dados do aparelho',
+        {onclick:`event.stopPropagation();corAbrirEdicao(${id})`, variante:'sutil', sm:true});
+
+  return `<div class="cor-bloco" onclick="event.stopPropagation()">
+    ${_corErro ? `<div class="bnc-erro">${UI.esc(_corErro)}</div>` : ''}
+    ${estadoBloco}
+    ${camposBloco}
   </div>`;
+}
+
+// Fechar a linha esquece a edição: se o aparelho for reaberto depois, volta
+// fechado. Sem isso o "modo perigoso" ficaria ligado sem ninguém ver.
+function corAbrirEdicao(appleId){
+  _corEditando.add(String(appleId));
+  if(currentTab === 'estoque') renderContent();
+}
+function corFecharEdicao(appleId){
+  _corEditando.delete(String(appleId));
 }

@@ -156,13 +156,31 @@ ok('o que voltou NÃO ganha selo', !/SP1030[\s\S]{0,200}bnc-selo/.test(est));
 console.log('\nexportar pra WhatsApp — a lista de "não vender"\n');
 
 const wa = R('bncTextoWhatsApp()');
-ok('lista os 2 que saíram do estoque',
-   wa.includes('iPhone 16 128GB Rosa') && wa.includes('iPhone 16 Plus 128GB Rosa'));
-ok('traz os 4 últimos do IMEI', wa.includes('final 8580') && wa.includes('final 3324'));
+// sem a palavra 'iPhone': 33 linhas repetindo o obvio viravam ruido
+ok('lista os 2 que saíram do estoque, sem repetir "iPhone"',
+   wa.includes('16 128GB Rosa') && wa.includes('16 Plus 128GB Rosa'));
+ok('a palavra iPhone não aparece', !/iPhone/i.test(wa));
+ok('traz os 4 últimos do IMEI, sem a palavra "final"',
+   wa.includes('8580') && wa.includes('3324') && !/final/i.test(wa));
+// quem cobra, cobra uma assistência de cada vez
+ok('separa por fornecedor', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test(wa));
 // Mesma ordem da tela (saiu_em crescente): o 16 Plus saiu em 11/mai, o 16 em
 // 10/ago. Conferir a lista colada no grupo contra a tela não pode dar trabalho.
-ok('ordena por data de saída, igual à tela — mais velho primeiro',
-   wa.indexOf('iPhone 16 Plus 128GB Rosa') < wa.indexOf('iPhone 16 128GB Rosa'));
+// RR primeiro, Access depois: quem cobra segue a lista de cima pra baixo
+ok('bloco da RR vem antes do da Access',
+   wa.indexOf('RR / Legacy') < wa.indexOf('Access'));
+// e DENTRO do bloco a ordem continua sendo a da tela (saiu_em crescente)
+const waOrdem = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:9,imei4:'1111',modelo_txt:'iPhone 14 Novo',fornecedor:'RR',origem:'estoque',servico:'x',saiu_em:'2026-08-12',voltou_em:null}," +
+    "{id:8,imei4:'2222',modelo_txt:'iPhone 13 Velho',fornecedor:'RR',origem:'estoque',servico:'x',saiu_em:'2026-06-01',voltou_em:null}]");
+  const t = R('bncTextoWhatsApp()');
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return t;
+})();
+ok('mais velho primeiro dentro do bloco',
+   waOrdem.indexOf('13 Velho') < waOrdem.indexOf('14 Novo'));
 // O que já voltou está de novo disponível: anunciar como "não vender" seria
 // tirar da venda um aparelho que está na prateleira.
 ok('NÃO inclui o que já voltou', !wa.includes('iPhone 16 128GB Preto'));

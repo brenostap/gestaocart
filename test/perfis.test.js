@@ -109,12 +109,27 @@ ok('sócio continua vendo o capital parado', /Capital parado/.test(bncSocio));
 console.log('\nbarra de baixo do celular (o bug de 13/ago)\n');
 
 eq('papel bancada vê as DUAS telas na barra do celular',
-   comoPapel('bancada','navMobile()'), ['estoque','bancada']);
-eq('sócio continua com os 5 slots do brief',
-   comoPapel('socio','navMobile()'), ['dash','vendas','estoque','equipe','custos']);
+   comoPapel('bancada','navMobile().fixas'), ['estoque','bancada']);
+eq('papel que cabe na barra não precisa de "Mais"',
+   comoPapel('bancada','navMobile().mais'), []);
+// O socio tem 11 telas: 4 ficam fixas e as outras 7 vao pro "Mais". Antes de
+// 15/ago as 7 simplesmente nao existiam no celular.
+eq('sócio tem 4 slots fixos',
+   comoPapel('socio','navMobile().fixas'), ['dash','vendas','estoque','equipe']);
+eq('e as outras 7 ficam alcançáveis pelo "Mais"',
+   comoPapel('socio','navMobile().mais'),
+   ['compras','bancada','movs','tabela','contas','custos','fechamento']);
+ok('toda tela do papel é alcançável no celular — fixa ou no "Mais"',
+   Object.keys(R('MATRIZ_ACESSO')).every(p => {
+     const n = comoPapel(p, 'navMobile()');
+     const alcanca = n.fixas.concat(n.mais).sort();
+     return JSON.stringify(alcanca) === JSON.stringify(R('MATRIZ_ACESSO')[p].slice().sort());
+   }));
 ok('nenhum papel mostra tela que não pode ver',
-   Object.keys(R('MATRIZ_ACESSO')).every(p =>
-     comoPapel(p, 'navMobile()').every(id => comoPapel(p, "podeVer('" + id + "')"))));
+   Object.keys(R('MATRIZ_ACESSO')).every(p => {
+     const n = comoPapel(p, 'navMobile()');
+     return n.fixas.concat(n.mais).every(id => comoPapel(p, "podeVer('" + id + "')"));
+   }));
 
 const estBanc = comoPapel('bancada', '(function(){ currentTab="estoque"; return renderEstoque(); })()');
 ok('Estoque do papel bancada tem 2 KPIs (grade de 2 colunas no celular, sem órfão)',

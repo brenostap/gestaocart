@@ -49,6 +49,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/ui.js` — **kit de componentes** (`UI.card/kpi/badge/tabela/...`). Telas pedem componentes, não escrevem HTML na mão.
 - `js/auth.js` — login + `sbGet(tabela, params, limit)` (wrapper do Supabase REST).
 - `js/shell.js` — navegação, contexto (loja+período), **permissões** (`papelAtual`, `podeVerValor`, `podeVerMargem`).
+  - ⚠️ **Barra do celular = 4 fixas + "Mais"**. Até 15/ago/2026 ela mostrava só os 5 slots de
+    `NAV_MOBILE` e as outras **6 telas do sócio não existiam no telefone** — sem rolagem, sem
+    aviso. `navMobile()` agora devolve `{fixas, mais}`, e o teste garante que **toda** tela do
+    papel é alcançável por um dos dois.
 - `css/theme.css` (tokens) · `css/components.css` (componentes) · `css/shell.css` (layout).
 - `docs/DESIGN-SYSTEM.md` — **regras de UI e mapa** (ler antes de mexer em visual).
 
@@ -125,6 +129,11 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   FoneNinja passa a dizer o mesmo, ela some da lista sozinha. É o que impede virar segundo estoque.
   - **IMEI só entra como `tipo='reporte'` e NUNCA substitui** — é a chave de venda/reparo/bancada.
   - `podeCorrigirEstoque()` = sócio e bancada. Teste: `node test/correcoes.test.js`.
+  - ⚠️ **Os campos de correção ficam atrás de um botão** ("✎ Corrigir dados do aparelho"). Abrir
+    o aparelho mostra só informação. Motivo: abrir é o gesto do dia todo, e etiqueta e **IMEI**
+    estavam a um toque de serem trocados sem querer. Fechar a linha esquece a edição
+    (`corFecharEdicao`). O **estado da peça** continua à vista — é a marcação corriqueira e um
+    toque a desfaz.
   - ⚠️ No banco quem manda é a função **`pode_operar()`** (sócio, bancada), que guarda
     `estoque_correcoes`, `estoque_estado` e `bancada`. **Ela e `podeCorrigirEstoque()` são a mesma
     regra em dois lugares — mudou uma, muda a outra**, senão a tela oferece o botão e a API recusa.
