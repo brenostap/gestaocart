@@ -204,3 +204,35 @@ identificado: **R$ 1,55 milhão**, mediana de **R$ 3.950** por aparelho.
    handoff — esses não são viés de seleção.
 3. O 0,9% do grupo "nunca viu preço" ser maior que o 0,2% do "preço sem handoff" é **ruído** —
    são 4 e 1 conversas. Não construa nada em cima disso.
+
+### ⚠️ Correção: "a Maju aceita a negativa fácil demais" — medido, e é FALSO
+
+Foi o que eu concluí de **uma** conversa (#28397) logo depois da análise acima. Medi antes de
+virar mudança de prompt, e o dado desmente.
+
+A Maju emite frase de encerramento ("sem problemas", "tranquilo", "se mudar de ideia me chama")
+em **115 conversas**. O que o cliente tinha acabado de dizer:
+
+| o que o cliente disse | conversas | a resposta dela está |
+|---|---|---|
+| deferiu de verdade ("tenho que ver ainda, mas obrigado") | 70 | certa |
+| "não" seco ("não vou ver, qualquer coisa eu aviso") | 26 | certa |
+| "tenho aparelho mas não vou dar" | 6 | certa — ela segue a venda sem o upgrade |
+| pediu pra não ser mais contatado | 5 | **exemplar** |
+| tinha intenção de compra na mesma frase | 4 | passiva, dá pra melhorar |
+| era pergunta, não recusa (falso positivo do meu regex) | 4 | — |
+
+**111 das 115 estão corretas.** Em #37411 o cliente escreve *"Ok obg não volte mais!"* e ela
+responde *"Tranquilo, não vou mais te chamar"* — exatamente o que tem que fazer.
+
+⚠️ **Não mexa no prompt pra ela insistir mais.** Um prompt que resiste à negativa atropelaria os
+26 "não" legítimos e, pior, os 5 pedidos explícitos de parar. O ganho seriam ~4 conversas; o custo
+é a loja virar chata e desrespeitar opt-out.
+
+**#28397 é outra coisa, e continua válido**: é falha de *interpretação* de texto ambíguo ("Não
+quero compra" = "não [tenho troca], quero comprar"), não de política de insistência. Se for
+consertar, é desambiguar resposta curta depois da pergunta de troca — não afrouxar a aceitação do
+"não".
+
+O problema de verdade continua sendo o outro: **365 conversas morrem com uma pergunta da Maju
+pendurada**, sem escalada e sem follow-up. Esse tem 368 casos, não 4.
