@@ -386,6 +386,35 @@ fonte confiável ainda. Medido: bate com o *atendente* em 94% de junho e 96% de 
 *vendedor* em só **63% de agosto** — subindo por semana (6% → 53% → 85%). A virada está acontecendo,
 não aconteceu. Até fechar, **a obs continua sendo a única fonte**.
 
+### 6.0b ✅ Passo 2 — feito em 17/ago/2026
+
+A fechadura existe. Duas migrations a mais, e **uma mudança de desenho**:
+
+**O colaborador não lê tabela nenhuma — lê view.** O plano dizia "policies em `vendas`,
+`venda_produtos`, `pagamentos`". Ao escrever, ficou claro que isso **não fecha**: RLS é por linha, e
+`custo_total`, `lucro` e `valor_estoque` moram nas mesmas linhas que ele precisa ver. Policy que
+libera a linha entrega o custo junto. Então:
+
+| | |
+|---|---|
+| `perfis.vo_key` / `at_key` | as duas chaves, com trigger que **estoura** se a chave não existir em `apelidos` |
+| papel `comercial` | um papel só pra vendedor, atendente e híbrida — quem faz o quê é a chave |
+| `v_minhas_vendas` · `v_meus_itens` · `v_estoque_vitrine` | direitos do dono, filtro por `meu_vo_key()`/`meu_at_key()`, **sem coluna de custo** |
+| Vitinho | ganhou `at_key='vitinho'` — dado verdadeiro, e nenhuma tela lê ainda |
+
+**Conferido simulando cada papel, com escrita medida por `row_count`:** o Vitinho vê **548 vendas
+dele** pela view e **0 pela tabela**; `custos`, `compras`, folha e pagamentos voltam **0**; escrita
+em `vendas`, `apelidos` e `estoque` volta **0 linhas**; usuário sem perfil vê **0 em tudo**,
+inclusive nas views; o sócio segue com **4.871 vendas** e tudo o mais. Tabela completa em
+`docs/PERFIS-E-ACESSO.md`.
+
+**Não fechei uma coisa de propósito:** `estoque_leitura` continua `tem_perfil()`, então a *tabela*
+`estoque` (com `valor_estoque`) segue alcançável pela API. Apertar agora **derrubaria a tela do
+Vitinho**, que lê a tabela direto. Fecha no passo 3, com as duas pontas na mesma entrega.
+
+⚠️ **Não criar usuário `comercial` antes do passo 3:** o `CHECK` já aceita, mas o `MATRIZ_ACESSO`
+do front não conhece o papel — hoje daria menu de sócio lendo zero linha.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra

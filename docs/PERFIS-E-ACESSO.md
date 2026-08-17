@@ -34,7 +34,48 @@ elas, **contornando o RLS das tabelas**. Nenhuma é usada pelo app (zero referê
 |---|---|---|---|
 | `socio` | tudo | tudo | ✅ |
 | `bancada` | Estoque e Bancada | `bancada` (**sem apagar**), `estoque_correcoes`, `estoque_estado` | ✅ |
+| `comercial` | só as **próprias** vendas, pelas views sem custo | nada | ✅ (17/ago/2026) |
 | `gerente` · `vendedor` · `atendente` | — | — | ❌ **só prévia do dono** |
+
+### Papel × chaves — dois eixos, não uma escada (17/ago/2026)
+
+`papel` sozinho não descrevia ninguém: o **Vitinho** é `bancada` *e* atende no balcão (52 vendas em
+ago/2026), e a **Maria** vende *e* atende. Papel único pediria dois logins ou um papel
+`vendedor_atendente`, e o próximo híbrido pediria o terceiro.
+
+```
+perfis(user_id, papel, vo_key, at_key, ativo)
+                  │      └──────┴── CHAVES: quais LINHAS são minhas
+                  └── PAPEL: que menu abre e qual o teto de dinheiro
+```
+
+- **`papel`** decide menu e teto: `socio` · `bancada` · `comercial`.
+- **`vo_key` / `at_key`** decidem as linhas, e são independentes do papel. O Vitinho tem
+  `papel='bancada'` **e** `at_key='vitinho'`.
+- **Ter chave não é receber comissão.** Quem paga continua sendo `VO_KEYS`/`AT_KEYS` no
+  `js/core.js` — sócios e as IAs (`maju`, `duda`) têm chave e não entram em nenhuma das duas.
+- Chave inválida **estoura** (`trg_valida_perfil_keys`), em vez de a pessoa logar e ver zero venda
+  sem erro nenhum.
+
+É a mesma regra que `podeCorrigirEstoque()` e `podeVerCustoServico()` já tinham escolhido — *"eixo
+próprio, e não um degrau da escada de dinheiro"* —, agora generalizada.
+
+### As views: o colaborador não lê tabela
+
+⚠️ **RLS é por linha, não por coluna.** As linhas que o colaborador precisa (`vendas`,
+`venda_produtos`) carregam `custo_total`, `lucro` e `valor_estoque`. Uma policy que libere a linha
+entrega o custo junto — a tela esconde com `money()`, a API não.
+
+Por isso o papel `comercial` **não ganhou policy nenhuma nas tabelas**. Ele lê três views, que
+rodam com direitos do dono e fazem o próprio filtro por `meu_vo_key()`/`meu_at_key()`:
+
+| View | O que traz | O que **não** traz |
+|---|---|---|
+| `v_minhas_vendas` | minhas vendas como vendedor **ou** atendente, com `fui_vendedor`/`fui_atendente` | `custo_total`, `lucro`, `recebimento_*` |
+| `v_meus_itens` | itens dessas vendas | `valor_estoque`, `lucro` |
+| `v_estoque_vitrine` | estoque disponível pra vender | `valor_estoque`, `ultimo_fornecedor` |
+
+Se uma view esquecer o filtro, vaza tudo — por isso o filtro é **sempre a mesma dupla de funções**.
 
 A lista de quem escreve nessas três tabelas é a função **`pode_operar()`** (`socio`,
 `bancada`), que espelha `podeCorrigirEstoque()` do `js/shell.js` — **os dois mudam juntos**.
@@ -131,10 +172,38 @@ Honestidade sobre o tamanho da trava:
 
 1. **`estoque.valor_estoque` continua alcançável pela API** por quem tem papel `bancada`. A tela
    esconde (`money()` devolve `—`), o banco não — RLS é por linha, não por coluna, e todos os papéis
-   compartilham o mesmo role `authenticated` do Postgres. Fechar de verdade pede uma **view sem a
-   coluna de custo**, com o `estoque.js` lendo a view quando o papel não vê margem.
+   compartilham o mesmo role `authenticated` do Postgres.
+   - **Meio caminho andado em 17/ago:** a view existe (`v_estoque_vitrine`, sem `valor_estoque` e
+     sem `ultimo_fornecedor`). O que falta é o **front trocar de fonte** — hoje o `estoque.js` lê a
+     tabela direto, então apertar `estoque_leitura` para `eh_socio()` agora **derrubaria a tela do
+     Vitinho**. Fecha no passo 3 do plano, com as duas pontas na mesma entrega.
 
 Exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho.
+
+## Conferência de 17/ago/2026 — papel `comercial` e chaves
+
+Simulado no banco com `set local role authenticated` + `request.jwt.claims` dentro de transação, e
+**escrita medida com `get diagnostics row_count`** (a armadilha do topo desta seção):
+
+| | Vitinho (`bancada` + `at_key`) | logado sem perfil | `socio` |
+|---|---:|---:|---:|
+| `v_minhas_vendas` | **548** | 0 | 0 *(não usa)* |
+| `v_meus_itens` | 1.645 | 0 | — |
+| `v_estoque_vitrine` | 215 | 0 | — |
+| `vendas` (**tabela**) | **0** | 0 | 4.871 |
+| `venda_produtos` (**tabela**) | **0** | 0 | 14.897 |
+| `pagamentos` (**tabela**) | **0** | 0 | 7.647 |
+| `custos` · `compras` · folha | **0** | 0 | tudo |
+| `apelidos` | 59 | 0 | 59 |
+
+Escrita como Vitinho: `update vendas` → **0 linhas** · `update apelidos` → **0 linhas** ·
+`update estoque` → **0 linhas**.
+
+Colunas de dinheiro fechado presentes nas três views: **zero**.
+
+⚠️ **O front ainda não conhece o papel `comercial`.** O `CHECK` já aceita, mas `MATRIZ_ACESSO`
+(shell.js) não tem entrada pra ele — criar um usuário `comercial` **hoje** daria menu de sócio com
+zero linha. Não crie perfil comercial antes do passo 3.
 
 *(O `sync-precos` estava aqui como item 2 e foi fechado em 14/ago — ver a seção abaixo.)*
 
