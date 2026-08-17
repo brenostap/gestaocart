@@ -11,8 +11,16 @@ Diagnóstico, números e decisão: **`docs/ATRIBUICAO-LEADS-VENDAS.md`**. Aqui �
    - `loja='urban'` → projeto `supabase-urban`, `{{LEADS}}` = `contatosWhatsApp`
    - cole o blob no lugar de `{{VENDAS}}` (fica entre `$v$ ... $v$`)
 
-Devolve uma linha por venda atribuída: `venda_id, canal, lead_id, origem, metodo,
-similaridade` — e `id_venda_marcado_hoje` pra comparar com o que já está gravado.
+Devolve uma linha por venda atribuída: `venda_id, canal, lead_id, origem, nivel, metodo,
+similaridade`.
+
+⚠️ O blob leva `vendedor_obs` porque o **nível 5** depende dele
+(`contatos.vendedorAtribuido` = `vendas.vendedor_obs`). Sem esse campo o N5 não roda e a
+cobertura cai de ~52% pra ~35%.
+
+⚠️ Os três caminhos (`p_tel`, `p_nome`, `p_vo`) são JOINs separados de propósito. Juntar
+num join só com `similarity(...) >= 0.45` no `ON` faz o Postgres calcular trigrama em
+~7 milhões de pares e a query estoura o timeout.
 
 ## O que ele NÃO faz
 
