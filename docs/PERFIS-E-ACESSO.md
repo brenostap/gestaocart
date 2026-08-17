@@ -170,6 +170,26 @@ qualquer conta criada de agora em diante, inclusive a de sócio.
 
 Honestidade sobre o tamanho da trava:
 
+🔴 **REABERTO EM 17/ago/2026 (temporário) — precisa ser refechado.**
+
+A Netlify **parou de publicar** (`Skipped due to account credit usage exceeded`): o último deploy no
+ar é de 14:03, e todo o front novo ficou só no GitHub. Com o banco fechado às 18h e o front parado
+às 14h, o código antigo — que lê a **tabela** — passou a receber zero linha, e a tela apareceu como
+*"estoque zerado"*. O Vitinho e o David ficaram sem trabalhar.
+
+Enquanto o deploy não volta, `estoque_leitura` está em `tem_perfil()` de novo. **Para refechar:**
+
+```sql
+drop policy if exists estoque_leitura on public.estoque;
+create policy estoque_leitura on public.estoque
+  for select to authenticated using (public.eh_socio());
+```
+
+⚠️ Enquanto isso valer, `estoque.valor_estoque` volta a ser alcançável pela API por quem tem perfil.
+Não vaza na tela (`money()` devolve `—`), vaza pra quem abrir o console.
+
+<details><summary>O que estava escrito quando foi fechado (vale de novo depois do refechamento)</summary>
+
 ✅ **Fechado em 17/ago/2026** — era `estoque.valor_estoque` alcançável pela API por qualquer perfil.
 A tela escondia com `money()`; o banco, não. Como **RLS é por linha, não por coluna**, esconder a
 coluna exigiu trocar a **fonte**: `estoque_leitura` agora é `eh_socio()`, e quem não é sócio lê
@@ -182,6 +202,25 @@ Sobrou um detalhe de front que virou regra: **campo ausente não é zero.** Item
 custo, e `custo = 0` viraria `margem = preço cheio` — número inventado esperando alguém mostrar.
 `dadosDoItem()` devolve `null` nos dois, e `origemDoItem()` deixou de carimbar *"Entrada (cliente)"*
 em quem simplesmente não recebeu o campo. Protegido por `test/perfis.test.js`.
+
+</details>
+
+## ⚠️ Deploy e RLS andam juntos — lição de 17/ago/2026
+
+**Fechar uma policy é mudança quebrante para todo cliente que está rodando código antigo.** E o
+código antigo pode estar rodando por dois motivos independentes:
+
+1. **Cache do WebView** — o problema que o `js/versao.js` já trata.
+2. **O deploy simplesmente não saiu** — foi o caso aqui, e não havia nada avisando: `git push` deu
+   certo, e o site continuou servindo a versão de quatro horas antes.
+
+⚠️ **`git push` não é deploy.** Confirmar o push e dizer "publicado" foi o erro que fez isso demorar
+uma hora pra aparecer. **Confira o deploy** (Netlify → Deploys, ou a API) antes de tratar qualquer
+mudança de policy como no ar.
+
+Regra prática daqui pra frente: quando a mudança fechar acesso, **suba o front primeiro, confirme
+que está no ar, e só então feche o banco.** A ordem inversa deixa todo mundo parado — e o sintoma
+(`200` com lista vazia) não parece erro.
 
 ## Conferência de 17/ago/2026 — papel `comercial` e chaves
 

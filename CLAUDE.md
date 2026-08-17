@@ -6,7 +6,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 ## Como rodar / testar
 - É um **site estático** (HTML + JS puro, sem build). Pra testar local: servir a pasta
   (`python3 -m http.server 8080`) e abrir no navegador — precisa **login Supabase** (é do dono).
-- Deploy: `main` publica (Netlify). Commit na `main` = vai ao ar.
+- Deploy: `main` publica (Netlify). ⚠️ **`git push` NÃO é deploy** — em 17/ago/2026 a conta estourou
+  o crédito de build (`Skipped due to account credit usage exceeded`) e o site ficou **4 horas**
+  servindo código velho enquanto os pushes entravam normalmente. Nada avisa. **Confira o deploy**
+  (Netlify → Deploys) antes de tratar a mudança como no ar — e principalmente antes de mexer em RLS.
+  - ⚠️ **Fechar policy é mudança quebrante pra quem está com código antigo.** Suba o front, confirme
+    que está no ar, **e só então** feche o banco. Na ordem inversa, RLS devolve `200` com lista
+    vazia — a tela diz "estoque zerado" e ninguém desconfia. Ver `docs/PERFIS-E-ACESSO.md`.
 - ⚠️ **Mexeu em `js/` ou `css/`? Rode `./scripts/bump-versao.sh` antes de commitar.** O dono abre
   o painel por um **ícone na tela de início do iPhone**, que roda num WebView com cache próprio e
   ignora o `must-revalidate`: sem URL nova ele serve código velho calado. `js/versao.js` compara a
