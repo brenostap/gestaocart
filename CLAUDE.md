@@ -164,10 +164,25 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **A obs da venda ainda é a fonte de loja, vendedor e atendente** — e continua sendo quem paga
   comissão. `vendas.loja_id` está 100% vazio: `loja`, `vendedor_obs` e `atendente_obs` são todos
   parseados do texto da observação. Tirar a obs hoje quebra as três coisas de uma vez.
+  - ⚠️ **O apelido vira pessoa em UM lugar: a tabela `apelidos`** (17/ago/2026). `deni→denilson`,
+    `ane→anne`, `viitnho→vitinho`… O `ALIASES` de `js/core.js` **não é mais a fonte** — o mapa
+    precisa valer também pro RLS e pro sync, e mapa de gente duplicado já custou R$1.000 na folha
+    em jul/2026. `vendas.vendedor_key`/`atendente_key` são preenchidas por **trigger no banco**
+    (`resolve_venda_keys`), então valem pra qualquer caminho de escrita.
+    - **Ter chave ≠ receber comissão.** Sócios e as IAs (`maju` da Cart, `duda` da Urban) têm
+      chave e não entram em `VO_KEYS`/`AT_KEYS`. Quem paga continua sendo o `core.js`.
+    - `NULL` é resposta legítima: nome de loja no campo de gente, sobra de parsing, ou não
+      identificado. **Venda sem dono tem que aparecer, não ser chutada pra alguém.**
+    - ⚠️ Corrigir o mapa **mexe em mês já pago**: os typos resgatados são de mar–jun/2026. Hoje
+      não quebra nada (nenhuma tela lê as colunas), mas o snapshot da folha tem que congelar os
+      meses fechados **antes** de o front trocar de fonte. Ver `docs/PLANO-UPGRADE-2026-08.md`.
   - ⚠️ **Virada em ago/2026 — `vendas.vendedor_id` troca de significado.** Até 05/ago o campo
     vendedor da FoneNinja só tinha perfil de **atendente** (batia com `atendente_obs` em 97,3% de
     julho). Com os perfis dos vendedores online criados, ele passa a ser **quem vendeu**. Nada no
     banco marca a virada — quem ler a coluna sem saber disso mistura duas coisas.
+    - **Medido em 17/ago: a virada não terminou.** `vendedor_nome` bate com o *atendente* em 94%
+      de junho e 96% de julho, e com o *vendedor* em só **63% de agosto** — subindo por semana
+      (6% → 53% → 85%). **Não serve como segunda fonte confiável ainda**; a obs continua mandando.
     Regra nova: campo vendedor = vendedor · origem do cliente = loja · login = atendente.
     Ler `docs/REGISTRO-VENDA-2026-08.md` antes de mexer.
   - Os três já vêm **estruturados no payload da venda** e o sync grava em colunas próprias:

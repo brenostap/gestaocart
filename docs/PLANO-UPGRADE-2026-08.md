@@ -352,6 +352,40 @@ primeira classe, `tabular-nums`, estado vazio que diz o próximo passo. Está ce
 **Ordem tem motivo:** a fase 0 é a única que não dá pra pular — sem ela toda tela nova é teatro. A 1
 é deliberadamente **uma pessoa**: se a comissão sair errada, erra com uma pessoa, não com sete.
 
+### 6.0 ✅ Passo 1 — feito em 17/ago/2026
+
+O mapa de gente virou dado. Duas migrations em `supabase/migrations/20260817_*`:
+
+- **`apelidos`** — 59 apelidos → 16 pessoas, 2 IAs, 5 nomes de loja, 3 sobras de parsing, 1 dúvida.
+  Levantada dos **51 tokens distintos que já apareceram na história**, não do que estava no código.
+  Leitura pra qualquer perfil, escrita só do sócio.
+- **`vendas.vendedor_key` / `atendente_key`** — preenchidas por trigger (`resolve_venda_keys`), com
+  backfill de toda a história e índices parciais.
+
+**Cobertura:** 97,4% a 99,5% das vendas com pelo menos um dono, por mês, de março a agosto.
+
+**Conferência SQL × JS:** 45 dos 59 apelidos resolvem igual. As 14 divergências vão **todas na
+mesma direção** — o SQL sabe mais — e **nenhuma reatribui venda de ninguém**:
+
+| | O que aconteceu |
+|---|---|
+| 6 tokens | o JS devolvia crus e não casavam com `VO_KEYS`/`AT_KEYS` → mesmo resultado prático: ninguém |
+| **8 linhas resgatadas** | caíam no chão: **6 atendimentos do Vitinho** (`itinho`, `viitinho`, `viitnho`×2, `vitino`, `vitnhio`), 1 venda do David (`dvid`), 7 atendimentos da Pietra (`pietr`) |
+
+⚠️ **A armadilha que isso abriu, e que precisa entrar antes do front:** as linhas resgatadas são de
+**mar–jun/2026, meses já pagos**. Em dinheiro é ~R$12 pro Vitinho e ~R$44 pra Pietra (que já saiu) —
+ruído. Mas a regra desta casa é que **fechamento pago não muda de valor depois**, e hoje o painel
+recalcula o passado toda vez que abre. Nada quebrou porque nenhuma tela lê essas colunas ainda.
+
+**Ordem obrigatória a partir daqui:** o snapshot da folha (§2.2) tem que congelar os meses fechados
+**antes** de qualquer tela passar a ler `vendedor_key`/`atendente_key`. Inverter essa ordem muda
+fechamento pago sem ninguém pedir.
+
+⚠️ **E uma correção do que eu disse antes:** o `vendedor_nome` da FoneNinja **não é** uma segunda
+fonte confiável ainda. Medido: bate com o *atendente* em 94% de junho e 96% de julho, e com o
+*vendedor* em só **63% de agosto** — subindo por semana (6% → 53% → 85%). A virada está acontecendo,
+não aconteceu. Até fechar, **a obs continua sendo a única fonte**.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra
