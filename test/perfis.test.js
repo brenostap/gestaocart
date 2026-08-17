@@ -141,5 +141,35 @@ const estSocio = comoPapel('socio', '(function(){ currentTab="estoque"; return r
 ok('sócio mantém os KPIs de sempre', (estSocio.match(/class="c-kpi"/g) || []).length >= 4);
 ok('sócio mantém o filtro de Origem', /setEstoqueOrigem/.test(estSocio));
 
+// -- Estoque vindo da VIEW (17/ago/2026) ------------------------------------
+// Desde que a tabela `estoque` virou só do sócio, o papel bancada lê
+// `v_estoque_vitrine` — que NÃO traz valor_estoque nem ultimo_fornecedor.
+// Campo ausente não é zero: "custo 0" viraria "margem = preço cheio", número
+// inventado esperando alguém mostrar.
+console.log('\nestoque vindo da view (sem custo, sem fornecedor)\n');
+
+R(`estoqueItens = [
+  { id: 303, titulo:'iPhone 16 Plus 128GB Rosa Seminovo', produto:{titulo:'iPhone 16 Plus 128GB Rosa Seminovo'},
+    serial:'381', imei_1:'350000000003324', bateria: 88, preco_varejo: 4200, status:'available' },
+];`);
+
+const dView = comoPapel('bancada', 'dadosDoItem(estoqueItens[0])');
+ok('custo ausente vira null, não zero', dView.custo === null, 'custo: ' + JSON.stringify(dView.custo));
+ok('margem sem custo é null, não o preço cheio', dView.margem === null, 'margem: ' + JSON.stringify(dView.margem));
+ok('origem não carimba "Entrada (cliente)" sem ter o dado', dView.origem === null,
+   'origem: ' + JSON.stringify(dView.origem));
+
+const estView = comoPapel('bancada', '(function(){ currentTab="estoque"; return renderEstoque(); })()');
+ok('a tela monta com o item da view', /iPhone 16 Plus/.test(estView));
+ok('nenhum NaN escapa pra tela', !/NaN/.test(estView));
+ok('nenhum campo de custo aparece', !/valor_estoque/.test(estView));
+
+// O sócio continua lendo a TABELA, com custo — a view não pode ter virado a
+// fonte de todo mundo por engano.
+const dSocio = comoPapel('socio', 'dadosDoItem({id:9, titulo:"iPhone 15 128GB Preto", produto:{titulo:"iPhone 15 128GB Preto"}, valor_estoque: 3000, ultimo_fornecedor:"STP"})');
+ok('sócio com a tabela segue calculando custo e margem',
+   dSocio.custo === 3000 && dSocio.margem === 1200 && dSocio.origem === 'STP',
+   JSON.stringify({custo:dSocio.custo, margem:dSocio.margem, origem:dSocio.origem}));
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

@@ -172,7 +172,10 @@ async function loadBancadaData(){
   allVendas=[];allMovs=[];ajustesAcessorios=[];
   try{
     setProgress(30,'Carregando estoque...');
-    const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
+    // VIEW, nao tabela: `v_estoque_vitrine` nao tem `valor_estoque` nem
+    // `ultimo_fornecedor`. Desde 17/ago a tabela `estoque` e so do socio -- RLS
+    // e por linha, nao por coluna, entao esconder custo exigia trocar a fonte.
+    const estoque = await sbGet('v_estoque_vitrine', 'order=titulo.asc');
     estoqueItens = (estoque||[]).map(i=>({ ...i, produto:{ titulo:i.titulo } }));
     setProgress(70,'Carregando bancada...');
     if(typeof carregarBancada === 'function') await carregarBancada();

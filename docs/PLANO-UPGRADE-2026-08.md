@@ -438,10 +438,24 @@ em silêncio**.
 do que a folha pagou, por causa dos atendimentos resgatados no passo 1. Histórico só depois do
 snapshot (§2.2).
 
-**Ficou pra 3b, e é honesto dizer:** a tabela `estoque` **não** foi fechada. `v_estoque_vitrine`
-existe, mas o `estoque.js` ainda lê a tabela direto, e a view não tem `ultimo_fornecedor` — trocar
-a fonte agora **muda o que o Vitinho vê hoje** (o filtro de Origem some da tela dele). Isso merece
-conferência própria, não um efeito colateral desta entrega.
+### 6.0d ✅ Passo 3b — feito em 17/ago/2026 (a última porta aberta fechou)
+
+`estoque_leitura` virou `eh_socio()`, e a carga do papel `bancada` passou a ler `v_estoque_vitrine`.
+As duas pontas na mesma entrega — a migration sozinha deixaria a tela do Vitinho vazia.
+
+**Conferido:** Vitinho lê **0** na tabela `estoque` e **215** na view; sócio segue com **1.722**.
+Assistência (103 linhas), correções e estado seguem funcionando.
+
+Duas coisas que apareceram só ao fazer:
+
+1. **O filtro de Origem já estava protegido.** Eu tinha dito que ele sumiria da tela do Vitinho —
+   estava errado: `renderEstoque()` já o esconde atrás de `podeVerMargem()` desde antes, e o
+   `test/perfis.test.js` já provava isso. A entrega mudou menos do que eu previ.
+2. **Campo ausente não é zero** — e essa virou regra. Item vindo da view não tem custo, e
+   `custo = 0` faria `margem = preço cheio`: número inventado esperando alguém mostrar. Agora
+   `dadosDoItem()` devolve `null` em custo e margem, e `origemDoItem()` parou de carimbar
+   *"Entrada (cliente)"* em quem simplesmente não recebeu o campo — que teria virado 100% do
+   estoque na tela dele.
 
 ### 6.1 O primeiro passo, concretamente
 

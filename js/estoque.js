@@ -112,7 +112,10 @@ function geracaoDe(modelo){
 function dadosDoItem(item){
   const titulo = item.produto?.titulo || item.titulo || '';
   const { modelo, capacidade, cor, condicao } = parseTitulo(titulo);
-  const custo = parseFloat(item.valor_estoque || 0);
+  // ⚠️ Ausente NAO e zero. Quem nao ve margem le `v_estoque_vitrine`, que nao
+  // traz `valor_estoque` -- e "custo 0" viraria "margem = preco cheio", numero
+  // inventado esperando alguem mostrar. Sem o dado, custo e margem sao null.
+  const custo = item.valor_estoque == null ? null : parseFloat(item.valor_estoque);
   const preco = getPrecoVendaSync(item);
   const venda = preco && preco.varejo != null ? preco.varejo : null;
   // A correcao do time entra por cima do que a FoneNinja mandou. IMEI nao: ele
@@ -120,7 +123,7 @@ function dadosDoItem(item){
   const corr = typeof correcoesDoApple === 'function' ? correcoesDoApple(item.id) : {};
   return {
     item, titulo, modelo, capacidade, cor, condicao, custo, venda,
-    margem: venda != null ? venda - custo : null,
+    margem: (venda != null && custo != null) ? venda - custo : null,
     geracao: geracaoDe(modelo),
     origem: origemDoItem(item),
     bateria: parseInt((corr.bateria && corr.bateria.valor_novo) || item.bateria || 0),
@@ -142,7 +145,17 @@ function limparFiltrosEstoque(){
 
 // Aparelho sem fornecedor nunca passou por uma compra: e entrada de cliente
 // (upgrade). Confirmado nos dados — dos 39 sem fornecedor, zero em compras.
+//
+// ⚠️ Essa inferencia so vale se o fornecedor PODE estar no dado. Desde 17/ago o
+// papel sem margem le `v_estoque_vitrine`, que nao traz `ultimo_fornecedor` --
+// e ali "sem fornecedor" significa "nao me contaram", nao "veio de cliente".
+// Sem esta guarda, a tela do Vitinho carimbaria "Entrada (cliente)" em 100% do
+// estoque: numero errado com cara de certo.
+function temFornecedorNoDado(){
+  return typeof podeVerMargem !== 'function' || podeVerMargem();
+}
 function origemDoItem(item){
+  if(!temFornecedorNoDado()) return null;
   const f = getFornNome(item);
   return (f && String(f).trim()) ? String(f).trim() : 'Entrada (cliente)';
 }

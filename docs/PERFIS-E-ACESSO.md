@@ -170,15 +170,18 @@ qualquer conta criada de agora em diante, inclusive a de sócio.
 
 Honestidade sobre o tamanho da trava:
 
-1. **`estoque.valor_estoque` continua alcançável pela API** por quem tem papel `bancada`. A tela
-   esconde (`money()` devolve `—`), o banco não — RLS é por linha, não por coluna, e todos os papéis
-   compartilham o mesmo role `authenticated` do Postgres.
-   - **Meio caminho andado em 17/ago:** a view existe (`v_estoque_vitrine`, sem `valor_estoque` e
-     sem `ultimo_fornecedor`). O que falta é o **front trocar de fonte** — hoje o `estoque.js` lê a
-     tabela direto, então apertar `estoque_leitura` para `eh_socio()` agora **derrubaria a tela do
-     Vitinho**. Fecha no passo 3 do plano, com as duas pontas na mesma entrega.
+✅ **Fechado em 17/ago/2026** — era `estoque.valor_estoque` alcançável pela API por qualquer perfil.
+A tela escondia com `money()`; o banco, não. Como **RLS é por linha, não por coluna**, esconder a
+coluna exigiu trocar a **fonte**: `estoque_leitura` agora é `eh_socio()`, e quem não é sócio lê
+`v_estoque_vitrine`. As duas pontas subiram juntas — a migration sozinha deixaria a tela do Vitinho
+vazia.
 
-Exige abrir o console e montar a chamada na mão, e o que vaza é custo de aparelho.
+Conferido: Vitinho lê **0** na tabela e **215** na view; sócio segue com **1.722**.
+
+Sobrou um detalhe de front que virou regra: **campo ausente não é zero.** Item vindo da view não tem
+custo, e `custo = 0` viraria `margem = preço cheio` — número inventado esperando alguém mostrar.
+`dadosDoItem()` devolve `null` nos dois, e `origemDoItem()` deixou de carimbar *"Entrada (cliente)"*
+em quem simplesmente não recebeu o campo. Protegido por `test/perfis.test.js`.
 
 ## Conferência de 17/ago/2026 — papel `comercial` e chaves
 
