@@ -204,8 +204,12 @@ Netlify publica a raiz do repo).
 conversa** — esses quatro só atendem online. Logo o lead existe e nós não achamos. Não é
 venda de balcão, é falha de cruzamento.
 
-**Teto real: 82 + 58 + 6 = 146 de 168 = 87%.** Só 22 vendas (13%) genuinamente não têm
-lead. Ou seja, não estamos em "45% é o máximo" — estamos em **48,8% de 87% possível**.
+⚠️ **Correção de 17/ago, depois do teste do N6:** eu tinha escrito aqui que o teto real
+seria 87% (82 + 58 + 6). **Isso não se sustenta.** O balde C não prova que o lead está lá
+— prova só que o nome não bateu, e o nome tem 23% de recall mesmo em par verdadeiro (ver
+a seção do N6). Do balde C, **15 vendas foram recuperadas pela marcação do fluxo (N0)**;
+as outras 43 continuam sem forma conhecida de decidir. Trate o balde C como
+**"não sabemos"**, não como "recuperável".
 
 ### O caminho pra atacar o balde C: o modelo negociado na conversa
 
@@ -236,6 +240,78 @@ Ordem sugerida:
 
 ⚠️ Limite conhecido: `n8n_chat_histories_instagram` tem `created_at` só desde 10/ago
 (95% das mensagens sem data). Pra período anterior, a data vem do lead, não da mensagem.
+
+## N6 foi implementado e testado — não funciona (17/ago/2026)
+
+Rodado sobre as 56 vendas do balde C que têm iPhone (2 são só acessório).
+Script: mesma estrutura do `02-matcher.sql`, com o modelo extraído da conversa.
+
+| teste | resolvidas sem ambiguidade |
+|---|---|
+| modelo da conversa, janela 7 dias | **1** de 45 com candidato |
+| modelo, janela 2 dias | 10 |
+| modelo dito pelo cliente (não pela Maju) | 10 |
+| modelo + nome como desempate, margem ≥ 0,15 | **1** |
+| modelo do **trade-in** (11 vendas com troca) | 1 |
+| trade-in + armazenamento | 2 |
+
+Média de **9,7 candidatos por venda** depois do filtro de modelo. O motivo é simples:
+o modelo tem pouca variedade. Metade das vendas é 13 / 14 / 15 / 15 Pro Max, e metade
+dos leads do dia negociou justamente esses. Filtrar por modelo corta o universo pela
+metade, não por vinte.
+
+### O que o teste do N6 revelou de mais importante
+
+Para desempatar eu usei o nome — e aí medi uma coisa que muda a leitura de tudo.
+
+**Controle contra a verdade conhecida:** peguei 43 vendas casadas por **telefone**
+(par certo, sem dúvida) e medi a similaridade entre o nome do lead e o nome do comprador:
+
+| similaridade do par CORRETO | vendas |
+|---|---|
+| ≥ 0,70 | 2 |
+| 0,45 – 0,70 | 7 |
+| 0,30 – 0,45 | 8 |
+| **< 0,30** | **27 (61%)** |
+
+**Mediana: 0,212.** O nome do WhatsApp/Instagram é o nome do perfil — apelido, só o
+primeiro nome, "Mãe", emoji. Ele quase nunca parece com o nome registrado na venda.
+
+**Consequência 1 — o N5 medido de verdade.** Rodando o N5 nessas 43 vendas de verdade
+conhecida, ignorando o telefone: ele dá palpite em 10, **acerta 8 e erra 2**.
+→ **precisão 80%, recall 23%.** Dos 29 matches de N5 em agosto, uns 6 devem estar errados.
+
+**Consequência 2 — o balde C não prova ausência.** Com 23% de recall, o esperado é mesmo
+que a maioria dos pares verdadeiros não seja encontrada por nome. ⚠️ **A estimativa de
+"teto de 87%" que estava aqui antes não se sustenta** — o balde C é "não sabemos", não
+"recuperável comprovado". O lead pode estar lá; nós é que não temos como provar.
+
+**Consequência 3 — o caminho por atributo está esgotado.** Modelo, armazenamento, troca e
+nome foram todos testados. Todos têm entropia baixa demais para identificar uma pessoa
+dentro dos ~60 leads que um vendedor recebe em dois dias.
+
+## O que funcionou: a marcação do próprio fluxo (N0)
+
+Das 58 vendas do balde C, **15 já estão marcadas em `contatos.id_venda`** — 9 pelo
+Instagram, 10 pelo WhatsApp, 4 com mais de um lead reivindicando (precisa desempate).
+
+Essa marcação vem do fluxo do n8n / do vendedor, **não do matcher**. Foi ela que eu tinha
+tratado como ruído no diagnóstico inicial, por causa da duplicação. O problema dela é
+duplicar, não estar errada — e ela alcança exatamente onde nenhum algoritmo alcança:
+Instagram sem telefone.
+
+**Ordem correta da cascata:**
+
+```
+N0  marcação do fluxo (contatos.id_venda), desduplicada  ← primeiro, é testemunho
+N1  telefone idêntico
+N2  nome idêntico
+N3  nome >= 0,85
+N4  nome 0,70-0,85
+N5  nome fraco + trava de vendedor   (precisão 80% — marcar como "provável")
+```
+
+**Cart 1–15/ago: 82 + 15 = 97 de 168 = 57,7%**, contra os 48,8% de antes.
 
 ### Quanto disso é teto e quanto é falha
 
