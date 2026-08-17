@@ -200,7 +200,40 @@ comPerfil({papel:'bancada', nome:'Vitor', at_key:'vitinho', ativo:true}, () => {
   else bad('a comissão própria quebrou sem o dado da rede');
 });
 
-// -- 4. estado de erro é honesto -------------------------------------------
+// -- 4. meses fechados vêm congelados --------------------------------------
+// Mês pago NÃO se recalcula: o mapa de apelidos de 17/ago resgatou
+// atendimentos que o código antigo perdia, então recalcular daria número
+// diferente do que a pessoa recebeu — e a tela discordaria do extrato dela.
+console.log('meses fechados');
+
+comPerfil({papel:'bancada', nome:'Vitor Lima', at_key:'vitinho', ativo:true}, () => {
+  run(`mdResumo = ${JSON.stringify(RESUMO)}; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = null;
+       mdFolha = [
+         { mes:'2026-07', func_id:'vitinho', comissao_vendedor:0, comissao_atendente:19,
+           bonus_meta:0, bonus_coletivo:600, bonus_extra:0, total_variavel:619 },
+         { mes:'2026-06', func_id:'vitinho', comissao_vendedor:25, comissao_atendente:632,
+           bonus_meta:100, bonus_coletivo:1000, bonus_extra:0, total_variavel:1757 },
+       ];`);
+  const html = run(`renderMeuDia()`);
+  if (html.includes('Meses fechados')) ok('o card dos meses fechados aparece');
+  else bad('meses fechados sumiram');
+  if (html.includes('R$619') && html.includes('R$1.757')) ok('mostra o total pago de cada mês');
+  else bad('totais dos meses fechados errados');
+  if (html.includes('jul/2026') && html.includes('jun/2026')) ok('rotula o mês por extenso curto');
+  else bad('rótulo de mês errado');
+  if (html.includes('não muda de valor')) ok('diz que mês fechado não muda');
+  else bad('não avisa que o mês fechado é congelado');
+});
+
+comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
+  run(`mdResumo = null; mdVendas = []; mdRede = null; mdFolha = []; mdCarregado = true; mdErro='';`);
+  const html = run(`renderMeuDia()`);
+  if (!html.includes('Meses fechados')) ok('sem mês fechado, o card não aparece');
+  else bad('card apareceu vazio');
+});
+
+// -- 5. estado de erro é honesto -------------------------------------------
 comPerfil({papel:'bancada', nome:'Vitor', at_key:'vitinho', ativo:true}, () => {
   run(`mdCarregado = true; mdErro = 'HTTP 500';`);
   const html = run(`renderMeuDia()`);

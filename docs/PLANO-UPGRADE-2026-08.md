@@ -480,6 +480,31 @@ lucro de terceiros, que não vai pro navegador de ninguém. A tela dela avisa qu
 fechamento, em vez de mostrar um total que ela descobriria incompleto no dia do pagamento. Fecha de
 vez com o snapshot.
 
+### 6.0f ✅ Passo 4 (parte 2) — o snapshot da folha
+
+`folha_mensal` + `scripts/folha-snapshot.js`. A opção **A** da §2.2, como estava previsto.
+
+**O script roda o `equipe.js` de verdade.** Carrega os `js/*.js` reais num contexto sem browser —
+mesma técnica do `test/fechamento.test.js` — e chama `fechamentoEquipe()`. A tentação era reescrever
+a folha em SQL; isso daria **dois donos do mesmo número**, e este repo já sabe como termina (as
+faixas copiadas em 6 lugares, jul/2026, R$ 1.000 a menos por pessoa).
+
+```
+node scripts/folha-snapshot.js 2026-07            # confere, não grava
+node scripts/folha-snapshot.js 2026-07 --gravar   # congela o mês
+```
+
+Precisa de `SUPABASE_SERVICE_ROLE_KEY` no ambiente — mesma convenção do `scripts/reparos.js`, o
+outro script que escreve no banco. **Dry-run é o padrão**: a primeira execução imprime a tabela e
+não grava nada.
+
+Na tela, "Meu dia" ganhou **Meses fechados** — lidos de `folha_mensal`, com RLS de linha própria, e
+**nunca recalculados**. É o que resolve o problema que o passo 1 abriu: recalcular mês pago hoje
+daria número diferente do que a pessoa recebeu, e a tela discordaria do extrato dela.
+
+De quebra, fecha o caso da Anne: o snapshot tem `bonus_extra`, então **em mês fechado o número dela
+é completo**. O aviso do 5% vale só para o mês corrente.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra

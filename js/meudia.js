@@ -24,6 +24,7 @@
 let mdResumo = null;      // linha de v_minha_comissao_mes do mes corrente
 let mdVendas = [];        // v_minhas_vendas do mes corrente
 let mdRede   = null;      // linha de v_meta_rede_mes -- total da rede, sem nome
+let mdFolha  = [];        // folha_mensal -- meses JA FECHADOS, congelados
 let mdCarregado = false;
 let mdErro = '';
 
@@ -42,18 +43,22 @@ async function carregarMeuDia(){
   mdErro = '';
   const mes = mdMesCorrente();
   try{
-    const [resumo, vendas, rede] = await Promise.all([
+    const [resumo, vendas, rede, folha] = await Promise.all([
       sbGet('v_minha_comissao_mes', `mes=eq.${mes}`, 1),
       sbGet('v_minhas_vendas', `data_saida=gte.${mes}-01&order=data_saida.desc`, 500),
       sbGet('v_meta_rede_mes', `mes=eq.${mes}`, 1),
+      // Mes fechado NAO se recalcula: vem congelado de folha_mensal, gravado
+      // por scripts/folha-snapshot.js rodando o fechamentoEquipe() real.
+      sbGet('folha_mensal', `mes=lt.${mes}&order=mes.desc`, 12),
     ]);
     mdResumo = (resumo && resumo[0]) || null;
     mdVendas = vendas || [];
     mdRede   = (rede && rede[0]) || null;
+    mdFolha  = folha || [];
   }catch(e){
     console.warn('[meudia] carga falhou:', e.message);
     mdErro = e.message || 'falha ao carregar';
-    mdResumo = null; mdVendas = []; mdRede = null;
+    mdResumo = null; mdVendas = []; mdRede = null; mdFolha = [];
   }
   mdCarregado = true;
 }
@@ -198,7 +203,7 @@ function renderMeuDia(){
       <div class="md-ola">Olá${nome ? ', '+UI.esc(nome.split(' ')[0]) : ''}</div>
       ${heroi}
     </div>
-    ${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${tabela}
+    ${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${mdCardFechados()}${tabela}
     <div class="md-rodape">Fecha no fim do mês. Número da folha é o do Breno — se não bater, fale com ele.</div>
   </div>`;
 }
@@ -214,6 +219,39 @@ function mdBaseDaConta(bruto, lucro, comissao){
     <span class="md-conta-linha">Menos o que custou, sobra <b>${brl(lucro)}</b></span>
     <span class="md-conta-linha">25% disso é a sua comissão: <b>${brl(comissao)}</b></span>
   </div>`;
+}
+
+// -- Meses fechados ----------------------------------------------------------
+// Vem de `folha_mensal`, congelado. NUNCA recalculado aqui: o mapa de apelidos
+// de 17/ago resgatou atendimentos que o codigo antigo perdia, entao recalcular
+// mes pago daria um numero diferente do que a pessoa recebeu -- e ela veria a
+// tela discordar do proprio extrato.
+function mdCardFechados(){
+  if(!mdFolha.length) return '';
+  const linhas = mdFolha.map(f => {
+    const partes = [];
+    if(Number(f.comissao_vendedor))  partes.push(`${brl(f.comissao_vendedor)} aparelho`);
+    if(Number(f.comissao_atendente)) partes.push(`${brl(f.comissao_atendente)} acessório`);
+    if(Number(f.bonus_meta))         partes.push(`${brl(f.bonus_meta)} meta`);
+    if(Number(f.bonus_coletivo))     partes.push(`${brl(f.bonus_coletivo)} time`);
+    if(Number(f.bonus_extra))        partes.push(`${brl(f.bonus_extra)} extra`);
+    return [
+      mdRotuloMes(f.mes),
+      partes.join(' · ') || '—',
+      { v: brl(f.total_variavel), num:true },
+    ];
+  });
+  return UI.card({
+    titulo:'Meses fechados',
+    sub:'já pagos',
+    flush:true,
+    corpo: UI.tabela({
+      colunas:[{titulo:'Mês'},{titulo:'Composição'},{titulo:'Total', num:true}],
+      linhas,
+    }) + `<div class="md-rodape" style="text-align:left;padding:10px 14px 4px">
+      Mês fechado não muda de valor. Estes números são os do fechamento que foi pago.
+    </div>`
+  });
 }
 
 function mdLinhaComposicao(commVo, commAt, bonusCol){
