@@ -143,6 +143,40 @@ vencedor é IG em 53 casos contra 44 do WhatsApp. Origem dos 97: Orgânico 58, M
 ⚠️ Zero empate **não é** zero erro — significa que só existe um lead plausível, não que
 ele é o certo. O N5 merece uma amostra revisada à mão antes de virar produção.
 
+## Onde chegamos SEM mudar nada na coleta — 1 a 15/ago/2026
+
+Cascata completa (N1–N5), as duas lojas, sem nenhuma das três mudanças de coleta:
+
+| | Cart | Urban | total |
+|---|---|---|---|
+| vendas | 168 | 53 | **221** |
+| **casadas** | 80 | 21 | **101 (45,7%)** |
+| **não casadas** | 88 | 32 | **120** |
+| N1 telefone | 51 | 6 | 57 |
+| N2 nome idêntico | 6 | 2 | 8 |
+| N4 nome 0,70–0,85 | 7 | 0 | 7 |
+| N5 trava de vendedor | 16 | 13 | 29 |
+
+Canal do vencedor: WhatsApp 62, Instagram 39. Origem: Orgânico 59, Meta Ads 35,
+Google Ads 2, sem origem gravada 5.
+
+**Sem o N5 seriam 72 de 221 (32,6%).** A trava de vendedor sozinha responde por 29 das
+101 — e é o que segura a Urban de pé (13 dos 21 dela).
+
+### Quanto disso é teto e quanto é falha
+
+Dos 168 da Cart:
+
+- **62 têm telefone que já apareceu no WhatsApp** alguma vez. O matcher pegou **51**
+  — 82% do que era possível. Os 11 restantes caem fora da janela de 45 dias.
+- **97 nunca apareceram no WhatsApp.** Ou vieram pelo Instagram (invisível, porque IG não
+  tem telefone) ou é venda de loja pura, sem conversa nenhuma. **Com o dado de hoje não
+  dá pra separar as duas coisas** — e é aí que moram quase todos os 88 não casados.
+- 9 não têm telefone no painel.
+
+Ou seja: **no WhatsApp já estamos perto do teto (82%). O buraco inteiro é Instagram**, e
+lá o problema não é o algoritmo — é que não existe chave.
+
 ## O que ainda falta (e o que só parecia faltar)
 
 **Falta de verdade — o telefone do lead de Instagram.** Não é problema de parsing, é de
