@@ -187,6 +187,56 @@ espaçadas, e no N5 aceita nome a partir de 4 letras (a trava de vendedor proteg
 **Ganho medido: 80 → 82 vendas na Cart de agosto (47,6% → 48,8%), e 2 empates novos no
 N5.** Pouco, mas é grátis e para de destruir nome válido em silêncio.
 
+### Por que cada venda não cruzou — Cart, 1–15/ago, 168 vendas
+
+Lista venda a venda em `.scratch/atribuicao/cart-2026-08-01-a-15.csv` (gitignored: a
+Netlify publica a raiz do repo).
+
+| balde | vendas | % | é teto ou é recuperável? |
+|---|---|---|---|
+| **CASOU** | 82 | 48,8% | — |
+| **C. vendedor online vendeu, nenhum lead achado** | **58** | **34,5%** | **recuperável — o lead existe** |
+| D. venda de loja (vendedor não é VO) | 14 | 8,3% | teto legítimo |
+| A. venda sem telefone no painel | 8 | 4,8% | teto |
+| B. tem lead no WhatsApp, fora da janela | 6 | 3,6% | recuperável (ajuste de janela) |
+
+⚠️ **O balde C é o achado.** Se David, Isa, Mel ou Maria fecharam a venda, **houve
+conversa** — esses quatro só atendem online. Logo o lead existe e nós não achamos. Não é
+venda de balcão, é falha de cruzamento.
+
+**Teto real: 82 + 58 + 6 = 146 de 168 = 87%.** Só 22 vendas (13%) genuinamente não têm
+lead. Ou seja, não estamos em "45% é o máximo" — estamos em **48,8% de 87% possível**.
+
+### O caminho pra atacar o balde C: o modelo negociado na conversa
+
+O que ainda não foi usado: **84% das conversas de Instagram (17.512 de 20.894) citam um
+modelo de iPhone**. E `venda_produtos.titulo` diz o modelo comprado em 100% das vendas.
+
+Isso é um segundo eixo, independente do nome:
+
+```
+N6  mesmo vendedor + janela apertada (±2 dias)
+    + modelo citado na conversa == modelo comprado na venda
+    → aceita mesmo com nome fraco ou ausente
+```
+
+Por que funciona: cada VO recebe **11 a 20 leads por dia** (David 20,3 · Isa 15,9 ·
+Mel 13,9 · Maria 11,0). Numa janela de ±2 dias são ~60 candidatos; filtrando pelo modelo
+negociado, cai pra poucas unidades. O nome fraco então vira desempate, não chave.
+
+Ordem sugerida:
+
+1. **Extrair o modelo citado por sessão** de `n8n_chat_histories_*` (regex simples resolve
+   a maior parte: `iPhone 13`, `13 Pro`, `15 Pro Max`). Guardar por `session_id`.
+2. **Ligar sessão → lead**: `session_id = contatosInstagram.telefone || '-cart'`, casa em
+   98,8%.
+3. **Rodar o N6** só sobre o balde C e medir empates, do mesmo jeito que foi feito no N5.
+4. Se o N6 fechar bem, o mesmo pipeline de leitura de conversa já serve pro objetivo
+   maior — analisar atendimento e padrão de venda.
+
+⚠️ Limite conhecido: `n8n_chat_histories_instagram` tem `created_at` só desde 10/ago
+(95% das mensagens sem data). Pra período anterior, a data vem do lead, não da mensagem.
+
 ### Quanto disso é teto e quanto é falha
 
 Dos 168 da Cart:
