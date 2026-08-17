@@ -168,9 +168,10 @@ Isso não é invenção nova — é a regra que o repo já escolheu duas vezes e
 dinheiro"*, e `podeVerCustoServico()` nasceu pelo mesmo motivo. **Três papéis e duas chaves cobrem
 todo mundo hoje, e o híbrido de amanhã não pede papel nenhum.**
 
-⚠️ **Isto muda uma política, não só código:** mostrar a comissão pro Vitinho significa que ele passa
-a ver o **lucro de acessórios das vendas que ele atendeu**. Hoje ele não vê dinheiro nenhum de
-venda. É a mesma decisão em aberto da §4.2, agora com nome e sobrenome — precisa do seu ok.
+✅ **Política aprovada em 17/ago:** o Vitinho **passa a ver a comissão dele**, incluindo a soma do
+lucro de acessórios das vendas que ele atendeu. Preço de aparelho, custo e margem seguem fechados —
+`podeVerValor()` e `podeVerMargem()` continuam `false` pra ele. O que abre é um quarto interruptor,
+**a base da própria comissão**, e ele vale pra todo mundo que atende (§4.2).
 
 ---
 
@@ -389,16 +390,20 @@ pessoa certa e mostra pra errada, e **os dois erros são silenciosos**.
 
 ## 8. Ainda em aberto
 
-1. **O Vitinho passa a ver a comissão dele?** (§2.8) É o que muda de política: hoje ele não vê R$
-   nenhum de venda. Recomendo **sim** — 52 atendimentos em agosto sem retorno na tela é o pior dos
-   dois mundos.
-2. **A base da comissão do atendente** (§4.2) — mostrar ou não a soma do lucro de acessórios das
-   vendas dele. Vale pro Vitinho, pra Anne, pro Leo, pra Gabi e pro Davi de uma vez.
-3. **A Maria recebe 25% de acessório de verdade?** Se não, tirar o `at_key` dela.
-4. **`maju`** — a IA entra no cadastro como pessoa? São 18 vendas em julho sem dono.
-5. **O Gustavo aparece no ranking de vendedor?** Ele vende 1–3 por mês e é sócio.
-6. **Franquia de dados** — celular do colaborador é pessoal? Muda o quanto vale investir em carga
+### Fechadas em 17/ago
+
+| Pergunta | Decisão |
+|---|---|
+| Vitinho vê a comissão dele? | **Sim** — só o dinheiro dele; aparelho, custo e margem seguem fechados |
+| Base do cálculo dos 25% | **A soma do mês**, agregada. Não venda a venda |
+| A Maria recebe as duas comissões? | **Sim** — fica com `vo_key` **e** `at_key`, e vira o teste do modelo híbrido |
+| `maju` (a IA) | **Entra no cadastro como pessoa** — sem salário nem comissão, só atribuição, pra as 18 vendas de julho pararem de ser órfãs |
+
+### Ainda abertas (nenhuma trava o primeiro passo)
+
+1. **O Gustavo aparece no ranking de vendedor?** Ele vende 1–3 por mês e é sócio.
+2. **Franquia de dados** — celular do colaborador é pessoal? Muda o quanto vale investir em carga
    enxuta na fase 1 (e se o manifest PWA sobe de prioridade).
-7. **Qual tela você abre 10× por dia, e qual você nunca abre?** Quero ancorar a estrutura no uso
+3. **Qual tela você abre 10× por dia, e qual você nunca abre?** Quero ancorar a estrutura no uso
    real antes da fase 4.
-8. **Alguém de fora precisa ver algo?** (contador, sócio investidor)
+4. **Alguém de fora precisa ver algo?** (contador, sócio investidor)
