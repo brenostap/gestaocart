@@ -54,7 +54,7 @@ let vendasSearch='',vendasLoja='todas',vendasVendedor='todos',vendasAtendente='t
 let vendasConta='todas';
 
 const FUNC=[
-  {id:'david',  ap:'David',   nome:'Davi da Silva Ramos',         cargo:'Vendedor',          pix:'(11) 98288-1180',          tipo:'online',    email:'',                                   voKey:'david'  },
+  {id:'david',  ap:'David',   nome:'Davi da Silva Ramos',         cargo:'Vendedor',          pix:'(11) 98288-1180',          tipo:'online',    email:'davidsr122004@gmail.com',             voKey:'david'  },
   {id:'isa',    ap:'Isa',     nome:'Isabella de Almeida Teixeira',cargo:'Vendedora',          pix:'(11) 97710-4588',          tipo:'online',    email:'contatoisabelladealmeida@gmail.com',  voKey:'isa'    },
   {id:'mel',    ap:'Mel',     nome:'Melissa',                     cargo:'Vendedora',          pix:'11947154518',              tipo:'online',    email:'melfiengo@gmail.com',                 voKey:'mel'    },
   {id:'vitinho',ap:'Vitinho', nome:'Vitor Lima',                  cargo:'Atendente',          pix:'(11) 95836-7649',          tipo:'presencial',email:'vitorgsc31@gmail.com',                atKey:'vitinho'},
