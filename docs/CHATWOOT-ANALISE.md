@@ -274,3 +274,66 @@ mudança) e atualizar a Urban. Não para análise de conversão.
 **Ser transferido multiplica a conversão por 5,9×** — medido em coorte madura, com 1.152 contra
 2.522 casos. Isso confirma o achado dos 71% com estatística muito melhor que os 11 contra 1 do
 Chatwoot de agosto. É o mesmo fato, medido duas vezes por caminhos independentes.
+
+## O gatilho da escalada — coorte de junho, 3.674 sessões (17/ago/2026)
+
+Fonte: `n8n_chat_histories_maju_v2` + `contatosBreno`. Recorte: sessões com preço dado e **5+
+mensagens do cliente** — 940 que escalaram contra 1.004 que não. O recorte existe pra tirar o
+óbvio da conta: conversa longa escala mais só porque tem mais chance de escalar.
+
+### A diferença sobrevive ao controle de engajamento
+
+| msgs do cliente | com preço | % que escalou | conv. se escalou | conv. se NÃO |
+|---|---|---|---|---|
+| 0–2 | 192 | 3,6% | 14,29% | 2,16% |
+| 3–4 | 537 | 9,9% | 5,66% | 1,45% |
+| 5–7 | 910 | 30,8% | 10,00% | 1,27% |
+| 8–11 | 632 | 55,2% | 10,60% | 1,77% |
+| 12+ | 402 | 77,4% | 16,40% | 2,20% |
+
+**Em toda faixa, escalar separa.** Mesmo entre os mais engajados (12+ mensagens), quem escalou
+converteu 16,4% contra 2,2%. Não é só "gente engajada escala e gente engajada compra".
+
+### ⭐ O gatilho não é querer comprar — é falar um dia
+
+| sinal | ESCALOU (940) | vazou (1.004) |
+|---|---|---|
+| **cliente falou dia/horário** | **35,2%** | **10,2%** |
+| cliente sinalizou compra ("vou querer", "vou levar", "pode separar") | 29,7% | **38,5%** |
+| cliente pediu endereço | 15,2% | 10,9% |
+| cliente falou de troca | 20,7% | 22,9% |
+| **IA ofereceu visita** | **84,9%** | **87,1%** |
+
+Duas leituras que saltam:
+
+1. **A IA oferece visita nos dois grupos igualmente** (85% vs 87%). Ela sempre oferece. O que muda
+   é o cliente responder com um dia.
+2. **As que vazaram têm MAIS sinal de compra que as que escalaram** (38,5% contra 29,7%). A
+   escalada é, se alguma coisa, *inversamente* correlacionada com dizer que quer comprar.
+
+**Conclusão: a regra de escalada hoje é de agendamento, não de intenção.** Quem diz "vou querer"
+mas não marca dia não aciona ninguém.
+
+### O tamanho disso
+
+**348 conversas** em junho: o cliente sinalizou compra, **não** falou um dia, ninguém foi chamado.
+Converteram **0,29% (1 de 348)**. As 177 equivalentes que *escalaram* — mesmo sinal, mesma ausência
+de dia — converteram **5,65%**.
+
+Escalar essas 348 ao patamar das 177 daria ~20 vendas em junho, sobre as 180 que aconteceram
+(**+11%**).
+
+⚠️ **Não use a taxa da faixa cheia (10–16%) pra dimensionar isso.** Quem sinaliza compra sem marcar
+dia converte menos mesmo quando escalado (5,65%), porque está menos comprometido que quem deu data.
+Usar 10% infla a promessa em 2×.
+
+⚠️ **Correlação, não causa provada.** O contrafactual assume que as 348 se comportariam como as 177,
+e elas podem diferir em algo não medido.
+
+### Nota de método: dois falsos positivos meus
+
+- `\m(quero|queria)\M` pega *"quero saber o preço"*. Inútil como sinal — 62% das conversas têm.
+  O recorte que presta é a forma comprometida: `vou querer|vou levar|pode separar|quero comprar`.
+- Mesmo essa pega negação: *"eu **não** vou querer comprar não"*. Excluir negação nas 25 letras
+  anteriores corrige — mas moveu pouco (389→387 e 283→279), então o achado não dependia disso.
+  Ficou no SQL porque na próxima janela pode pesar mais.
