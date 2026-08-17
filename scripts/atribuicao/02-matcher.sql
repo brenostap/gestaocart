@@ -41,7 +41,23 @@
 -- query estoura o timeout. Cada join aqui comeca por um predicado barato
 -- (igualdade de telefone, ou vendedor+data) e so entao mede similaridade.
 
-with vendas_raw as (
+-- mapa: dobra as fontes decorativas do Instagram de volta pra a-z.
+-- O nome do lead de IG e o *display name* do perfil, e ~5% dos clientes escrevem em
+-- fonte matematica Unicode (𝔐𝔞𝔱𝔥𝔢𝔲𝔰 𝔭𝔞𝔰𝔰𝔬𝔰). Sem dobrar, o regexp [^a-z ] apaga tudo
+-- e o nome vira string vazia — o lead sumia do match em silencio.
+-- Os 13 valores sao as bases dos blocos U+1D400..U+1D670 (negrito, italico, script,
+-- fraktur, double-struck, sans, mono...), cada um com 52 pontos (A-Z depois a-z).
+with mapa as (
+  select
+    (select string_agg(chr(b + i), '' order by b, i)
+       from (values (119808),(119860),(119912),(119964),(120016),(120068),(120120),
+                    (120172),(120224),(120276),(120328),(120380),(120432)) t(b),
+            generate_series(0,51) i) as de,
+    (select string_agg('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz','' order by b)
+       from (values (119808),(119860),(119912),(119964),(120016),(120068),(120120),
+                    (120172),(120224),(120276),(120328),(120380),(120432)) t(b)) as para
+),
+vendas_raw as (
   select unnest(string_to_array($v${{VENDAS}}$v$, chr(10))) l
 ),
 v as (
@@ -70,7 +86,7 @@ leads_raw as (
     from public."contatosInstagram"
    where coalesce("ultimaMensagem", created_at) >= '2026-05-10'
 ),
-l as (
+l0 as (
   select
     canal, lead_id, origem,
     lower(btrim(vend))                              as vend,
@@ -79,10 +95,17 @@ l as (
     coalesce(ult, created_at)::date                 as d_fim,
     right(regexp_replace(coalesce(telefone, ''), '\D', '', 'g'), 9) as tel9,
     btrim(regexp_replace(regexp_replace(
-      translate(lower(coalesce(nome, '')),
+      translate(lower(translate(coalesce(nome, ''), (select de from mapa), (select para from mapa))),
         'áàâãäéèêëíìîïóòôõöúùûüçñ', 'aaaaaeeeeiiiiooooouuuucn'),
-      '[^a-z ]', ' ', 'g'), ' +', ' ', 'g'))        as nome
+      '[^a-z ]', ' ', 'g'), ' +', ' ', 'g'))        as nome0
   from leads_raw
+),
+l as (
+  -- "K A R O L" -> "karol". Perfil de IG que escreve o nome com espaco entre as
+  -- letras vira uma sequencia de tokens de 1 letra e nao casa com nada.
+  select canal, lead_id, origem, vend, dt, d_ini, d_fim, tel9,
+    case when nome0 ~ '^[a-z]( [a-z])+$' then replace(nome0, ' ', '') else nome0 end as nome
+  from l0
 ),
 -- N1: telefone. Join barato (igualdade), depois a janela.
 p_tel as (
@@ -109,7 +132,9 @@ p_vo as (
          similarity(l.nome, v.nome) as sim
   from v join l on l.vend = v.vendedor
                and l.dt between v.data_venda - 30 and v.data_venda + 1
-  where similarity(l.nome, v.nome) >= 0.45
+  where length(l.nome) >= 4          -- aqui pode ser 4, e nao 8 como no p_nome: a
+                                     -- trava de vendedor+data ja segurou o universo
+    and similarity(l.nome, v.nome) >= 0.45
     and similarity(l.nome, v.nome) <  0.70
 ),
 todos as (

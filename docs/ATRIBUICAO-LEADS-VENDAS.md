@@ -163,6 +163,30 @@ Google Ads 2, sem origem gravada 5.
 **Sem o N5 seriam 72 de 221 (32,6%).** A trava de vendedor sozinha responde por 29 das
 101 — e é o que segura a Urban de pé (13 dos 21 dela).
 
+### O nome do Instagram é o display name do perfil — e um quarto dele é inútil
+
+`contatosInstagram.nome` **não** é o @ nem um nome informado: é o **nome de exibição do
+perfil**, o que a pessoa escolheu mostrar. Dos 1.679 leads de IG de agosto (Cart):
+
+| | leads | % |
+|---|---|---|
+| parece "nome sobrenome" | 1.048 | 62% |
+| só um nome, sem sobrenome | 326 | 19% |
+| tem dígito ou símbolo no meio | 218 | 13% |
+| **vira string vazia ao normalizar** | **142** | **8,5%** |
+| **fica com menos de 8 letras → excluído do match** | **396** | **23,6%** |
+| fonte matemática Unicode (𝔐𝔞𝔱𝔥𝔢𝔲𝔰) | 93 | 5,5% |
+| letras espaçadas (`K A R O L`) | 14 | 0,8% |
+
+Exemplos reais: `Lane Alves` e `Hiago Teixeira` casam bem; `Evelyn` e `level A` são
+parciais; `𝖇𝖎𝖆𝖟𝖎𝖓𝖍𝖆.🦋`, `🌀`, `.` e `LGND #63259# Adriano` não casam com nada.
+
+**Correção aplicada em 17/ago:** o matcher agora dobra as fontes Unicode de volta pra
+a-z (`𝔐𝔞𝔱𝔥𝔢𝔲𝔰 𝔭𝔞𝔰𝔰𝔬𝔰` → `matheus passos`, que antes virava string vazia), junta letras
+espaçadas, e no N5 aceita nome a partir de 4 letras (a trava de vendedor protege).
+**Ganho medido: 80 → 82 vendas na Cart de agosto (47,6% → 48,8%), e 2 empates novos no
+N5.** Pouco, mas é grátis e para de destruir nome válido em silêncio.
+
 ### Quanto disso é teto e quanto é falha
 
 Dos 168 da Cart:
