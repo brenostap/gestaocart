@@ -1034,23 +1034,18 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
    ========================================================================= */
 .md-tela{ display:flex; flex-direction:column; gap:14px; }
 
-.md-topo{
-  display:flex; flex-direction:column; gap:4px;
-  padding:20px 20px 22px;
-  background:var(--card); border:1px solid var(--border);
-  border-radius:var(--radius-card); box-shadow:var(--shadow-sm);
+.md-cabecalho{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding:2px 2px 0;
 }
 .md-ola{
   font-family:var(--font-mono); font-size:var(--fs-caption);
   letter-spacing:.08em; text-transform:uppercase; color:var(--text4);
 }
-.md-heroi{ display:flex; flex-direction:column; gap:2px; }
-.md-heroi-rot{ font-size:var(--fs-body); color:var(--text3); }
-.md-heroi-val{
-  font-size:var(--fs-display); line-height:var(--lh-display); font-weight:700;
-  letter-spacing:-.02em; color:var(--success); font-variant-numeric:tabular-nums;
+.md-mes{
+  font-family:var(--font-mono); font-size:var(--fs-caption);
+  color:var(--text3); font-variant-numeric:tabular-nums;
 }
-.md-heroi-sub{ font-size:var(--fs-caption); color:var(--text4); margin-top:4px; }
 
 /* Meta: a barra so vale acompanhada do "faltam X" -- barra sozinha nao diz o
    que fazer amanha, e essa tela existe pra mudar comportamento. */
@@ -1141,4 +1136,47 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .vit-card{ padding:12px; }
   /* Alvo de toque de 44px no botão de copiar, que é o gesto do dia todo. */
   .vit-acoes .c-btn{ min-height:40px; padding-inline:14px; }
+}
+
+/* -- Meu dia: vendas agrupadas por dia (17/ago/2026) ----------------------
+   Lista corrida não responde "como foi terça?". O total do dia é o número
+   que a pessoa compara com a memória dela — por isso ele é o âncora à
+   direita do cabeçalho, e não mais uma célula no meio da linha. */
+.md-dias{ display:flex; flex-direction:column; gap:14px; margin-top:12px; }
+
+.md-dia{ display:flex; flex-direction:column; }
+.md-dia-cab{
+  display:flex; align-items:baseline; gap:10px;
+  padding:6px 0 6px; border-bottom:1px solid var(--border);
+  position:sticky; top:0; background:var(--card); z-index:1;
+}
+.md-dia-nome{ font-size:var(--fs-body); font-weight:650; color:var(--text); }
+.md-dia-meta{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text4); }
+.md-dia-total{
+  margin-left:auto; font-weight:700; color:var(--success);
+  font-variant-numeric:tabular-nums;
+}
+
+.md-venda{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0; border-bottom:1px solid var(--border);
+}
+.md-venda:last-child{ border-bottom:none; }
+.md-venda-cliente{
+  flex:1; min-width:0; font-size:var(--fs-body); color:var(--text2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.md-venda-tags{ display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.md-venda-papel{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text4); }
+.md-venda-valor{
+  font-variant-numeric:tabular-nums; font-weight:600; color:var(--text);
+  white-space:nowrap;
+}
+
+/* -- Vitrine: filtros de modelo e capacidade ------------------------------ */
+.vit-filtros{ display:flex; gap:8px; }
+.vit-filtros .c-select{ flex:1; min-width:0; font-size:15px; }
+
+@media (max-width:720px){
+  .md-venda-cliente{ font-size:13px; }
 }

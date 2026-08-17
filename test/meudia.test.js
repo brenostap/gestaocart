@@ -118,6 +118,58 @@ comPerfil({papel:'bancada', nome:'Vitor Lima', at_key:'vitinho', ativo:true}, ()
 
   if (html.includes('Fulano')) ok('a lista de vendas monta');
   else bad('a lista de vendas não montou');
+
+  // O herói de comissão saiu a pedido do dono (17/ago): repetia o que os cards
+  // de baixo já dizem. Cada parcela mora onde ela nasce.
+  if (!html.includes('md-heroi')) ok('sem o card-herói de comissão');
+  else bad('o herói de comissão continua na tela');
+});
+
+// -- 3b. vendas agrupadas por dia (17/ago/2026) -----------------------------
+// Lista corrida não responde "como foi terça?". O total do dia é o número que
+// a pessoa compara com a memória dela.
+console.log('vendas por dia');
+
+const VENDAS_DIAS = [
+  { id:1, loja:'cart',  data_saida:'2026-08-15T18:00:00+00:00', cliente_nome:'Ana',
+    valor_total:'1000.00', fui_vendedor:true, fui_atendente:false },
+  { id:2, loja:'urban', data_saida:'2026-08-15T20:00:00+00:00', cliente_nome:'Bruno',
+    valor_total:'2000.00', fui_vendedor:true, fui_atendente:false },
+  { id:3, loja:'cart',  data_saida:'2026-08-14T15:00:00+00:00', cliente_nome:'Carla',
+    valor_total:'500.00',  fui_vendedor:true, fui_atendente:false },
+];
+
+comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
+  run(`mdResumo = null; mdRede = null; mdFolha = []; mdCarregado = true; mdErro='';
+       mdVendas = ${JSON.stringify(VENDAS_DIAS)};
+       mdFiltroLoja='todas'; mdFiltroDia='todos';`);
+  const html = run(`renderMeuDia()`);
+
+  if (html.includes('R$3.000') && html.includes('R$500'))
+    ok('total por dia: 15/08 soma R$3.000, 14/08 soma R$500');
+  else bad('totais por dia errados');
+  if (/s[áa]b, 15\/08/.test(html)) ok('o dia traz o dia da semana');
+  else bad('rótulo do dia sem dia da semana');
+
+  run(`setMdLoja('urban');`);
+  if (run(`mdVendasFiltradas().length`) === 1) ok('filtro por loja funciona');
+  else bad('filtro por loja errado');
+
+  run(`setMdLoja('todas'); setMdDia('2026-08-14');`);
+  const so14 = run(`mdVendasFiltradas()`);
+  if (so14.length === 1 && so14[0].cliente_nome === 'Carla') ok('filtro por dia funciona');
+  else bad('filtro por dia errado');
+
+  const vazio = run(`renderMeuDia()`);
+  if (/R\$500/.test(vazio) && !/R\$3\.000/.test(vazio)) ok('o total do card acompanha o filtro');
+  else bad('o total não respeitou o filtro');
+
+  run(`setMdLoja('urban');`);
+  if (/Nenhuma venda com esse filtro/.test(run(`renderMeuDia()`)))
+    ok('filtro sem resultado diz que é o filtro, não que não há venda');
+  else bad('filtro vazio confuso');
+
+  run(`mdFiltroLoja='todas'; mdFiltroDia='todos';`);
 });
 
 // Vendedor puro: sem at_key, não existe bloco de acessório nem base da conta.
@@ -154,9 +206,11 @@ comPerfil({papel:'bancada', nome:'Vitor Lima', at_key:'vitinho', ativo:true}, ()
   else bad('bônus coletivo errado: ' + rede.bonus);
 
   const html = run(`renderMeuDia()`);
-  // 374 de acessório + 1.000 de meta = 1.374
-  if (html.includes('R$1.374')) ok('o herói soma a meta do time (R$374 + R$1.000)');
-  else bad('o herói não somou o bônus coletivo');
+  // Sem o herói, o bônus tem que continuar VISÍVEL — no card da meta, que é
+  // onde ele nasce. Some daqui e a pessoa perde R$1.000 de vista.
+  if (html.includes('Já garantido pra você') && html.includes('R$1.000'))
+    ok('o bônus coletivo aparece no card da meta (R$1.000)');
+  else bad('o bônus coletivo sumiu da tela junto com o herói');
   if (html.includes('Meta do time')) ok('o card da meta do time aparece');
   else bad('card da meta do time sumiu');
   if (html.includes('Faltam <b>27</b> aparelhos')) ok('diz quanto falta pra próxima faixa (450 − 423)');

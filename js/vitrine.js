@@ -26,6 +26,8 @@ let vitCarregado = false;
 let vitErro = '';
 let vitBusca = '';
 let vitEsconderAssistencia = false;
+let vitModelo = 'todos';   // "iPhone 13 Pro Max"
+let vitCap    = 'todas';   // "256GB"
 
 async function carregarVitrine(){
   vitErro = '';
@@ -73,15 +75,35 @@ function vitDados(item){
   };
 }
 
+function setVitModelo(m){ vitModelo = m; if(currentTab==='vitrine') renderContent(); }
+function setVitCap(c){    vitCap    = c; if(currentTab==='vitrine') renderContent(); }
+
 function vitFiltrados(){
   const q = (vitBusca || '').toLowerCase().trim();
   return (vitItens || []).map(vitDados).filter(d => {
     if(vitEsconderAssistencia && d.naAssistencia) return false;
+    if(vitModelo !== 'todos' && d.modelo !== vitModelo) return false;
+    if(vitCap    !== 'todas' && d.capacidade !== vitCap) return false;
     if(!q) return true;
     return d.titulo.toLowerCase().includes(q)
         || String(d.item.serial || '').toLowerCase().includes(q)
         || String(d.item.imei_1 || '').includes(q);
   });
+}
+
+// As opcoes saem do proprio estoque: modelo novo aparece sozinho, e modelo que
+// acabou some. Lista fixa no codigo envelheceria a cada lancamento da Apple.
+function vitOpcoes(){
+  const dados = (vitItens || []).map(vitDados);
+  const modelos = [...new Set(dados.map(d => d.modelo).filter(m => m && m !== 'iPhone ?'))]
+    // "iPhone 13 Pro Max" -> ordena por geracao desc, depois alfabetico
+    .sort((a,b) => {
+      const g = s => Number((String(s).match(/iPhone\s+(\d+)/i)||[])[1] || 0);
+      return g(b) - g(a) || a.localeCompare(b);
+    });
+  const caps = [...new Set(dados.map(d => d.capacidade).filter(c => c && c !== '?'))]
+    .sort((a,b) => (parseInt(a) || 0) - (parseInt(b) || 0));
+  return { modelos, caps };
 }
 
 function vitContadorTxt(){
@@ -101,12 +123,19 @@ function renderVitrine(){
       acao: UI.btn('Tentar de novo', {onclick:'recarregarVitrine()', variante:'primario'}) }) });
   }
 
+  const { modelos, caps } = vitOpcoes();
   return `<div class="vit-tela">
     <div class="vit-busca-wrap">
       <input class="c-input vit-busca" id="vit-busca" type="search"
              placeholder="Modelo, cor, etiqueta ou IMEI"
              value="${UI.esc(vitBusca)}" oninput="setVitBusca(this.value)"
              autocapitalize="none" autocorrect="off" spellcheck="false">
+      <div class="vit-filtros">
+        ${UI.select({ id:'vit-modelo', valor:vitModelo, extra:'onchange="setVitModelo(this.value)"',
+          opcoes:[{v:'todos', t:'Todos os modelos'}, ...modelos.map(m => ({v:m, t:m}))] })}
+        ${UI.select({ id:'vit-cap', valor:vitCap, extra:'onchange="setVitCap(this.value)"',
+          opcoes:[{v:'todas', t:'Todas as capacidades'}, ...caps.map(c => ({v:c, t:c}))] })}
+      </div>
       <div class="vit-barra">
         <span class="vit-contador" id="vit-contador">${vitContadorTxt()}</span>
         ${UI.chip(vitEsconderAssistencia ? 'Mostrando só o que está na loja' : 'Esconder o que está na assistência',
@@ -120,13 +149,19 @@ function renderVitrine(){
 function vitListaHTML(){
   const dados = vitFiltrados();
   if(!dados.length){
-    // Sem busca e sem item nao e "estoque vazio": e leitura que nao veio.
-    // Dizer "vazio" faz o vendedor acreditar que a loja nao tem aparelho.
+    // Tres vazios diferentes, e mandar atualizar o app nos tres seria mentira:
+    //   filtro/busca sem resultado -> a loja tem aparelho, esse recorte nao tem
+    //   nada carregado             -> leitura que nao veio (o caso do app velho)
+    const filtrando = !!vitBusca || vitModelo !== 'todos' || vitCap !== 'todas' || vitEsconderAssistencia;
+    if(filtrando) return UI.vazio({
+      titulo:'Nenhum aparelho com esse filtro',
+      texto:'Tente o modelo ("13 Pro"), a cor, a etiqueta ou os últimos dígitos do IMEI — ou limpe os filtros.',
+      acao: UI.btn('Limpar filtros', {onclick:'limparFiltrosVitrine()', variante:'sutil'}),
+    });
     return UI.vazio({
-      titulo: vitBusca ? 'Nenhum aparelho com esse termo' : 'Nenhum aparelho carregado',
-      texto: vitBusca ? 'Tente o modelo ("13 Pro"), a cor, a etiqueta ou os últimos dígitos do IMEI.'
-                      : 'Se você esperava ver aparelhos aqui, quase sempre é código antigo guardado no aparelho. Atualizar resolve.',
-      acao: (!vitBusca && typeof recarregarLimpo === 'function')
+      titulo:'Nenhum aparelho carregado',
+      texto:'Se você esperava ver aparelhos aqui, quase sempre é código antigo guardado no aparelho. Atualizar resolve.',
+      acao: typeof recarregarLimpo === 'function'
         ? UI.btn('Atualizar agora', {onclick:'recarregarLimpo()', variante:'primario'}) : '',
     });
   }
@@ -160,60 +195,15 @@ function vitCartao(d){
       ${meta ? `<span class="vit-mono">${meta}</span>` : ''}
     </div>
     ${selos.length ? `<div class="vit-selos">${selos.join('')}</div>` : ''}
-    <div class="vit-acoes">
-      ${UI.btn('Copiar pro cliente', {onclick:`vitCopiar(${d.item.id})`, sm:true, variante:'sutil'})}
-      ${d.upgrade != null ? `<span class="vit-upgrade">Troca: ${brl(d.upgrade)}</span>` : ''}
-    </div>
+    ${d.upgrade != null ? `<div class="vit-acoes">
+      <span class="vit-upgrade">Upgrade: ${brl(d.upgrade)}</span>
+    </div>` : ''}
   </div>`;
 }
 
-// O texto que ele manda no WhatsApp. Sem IMEI e sem etiqueta: é mensagem pra
-// cliente, não controle interno. Aparelho na assistência NÃO vira mensagem --
-// prometer o que não está na prateleira é o problema que essa tela resolve.
-function vitTextoCliente(d){
-  const linhas = [
-    `${d.modelo} ${d.capacidade} ${d.cor}`.replace(/\s+/g,' ').trim(),
-    d.condicao === 'Lacrado' ? 'Lacrado' : `Seminovo${d.bateria != null ? ` · bateria ${d.bateria}%` : ''}`,
-    d.varejo != null ? brl(d.varejo) : null,
-  ].filter(Boolean);
-  return linhas.join('\n');
-}
-
-function vitCopiar(id){
-  const item = (vitItens || []).find(i => i.id === id);
-  if(!item) return;
-  const d = vitDados(item);
-  if(d.naAssistencia){
-    alert('Esse aparelho está na assistência — não dá pra prometer entrega hoje.');
-    return;
-  }
-  const txt = vitTextoCliente(d);
-  const ok = () => vitAviso('Copiado: ' + d.modelo + ' ' + d.capacidade);
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(txt).then(ok).catch(() => vitCopiarFallback(txt, ok));
-  } else vitCopiarFallback(txt, ok);
-}
-
-// O WebView do iOS nega clipboard fora de gesto direto em alguns casos; sem
-// este caminho o botao falharia calado justamente no aparelho onde ele e usado.
-function vitCopiarFallback(txt, ok){
-  const ta = document.createElement('textarea');
-  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
-  document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); ok(); }catch(e){ alert(txt); }
-  ta.remove();
-}
-
-// Confirmacao discreta. Nao usa alert(): copiar e um gesto de repeticao, e um
-// modal a cada toque atrapalha justamente quem esta com o cliente na frente.
-function vitAviso(txt){
-  const el = document.getElementById('status-bar');
-  if(!el) return;
-  el.textContent = txt;
-  clearTimeout(vitAviso._t);
-  vitAviso._t = setTimeout(() => {
-    if(typeof updateStatusBar === 'function') updateStatusBar();
-  }, 2500);
+function limparFiltrosVitrine(){
+  vitBusca = ''; vitModelo = 'todos'; vitCap = 'todas'; vitEsconderAssistencia = false;
+  if(currentTab === 'vitrine') renderContent();
 }
 
 async function recarregarVitrine(){

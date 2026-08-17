@@ -26,7 +26,9 @@ const NAV = [
     {id:'meudia',  label:'Meu dia'},
     // Busca de aparelho pra responder o cliente. Vive na Operação porque é isso
     // que ela é: trabalho de balcão, não relatório.
-    {id:'vitrine', label:'Vitrine'},
+    // ⚠️ O id continua 'vitrine' (arquivo, funções vit*, MATRIZ_ACESSO). Só o
+    // rótulo virou "Estoque" em 17/ago/2026 — mesmo padrão de bancada/Assistência.
+    {id:'vitrine', label:'Estoque'},
     {id:'dash',    label:'Dashboard'},
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},

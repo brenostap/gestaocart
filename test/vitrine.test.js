@@ -72,10 +72,10 @@ const html = run(`renderVitrine()`);
 if (html.includes('Na assistência')) ok('o selo aparece na lista');
 else bad('aparelho na assistência não foi marcado');
 
-run(`_alerta = null; vitCopiar(2);`);
-const alerta = run(`_alerta`);
-if (alerta && /assist/i.test(alerta)) ok('"copiar pro cliente" recusa aparelho na assistência');
-else bad('deixou copiar aparelho que está fora da loja');
+// O botao "copiar pro cliente" saiu a pedido do dono (17/ago). O selo fica --
+// e ele que impede prometer aparelho que nao esta na prateleira.
+if (!/Copiar pro cliente/.test(html)) ok('sem botão de copiar pro cliente');
+else bad('o botão de copiar continua na tela');
 
 run(`_alerta = null; vitEsconderAssistencia = true;`);
 const so = run(`vitFiltrados().length`);
@@ -138,15 +138,43 @@ if (/Tente o modelo/.test(vazio)) ok('busca sem resultado diz como procurar');
 else bad('estado vazio não ajuda');
 run(`vitBusca='';`);
 
-// -- 5. a mensagem pro cliente ----------------------------------------------
-console.log('mensagem pro cliente');
+// -- 5. filtros de modelo e capacidade (17/ago/2026) ------------------------
+// As opções saem do próprio estoque: modelo novo aparece sozinho e modelo que
+// acabou some. Lista fixa no código envelheceria a cada lançamento da Apple.
+console.log('filtros de modelo e GB');
 
-const txt = run(`vitTextoCliente(vitDados(vitItens[0]))`);
-if (!/350000000003324|E1381/.test(txt)) ok('a mensagem não leva IMEI nem etiqueta');
-else bad('IMEI/etiqueta foram parar na mensagem do cliente');
-if (/13 Pro Max/.test(txt) && /R\$/.test(txt) && /88%/.test(txt))
-  ok('a mensagem tem modelo, preço e bateria');
-else bad('mensagem incompleta: ' + JSON.stringify(txt));
+const ops = run(`vitOpcoes()`);
+if (JSON.stringify(ops.modelos) === JSON.stringify(['iPhone 15','iPhone 13 Pro Max']))
+  ok('modelos vêm do estoque, geração mais nova primeiro');
+else bad('lista de modelos errada: ' + JSON.stringify(ops.modelos));
+if (JSON.stringify(ops.caps) === JSON.stringify(['128GB','256GB']))
+  ok('capacidades ordenadas por tamanho');
+else bad('capacidades erradas: ' + JSON.stringify(ops.caps));
+
+run(`vitModelo = 'iPhone 15';`);
+if (run(`vitFiltrados().length`) === 2) ok('filtro de modelo corta certo (2 iPhone 15)');
+else bad('filtro de modelo errado: ' + run(`vitFiltrados().length`));
+
+run(`vitCap = '256GB';`);
+if (run(`vitFiltrados().length`) === 0) ok('modelo + capacidade combinam (nenhum 15 de 256GB)');
+else bad('combinação de filtros errada');
+
+// Filtro sem resultado NÃO pode mandar atualizar o app — a loja tem aparelho,
+// esse recorte é que não tem.
+const semResultado = run(`renderVitrine()`);
+if (/Nenhum aparelho com esse filtro/.test(semResultado) && !/Atualizar agora/.test(semResultado))
+  ok('filtro vazio oferece limpar filtros, não "atualize o app"');
+else bad('filtro vazio mandou atualizar o app à toa');
+
+run(`limparFiltrosVitrine();`);
+if (run(`vitFiltrados().length`) === 3 && run(`vitModelo`) === 'todos' && run(`vitCap`) === 'todas')
+  ok('limpar filtros volta tudo');
+else bad('limpar filtros não funcionou');
+
+// "Troca" virou "Upgrade" a pedido do dono — é a palavra que a loja usa.
+const comPreco = run(`renderVitrine()`);
+if (/Upgrade:/.test(comPreco) && !/Troca:/.test(comPreco)) ok('o preço de entrada se chama "Upgrade"');
+else bad('ainda diz "Troca"');
 
 // -- 6. o menu ---------------------------------------------------------------
 console.log('menu');

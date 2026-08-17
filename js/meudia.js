@@ -128,14 +128,9 @@ function renderMeuDia(){
   const commAt = mdTemAt() ? acessLucro * 0.25 : 0;
   const rede   = mdMetaRede();
   const bonusCol = rede ? rede.bonus : 0;
-  const total  = commVo + commAt + bonusCol;
-
-  // -- Herói: uma métrica só, que é a pergunta que a pessoa abre o app pra fazer
-  const heroi = `<div class="md-heroi">
-    <span class="md-heroi-rot">Comissão de ${mdRotuloMes(mes)}</span>
-    <span class="md-heroi-val">${brl(total)}</span>
-    <span class="md-heroi-sub">${mdLinhaComposicao(commVo, commAt, bonusCol)}</span>
-  </div>`;
+  // O herói de comissão saiu a pedido do dono (17/ago): repetia o que os cards
+  // de baixo já dizem. Cada parcela mora onde ela nasce -- aparelho no card de
+  // aparelhos, acessório no de acessórios, meta do time no card da meta.
 
   // -- Lado vendedor
   let blocoVo = '';
@@ -178,30 +173,12 @@ function renderMeuDia(){
     });
   }
 
-  // -- Minhas vendas do mês
-  const linhas = mdVendas.slice(0, 60).map(v => [
-    mdDia(v.data_saida),
-    UI.esc(v.cliente_nome || '—'),
-    UI.badge(v.loja === 'urban' ? 'Urban' : 'Cart', v.loja === 'urban' ? 'alerta' : 'marca'),
-    mdPapelNaVenda(v),
-    { v: brl(Number(v.valor_total || 0)), num:true },
-  ]);
-  const tabela = UI.card({
-    titulo:'Minhas vendas do mês',
-    sub: String(mdVendas.length),
-    flush:true,
-    corpo: UI.tabela({
-      colunas:[{titulo:'Dia'},{titulo:'Cliente'},{titulo:'Loja'},{titulo:'Meu papel'},{titulo:'Valor', num:true}],
-      linhas,
-      vazio: UI.vazio({ titulo:'Nenhuma venda ainda neste mês',
-        texto:'Venda registrada com o seu nome na observação aparece aqui.' })
-    })
-  });
+  const tabela = mdCardVendas();
 
   return `<div class="md-tela">
-    <div class="md-topo">
-      <div class="md-ola">Olá${nome ? ', '+UI.esc(nome.split(' ')[0]) : ''}</div>
-      ${heroi}
+    <div class="md-cabecalho">
+      <span class="md-ola">Olá${nome ? ', '+UI.esc(nome.split(' ')[0]) : ''}</span>
+      <span class="md-mes">${mdRotuloMes(mes)}</span>
     </div>
     ${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${mdCardFechados()}${tabela}
     <div class="md-rodape">Fecha no fim do mês. Número da folha é o do Breno — se não bater, fale com ele.</div>
@@ -219,6 +196,99 @@ function mdBaseDaConta(bruto, lucro, comissao){
     <span class="md-conta-linha">Menos o que custou, sobra <b>${brl(lucro)}</b></span>
     <span class="md-conta-linha">25% disso é a sua comissão: <b>${brl(comissao)}</b></span>
   </div>`;
+}
+
+// -- Minhas vendas, por dia --------------------------------------------------
+// Agrupado por dia com total, a pedido do dono (17/ago). Lista corrida de 50
+// linhas nao responde a pergunta que ele faz -- "como foi terça?" --, e o
+// total do dia e o numero que a pessoa compara com a memoria dela.
+let mdFiltroLoja = 'todas';
+let mdFiltroDia  = 'todos';
+
+function setMdLoja(l){ mdFiltroLoja = l; if(currentTab==='meudia') renderContent(); }
+function setMdDia(d){  mdFiltroDia  = d; if(currentTab==='meudia') renderContent(); }
+
+// 'YYYY-MM-DD' em BRT -- a chave do agrupamento. Usa o mesmo deslocamento do
+// resto do painel; dia de venda e dia da loja, nao UTC.
+function mdChaveDia(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  const brt = new Date(d.getTime() - 3*60*60*1000);
+  return brt.toISOString().slice(0,10);
+}
+
+function mdVendasFiltradas(){
+  return (mdVendas || []).filter(v =>
+    (mdFiltroLoja === 'todas' || (v.loja || '') === mdFiltroLoja) &&
+    (mdFiltroDia  === 'todos' || mdChaveDia(v.data_saida) === mdFiltroDia));
+}
+
+function mdCardVendas(){
+  const todas = mdVendas || [];
+  const dias  = [...new Set(todas.map(v => mdChaveDia(v.data_saida)))].sort().reverse();
+  const lojas = [...new Set(todas.map(v => v.loja).filter(Boolean))];
+  const vs    = mdVendasFiltradas();
+
+  // Agrupa preservando a ordem (a carga ja vem por data desc).
+  const grupos = [];
+  const porDia = {};
+  vs.forEach(v => {
+    const k = mdChaveDia(v.data_saida);
+    if(!porDia[k]){ porDia[k] = { dia:k, itens:[], total:0 }; grupos.push(porDia[k]); }
+    porDia[k].itens.push(v);
+    porDia[k].total += Number(v.valor_total || 0);
+  });
+
+  const chip = (txt, ativo, on) => UI.chip(txt, ativo, on);
+  const filtros = UI.toolbar(
+    chip('Todas as lojas', mdFiltroLoja === 'todas', "setMdLoja('todas')"),
+    ...lojas.map(l => chip(l === 'urban' ? 'Urban' : 'Cart', mdFiltroLoja === l, `setMdLoja('${l}')`)),
+    UI.sep(),
+    UI.select({ id:'md-dia', valor:mdFiltroDia, extra:'onchange="setMdDia(this.value)"',
+      opcoes:[{v:'todos', t:'Todos os dias'}, ...dias.map(d => ({v:d, t:mdRotuloDia(d)}))] })
+  );
+
+  const corpo = grupos.length ? grupos.map(g => `
+    <div class="md-dia">
+      <div class="md-dia-cab">
+        <span class="md-dia-nome">${mdRotuloDia(g.dia)}</span>
+        <span class="md-dia-meta">${g.itens.length} venda${g.itens.length===1?'':'s'}</span>
+        <span class="md-dia-total">${brl(g.total)}</span>
+      </div>
+      ${g.itens.map(v => `<div class="md-venda">
+        <span class="md-venda-cliente">${UI.esc(v.cliente_nome || 'Sem nome')}</span>
+        <span class="md-venda-tags">
+          ${UI.badge(v.loja === 'urban' ? 'Urban' : 'Cart', v.loja === 'urban' ? 'alerta' : 'marca')}
+          ${mdTemVo() && mdTemAt() ? `<span class="md-venda-papel">${mdPapelNaVenda(v)}</span>` : ''}
+        </span>
+        <span class="md-venda-valor">${brl(Number(v.valor_total || 0))}</span>
+      </div>`).join('')}
+    </div>`).join('')
+  : UI.vazio({
+      titulo: (mdFiltroLoja !== 'todas' || mdFiltroDia !== 'todos')
+        ? 'Nenhuma venda com esse filtro' : 'Nenhuma venda ainda neste mês',
+      texto: (mdFiltroLoja !== 'todas' || mdFiltroDia !== 'todos')
+        ? 'Tire o filtro pra ver o mês inteiro.'
+        : 'Venda registrada com o seu nome na observação aparece aqui.',
+    });
+
+  const totalFiltrado = vs.reduce((a,v) => a + Number(v.valor_total || 0), 0);
+
+  return UI.card({
+    titulo:'Minhas vendas',
+    sub: `${vs.length} · ${brl(totalFiltrado)}`,
+    corpo: filtros + `<div class="md-dias">${corpo}</div>`
+  });
+}
+
+// "seg, 11/08" — o dia da semana ajuda mais que o número quando a pessoa está
+// lembrando de como foi a semana dela.
+const MD_SEMANA = ['dom','seg','ter','qua','qui','sex','sáb'];
+function mdRotuloDia(chave){
+  if(!chave) return '—';
+  const [a,m,d] = chave.split('-').map(Number);
+  const dt = new Date(Date.UTC(a, m-1, d));
+  return `${MD_SEMANA[dt.getUTCDay()]}, ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
 }
 
 // -- Meses fechados ----------------------------------------------------------
