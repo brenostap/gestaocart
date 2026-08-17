@@ -8,12 +8,24 @@
 --   {{LEADS}}   -> Cart = contatosBreno | Urban = contatosWhatsApp
 --
 -- A cascata, do mais forte pro mais fraco:
+--   N0 marcacao do proprio fluxo (contatos.id_venda)  -> aceita   [97,7% de precisao]
 --   N1 telefone identico (ultimos 9 digitos)          -> aceita
 --   N2 nome normalizado identico                      -> aceita
 --   N3 nome com similaridade >= 0,85                  -> aceita
 --   N4 nome entre 0,70 e 0,85                         -> aceita
---   N5 nome entre 0,45 e 0,70 COM trava de vendedor   -> aceita
+--   N5 nome entre 0,45 e 0,70 COM trava de vendedor   -> aceita   [80% de precisao]
 --      nome abaixo de 0,45, ou 0,45-0,70 sem a trava  -> descarta
+--
+-- ⚠️ O N0 vem PRIMEIRO de proposito. Ele nao e uma medida de semelhanca, e o
+-- testemunho de quem estava na conversa: o fluxo do n8n grava em contatos.id_venda
+-- qual venda aquele lead virou. Medido contra 48 vendas de verdade conhecida (casadas
+-- por telefone): marca 44, acerta 43, erra 1 -> 97,7% de precisao, 92% de recall.
+-- Nenhum outro nivel chega perto. O unico defeito dele e duplicar (varios leads
+-- reivindicando a mesma venda), e isso o distinct on resolve.
+--
+-- ⚠️ E o N5 e o unico nivel que erra de forma relevante: medido do mesmo jeito, da
+-- palpite em 10 de 43 e acerta 8 -> 80% de precisao, 23% de recall. Quem consumir o
+-- resultado deve tratar nivel 5 como "provavel", nao como fato.
 --
 -- Tres travas que hoje nao existem:
 --   LOJA     — o blob ja vem filtrado por loja, entao lead da Cart nunca casa com
@@ -76,22 +88,23 @@ v as (
 leads_raw as (
   -- O recorte por ultimaMensagem nao muda o resultado (a janela ja o implica), mas
   -- corta o universo antes do trigrama. Ajuste junto com o periodo do passo 01.
+  -- ⚠️ sem recorte de data aqui: o N0 depende de id_venda, que pode estar num lead
+  -- antigo. O recorte que existia cortava justamente esses.
   select 'whatsapp' canal, id lead_id, nome, telefone, created_at, "ultimaMensagem" ult,
-         "vendedorAtribuido" vend, "dataTransferencia" dt, origem
+         "vendedorAtribuido" vend, "dataTransferencia" dt, origem, id_venda
     from public."{{LEADS}}"
-   where coalesce("ultimaMensagem", created_at) >= '2026-05-10'
   union all
   select 'instagram', id, nome, telefone, created_at, "ultimaMensagem",
-         "vendedorAtribuido", "dataTransferencia", origem
+         "vendedorAtribuido", "dataTransferencia", origem, id_venda
     from public."contatosInstagram"
-   where coalesce("ultimaMensagem", created_at) >= '2026-05-10'
 ),
 l0 as (
   select
-    canal, lead_id, origem,
+    canal, lead_id, origem, id_venda,
     lower(btrim(vend))                              as vend,
     dt,
     created_at::date                                as d_ini,
+    coalesce(ult, created_at)                       as ult_ts,
     coalesce(ult, created_at)::date                 as d_fim,
     right(regexp_replace(coalesce(telefone, ''), '\D', '', 'g'), 9) as tel9,
     btrim(regexp_replace(regexp_replace(
@@ -103,9 +116,18 @@ l0 as (
 l as (
   -- "K A R O L" -> "karol". Perfil de IG que escreve o nome com espaco entre as
   -- letras vira uma sequencia de tokens de 1 letra e nao casa com nada.
-  select canal, lead_id, origem, vend, dt, d_ini, d_fim, tel9,
+  select canal, lead_id, origem, id_venda, vend, dt, d_ini, d_fim, ult_ts, tel9,
     case when nome0 ~ '^[a-z]( [a-z])+$' then replace(nome0, ' ', '') else nome0 end as nome
   from l0
+),
+-- N0: o fluxo ja disse qual venda esse lead virou. Sem janela e sem trava — e
+-- testemunho, nao inferencia. O distinct on resolve a duplicata: quando mais de um
+-- lead reivindica a mesma venda, ganha quem falou por ultimo.
+p_n0 as (
+  select distinct on (v.venda_id)
+    v.venda_id, l.lead_id, l.canal, l.origem, l.d_fim, 0 as nivel, 1.0 as sim
+  from v join l on l.id_venda ~ '^[0-9]+$' and l.id_venda::bigint = v.venda_id
+  order by v.venda_id, l.ult_ts desc nulls last
 ),
 -- N1: telefone. Join barato (igualdade), depois a janela.
 p_tel as (
@@ -138,7 +160,8 @@ p_vo as (
     and similarity(l.nome, v.nome) <  0.70
 ),
 todos as (
-  select * from p_tel
+  select * from p_n0
+  union all select * from p_tel
   union all select * from p_nome
   union all select * from p_vo
 ),
@@ -149,11 +172,13 @@ best as (
 )
 select
   venda_id, canal, lead_id, origem, nivel,
-  case nivel when 1 then 'telefone'
+  case nivel when 0 then 'marcacao do fluxo'
+             when 1 then 'telefone'
              when 2 then 'nome identico'
              when 3 then 'nome >= 0,85'
              when 4 then 'nome 0,70-0,85'
              else        'nome fraco + trava de vendedor' end as metodo,
+  case when nivel = 5 then 'provavel' else 'confirmado' end as confianca,
   round(sim, 3) as similaridade
 from best
 order by venda_id;

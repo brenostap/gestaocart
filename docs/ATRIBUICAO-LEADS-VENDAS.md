@@ -311,7 +311,41 @@ N4  nome 0,70-0,85
 N5  nome fraco + trava de vendedor   (precisão 80% — marcar como "provável")
 ```
 
-**Cart 1–15/ago: 82 + 15 = 97 de 168 = 57,7%**, contra os 48,8% de antes.
+### N0 medido contra a verdade — é o melhor sinal que existe
+
+Mesmo teste do N5: 48 vendas casadas por **telefone** (par certo), perguntando o que o N0
+diria sem olhar o telefone.
+
+| | N0 | N5 |
+|---|---|---|
+| dá palpite em | 44 de 48 | 10 de 43 |
+| acerta | **43** | 8 |
+| erra | **1** | 2 |
+| **precisão** | **97,7%** | 80% |
+| **recall** | **91,7%** | 23% |
+
+9 dessas 48 tinham **mais de um lead reivindicando** e o desempate (ganha quem falou por
+último) resolveu — 43 de 44 certos apesar da duplicata. ⚠️ **A duplicação nunca foi o
+problema que eu diagnostiquei no começo.** Ela é ruído de apresentação, não de conteúdo;
+o conteúdo é o melhor que temos.
+
+⚠️ Um detalhe que quase custou o N0: o recorte `ultimaMensagem >= '2026-05-10'` que existia
+em `leads_raw` (posto lá só para acelerar o trigrama) **corta leads antigos que carregam
+`id_venda`**. O N0 roda sem recorte de data.
+
+### Resultado final — 1 a 15 de agosto, cascata N0–N5
+
+| | Cart | Urban | total |
+|---|---|---|---|
+| vendas | 168 | 53 | **221** |
+| **casadas** | **109** | **26** | **135 (61,1%)** |
+| não casadas | 59 | 27 | 86 |
+| *antes do N0* | *82* | *21* | *101 (45,7%)* |
+
+Ganho do N0: **+34 vendas**, de 45,7% para **61,1%**.
+
+Na Urban o N0 chega a absorver todo o N1 — as vendas que o telefone acharia já estavam
+marcadas pelo fluxo. Composição da Urban: N0 22, N5 4.
 
 ### Quanto disso é teto e quanto é falha
 
