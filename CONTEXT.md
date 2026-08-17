@@ -13,13 +13,28 @@ Quatro coisas diferentes já foram chamadas de "margem" nesta operação. A dist
 análise de jun/jul-2026 (`docs/ANALISE-JUN-JUL-2026.md`), porque a escolha de qual usar **inverte
 decisões de compra**.
 
-- **Margem bruta** — `preço − custo de aquisição`. É o que o painel mostra hoje e o que
-  `venda_produtos.lucro` contém. **Não é a margem do negócio**: ignora três custos já pagos.
+- **Margem bruta** — `preço − custo de aquisição`. É o que `venda_produtos.lucro` contém.
+  **Não é a margem do negócio**: ignora três custos já pagos.
+  - ✅ Desde 17/ago/2026 o Estoque mostra **as duas lado a lado** — bruta e real. Lado a lado de
+    propósito: a diferença entre elas é o argumento; só a real seria um número novo sem referência.
 - **Carrego** — custo de o capital ficar preso no aparelho: `custo × dias em estoque × taxa diária`.
   Existe porque o estoque é financiado por empréstimo. Um aparelho que dorme 50 dias custa dinheiro
   mesmo que venda pelo preço cheio.
 - **Margem operacional** — `margem bruta − carrego − taxa de cartão`.
 - **Margem real** — `margem operacional − reparo`. **É a única que serve pra decidir compra.**
+
+**Como cada parcela é obtida** (implementado em `margemRealDoItem()`, `js/estoque.js`):
+
+| Parcela | De onde vem | Armadilha |
+|---|---|---|
+| dias parados | `v_estoque_margem` — reconstruído de `compras` (131) ou `venda_trocas` (84) | ⚠️ `estoque.created_at` está **nulo em 100%** dos disponíveis. Não dá pra usar |
+| carrego | `custo × dias × 0,1%/dia` (`CUSTO_CAPITAL_DIA`) | 3% a.m. é a taxa do empréstimo que financia o estoque |
+| taxa de cartão | **medida** dos pagamentos reais dos últimos 90 dias | ⚠️ É `taxa − taxa_extra`: a extra é juro repassado ao cliente, **ganho** da loja. Usar a cheia infla o custo em quase metade |
+| reparo | `reparos.valor_liquido` por `apple_id` | Só 48 dos 215 têm |
+
+⚠️ **Parcela ausente não é zero.** Sem dias parados não existe carrego, e o item se marca como
+incompleto — a tela diz que o número é **teto**, não resultado. Protegido por
+`node test/margem-real.test.js`.
 
 Regra: **margem em R$ por aparelho, nunca em %.** Bases de custo de R$ 700 e R$ 7.000 não se
 comparam em percentual — a linha 17 parece péssima a 9% e é o segundo melhor negócio da casa.

@@ -27,6 +27,11 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
   Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
   a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
+- **Teste da margem real**: `node test/margem-real.test.js`. Protege **o número que decide compra**.
+  Fixa três coisas que erram calado e pro lado errado: a taxa de cartão é `taxa − taxa_extra` (a
+  extra é **ganho**), parcela ausente **não vira zero**, e o carrego cresce com o tempo — no teste,
+  o mesmo aparelho vale **R$845 com 5 dias e −R$40 com 300**. Rodar depois de mexer em
+  `margemRealDoItem()`, `taxaCartaoEfetiva()` ou `CUSTO_CAPITAL_*`.
 - **Teste do "Meu dia"**: `node test/meudia.test.js`. Prova que a tela vem da **chave**
   (`vo_key`/`at_key`), não do papel — o Vitinho é `bancada` e precisa dela —, que o sócio **não**
   ganha a tela, que o HTML não vaza campo de custo, e que a comissão bate com a curva do `core.js`.

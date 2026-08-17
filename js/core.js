@@ -318,6 +318,37 @@ function getPrecoVendaSync(item){
   return getPrecoVenda(item, _precosCache || []);
 }
 
+// TAXA DE CARTAO EFETIVA -- quanto a maquininha come de cada real vendido,
+// MEDIDO nos pagamentos reais em vez de chutado numa constante.
+//
+// ⚠️ E `taxa - taxa_extra`, nao `taxa`. A taxa_extra e juro repassado ao
+// cliente, ou seja GANHO da loja (CLAUDE.md > Verdades nao obvias). Usar a taxa
+// cheia inflaria o custo em quase metade: em jul/2026 foram R$61.965 de taxa
+// contra R$16.407 de juros repassados -- 5,03% viram 3,70%.
+//
+// Por que medido e nao constante: em ago/2026 o custo liquido caiu de 3,70%
+// para 1,92% com a virada do credito pro PicPay. Constante teria mentido no mes
+// seguinte, e mentido pra MAIS, que e o lado que trava compra boa.
+let _taxaCartaoCache = null;
+function taxaCartaoEfetiva(){
+  if(_taxaCartaoCache != null) return _taxaCartaoCache;
+  if(!Array.isArray(allVendas) || !allVendas.length) return null;
+  let valor = 0, custo = 0;
+  const corte = new Date(Date.now() - 90*24*60*60*1000);
+  allVendas.forEach(v => {
+    if(new Date(v.data_saida) < corte) return;
+    (v._pagamentos || []).forEach(p => {
+      if(p.status === 'canceled') return;
+      valor += parseFloat(p.valor || 0);
+      custo += parseFloat(p.taxa || 0) - parseFloat(p.taxa_extra || 0);
+    });
+  });
+  if(valor <= 0) return null;
+  _taxaCartaoCache = Math.max(0, custo / valor);
+  return _taxaCartaoCache;
+}
+function limparTaxaCartaoCache(){ _taxaCartaoCache = null; }
+
 function filterByPeriodStatic(vendas, period){
   // Sempre usar BRT para consistencia (banco grava UTC)
   const nowBrt=brtNow();

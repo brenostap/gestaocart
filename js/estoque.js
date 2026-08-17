@@ -108,6 +108,78 @@ function geracaoDe(modelo){
   return m ? m[1] : '?';
 }
 
+// ============================================================================
+// MARGEM REAL — a única que serve pra decidir compra (CONTEXT.md > Margem)
+//
+//   margem bruta      = preço − custo de aquisição      ← é o que o painel
+//                                                          mostrava sozinho
+//   − carrego         = custo × dias parados × 0,1%/dia    (capital preso)
+//   − taxa de cartão  = preço × taxa efetiva MEDIDA        (não uma constante)
+//   − reparo          = o que já se gastou neste aparelho
+//   = margem real
+//
+// ⚠️ Isso pesa MAIS no modelo lento, que é justamente onde a margem bruta
+// engana: um aparelho de R$3.000 parado há 90 dias já comeu R$270 de carrego
+// antes de qualquer desconto. Decidir compra pela bruta inverte a decisão.
+//
+// ⚠️ Cada parcela pode ser NULL, e null não é zero. Sem dias parados não há
+// carrego — e a tela diz "não sei", em vez de fingir que foi zero.
+// ============================================================================
+let _margemExtra = {};   // apple_id -> {dias_parado, reparo, entrou_em}
+
+function setMargemExtra(linhas){
+  _margemExtra = {};
+  (linhas || []).forEach(l => { _margemExtra[l.apple_id] = l; });
+}
+function margemExtraDoApple(id){ return _margemExtra[id] || null; }
+
+function margemRealDoItem(item, custo, venda){
+  const extra = margemExtraDoApple(item.id);
+  const dias   = extra && extra.dias_parado != null ? Number(extra.dias_parado) : null;
+  const reparo = extra && extra.reparo != null ? Number(extra.reparo) : null;
+  const taxaPct = typeof taxaCartaoEfetiva === 'function' ? taxaCartaoEfetiva() : null;
+
+  const carrego = (custo != null && dias != null)
+    ? custo * dias * CUSTO_CAPITAL_DIA : null;
+  const taxa = (venda != null && taxaPct != null) ? venda * taxaPct : null;
+
+  // A margem real só existe se a bruta existe. As parcelas que faltarem entram
+  // como zero NO CÁLCULO, mas ficam marcadas em `faltando` — a tela avisa que o
+  // número é um teto, e não um resultado fechado.
+  const bruta = (venda != null && custo != null) ? venda - custo : null;
+  const faltando = [];
+  if(dias == null)    faltando.push('carrego');
+  if(reparo == null)  faltando.push('reparo');
+  if(taxaPct == null) faltando.push('taxa');
+
+  return {
+    diasParado: dias,
+    entrouEm: extra ? extra.entrou_em : null,
+    carrego, reparo, taxaCartao: taxa,
+    margemReal: bruta == null ? null
+      : bruta - (carrego || 0) - (taxa || 0) - (reparo || 0),
+    margemFaltando: faltando,
+  };
+}
+
+// A conta aberta, porque um número sozinho aqui não convence ninguém a mudar
+// decisão de compra — e mudar decisão de compra é o motivo desta coluna existir.
+function margemRealHtml(d){
+  if(d.margemReal == null) return '<span class="est-sempreco">sem preço de tabela</span>';
+  const tom = d.margemReal < 0 ? 'critico' : d.margemReal < 300 ? 'alerta' : 'ok';
+  const linha = (rot, v, neg) => v == null || v === 0 ? '' :
+    `<span class="mr-linha"><span>${rot}</span><b>${neg ? '−' : ''}${money(Math.abs(v))}</b></span>`;
+  const falta = (d.margemFaltando || []).length
+    ? `<span class="mr-falta">sem ${d.margemFaltando.join(' e ')} — o número é teto, não resultado</span>` : '';
+  return `<span class="mr-valor" data-tom="${tom}">${money(d.margemReal)}</span>
+    <span class="mr-conta">
+      ${linha('bruta', d.margem)}
+      ${linha(`carrego (${d.diasParado} d)`, d.carrego, true)}
+      ${linha('taxa de cartão', d.taxaCartao, true)}
+      ${linha('reparo', d.reparo, true)}
+    </span>${falta}`;
+}
+
 // Enriquece o item com tudo que a linha da tabela precisa, num lugar so.
 function dadosDoItem(item){
   const titulo = item.produto?.titulo || item.titulo || '';
@@ -118,12 +190,15 @@ function dadosDoItem(item){
   const custo = item.valor_estoque == null ? null : parseFloat(item.valor_estoque);
   const preco = getPrecoVendaSync(item);
   const venda = preco && preco.varejo != null ? preco.varejo : null;
+  const real = margemRealDoItem(item, custo, venda);
   // A correcao do time entra por cima do que a FoneNinja mandou. IMEI nao: ele
   // e a chave que liga venda, reparo e bancada, e so vale reportado.
   const corr = typeof correcoesDoApple === 'function' ? correcoesDoApple(item.id) : {};
   return {
     item, titulo, modelo, capacidade, cor, condicao, custo, venda,
     margem: (venda != null && custo != null) ? venda - custo : null,
+    // A margem que decide compra. Ver margemRealDoItem() e CONTEXT.md > Margem.
+    ...real,
     geracao: geracaoDe(modelo),
     origem: origemDoItem(item),
     bateria: parseInt((corr.bateria && corr.bateria.valor_novo) || item.bateria || 0),
@@ -249,10 +324,24 @@ function renderEstoque(){
       sub: Math.round(entradas.length / (visiveis.length||1) * 100) + '% do estoque' });
   }
   if(podeVerMargem()){
+    // A margem REAL ao lado da bruta, e não no lugar dela: a diferença entre as
+    // duas é o argumento. Ver as duas lado a lado é o que muda decisão de
+    // compra — só a real seria um número novo sem referência.
+    const comReal = visiveis.filter(d => d.margemReal != null);
+    const margemRealTot = comReal.reduce((a,d) => a + d.margemReal, 0);
+    const carregoTot = visiveis.reduce((a,d) => a + (d.carrego || 0), 0);
+    const diasMedio = (() => {
+      const ds = visiveis.map(d => d.diasParado).filter(v => v != null);
+      return ds.length ? Math.round(ds.reduce((a,b)=>a+b,0) / ds.length) : null;
+    })();
     listaKpis.push(
       { rotulo:'Capital', valor: money(capital), sub:'custo parado em estoque' },
-      { rotulo:'Margem potencial', valor: money(margemPot), tom:'ok',
-        sub: comPreco.length + ' de ' + visiveis.length + ' com preço na tabela' });
+      { rotulo:'Margem bruta', valor: money(margemPot),
+        sub: comPreco.length + ' de ' + visiveis.length + ' com preço na tabela' },
+      { rotulo:'Margem real', valor: money(margemRealTot), tom: margemRealTot > 0 ? 'ok' : 'critico',
+        sub:'menos carrego, taxa e reparo' },
+      { rotulo:'Carrego parado', valor: money(carregoTot), tom: carregoTot > 0 ? 'alerta' : undefined,
+        sub: diasMedio != null ? diasMedio + ' dias de prateleira em média' : 'sem data de entrada' });
   }
   const kpis = UI.kpis(listaKpis);
 
@@ -441,7 +530,8 @@ function renderEstoqueTabela(dados){
       // fornecedor e margem sao informacao de socio (brief §2)
       if(podeVerMargem()){
         campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
-        campos.push(['Margem', l.d.margem == null ? '—' : money(l.d.margem)]);
+        campos.push(['Margem bruta', l.d.margem == null ? '—' : money(l.d.margem)]);
+        campos.push(['Margem real', margemRealHtml(l.d)]);
       }
 
       const editor = (typeof podeCorrigirEstoque === 'function' && podeCorrigirEstoque()

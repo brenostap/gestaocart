@@ -75,6 +75,12 @@ const FUNC=[
 ];
 const COLORS=['#1d4ed8','#0f766e','#7c3aed','#b45309','#be123c','#0369a1','#15803d','#9333ea','#0e7490','#166534'];
 
+// CUSTO DO CAPITAL -- o estoque e financiado por emprestimo, entao dia parado
+// custa dinheiro mesmo que o aparelho venda pelo preco cheio. 3% ao mes = 0,1%
+// ao dia. FONTE UNICA do carrego (ver CONTEXT.md > Margem).
+const CUSTO_CAPITAL_MES = 0.03;
+const CUSTO_CAPITAL_DIA = CUSTO_CAPITAL_MES / 30;
+
 // Cor -> hex aproximado do produto, para as bolinhas da aba Tabela de precos.
 // A planilha oficial manda o NOME em pt-BR; aqui ele vira cor de bolinha. A chave
 // e normalizada (minuscula, sem acento) pra casar "Cinza Espacial" e "Cinza espacial".

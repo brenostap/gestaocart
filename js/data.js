@@ -107,6 +107,13 @@ async function loadFromSupabase(){
 
   setProgress(65,'Carregando estoque...');
   const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
+  // Dias parado e reparo por aparelho -- as duas parcelas da margem real que so
+  // o banco sabe. Degrada sozinho: sem isso a tela mostra a margem bruta e diz
+  // o que esta faltando, em vez de inventar zero.
+  try{
+    if(typeof setMargemExtra === 'function')
+      setMargemExtra(await sbGet('v_estoque_margem', 'order=apple_id.asc', 3000));
+  }catch(e){ console.warn('[margem] nao carregou dias/reparo:', e.message); }
   const ajustes = await sbGet('ajustes_acessorios', 'order=id.asc', 500);
   
   setProgress(80,'Finalizando...');

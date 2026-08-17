@@ -1189,3 +1189,23 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 .cor-editaveis{
   font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text4);
 }
+
+/* -- Margem real no detalhe do aparelho (17/ago/2026) ---------------------
+   A conta aberta, porque número sozinho não convence ninguém a mudar
+   decisão de compra — e é esse o motivo desta coluna existir. */
+.mr-valor{ font-weight:700; font-variant-numeric:tabular-nums; }
+.mr-valor[data-tom="ok"]{ color:var(--success); }
+.mr-valor[data-tom="alerta"]{ color:var(--yellow); }
+.mr-valor[data-tom="critico"]{ color:var(--danger); }
+
+.mr-conta{ display:flex; flex-direction:column; gap:1px; margin-top:4px; }
+.mr-linha{
+  display:flex; justify-content:space-between; gap:12px;
+  font-size:var(--fs-caption); color:var(--text4);
+  font-variant-numeric:tabular-nums;
+}
+.mr-linha b{ color:var(--text3); font-weight:600; }
+.mr-falta{
+  display:block; margin-top:4px;
+  font-size:var(--fs-caption); color:var(--yellow);
+}
