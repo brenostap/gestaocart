@@ -422,6 +422,39 @@ coleta:
 | `valor_total`, `lucro` | 100% | ROAS por anúncio, não contagem de lead |
 | `venda_produtos.titulo` | 100% | desempate por modelo (quando o lead informou) |
 
+## Onde o resultado ficou gravado (17/ago/2026)
+
+**`public.venda_origem`** no painel — migration `cria_venda_origem`, RLS por `eh_socio()`.
+Estrutura e regra de uso em `scripts/atribuicao/README.md`.
+
+Carga de 1 a 15/ago: **221 vendas avaliadas, 121 confirmadas, 14 prováveis, 86 sem
+origem.** Primeira leitura de negócio possível — só as **confirmadas**:
+
+| origem | vendas | receita | lucro |
+|---|---|---|---|
+| Orgânico | 42 | R$ 180.175 | R$ 30.994 |
+| Meta Ads | 27 | R$ 149.945 | R$ 23.683 |
+| (lead sem origem gravada) | 26 | R$ 109.308 | R$ 18.662 |
+| Instagram Orgânico | 22 | R$ 78.860 | R$ 16.814 |
+| Google Ads | 4 | R$ 12.990 | R$ 2.936 |
+
+⚠️ Isso é **piso, não total**: 86 vendas ficaram sem origem e a falta pesa mais no
+Instagram. Serve pra comparar canais entre si, não pra afirmar quanto o Meta Ads deu.
+
+⚠️ Os 26 "lead sem origem gravada" são leads reais cujo campo `origem` está vazio no
+`contatos*` — buraco do lado do Dudu, não nosso.
+
+### Próxima melhoria fácil: usar `vendedor_key` em vez de `vendedor_obs`
+
+Outra sessão criou em 17/ago a tabela **`apelidos`** e as colunas
+`vendas.vendedor_key`/`atendente_key`, preenchidas por trigger no banco — elas resolvem
+apelido (`deni→denilson`, `viitnho→vitinho`). Medido em agosto: **198 de 221 vendas têm
+`vendedor_key`**, contra 190 com `vendedor_obs`, e as duas divergem em 2 casos.
+
+A trava do N5 hoje usa `vendedor_obs` cru. Trocar por `vendedor_key` deixa o N5 imune a
+typo no nome do vendedor dentro da observação. Ver `CLAUDE.md` e
+`docs/PLANO-UPGRADE-2026-08.md`.
+
 ## Próximo passo proposto
 
 Rodar o cruzamento **no painel** (que já tem venda + produto + cliente + loja) e gravar
