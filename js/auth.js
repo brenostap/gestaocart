@@ -68,7 +68,15 @@ async function carregarMeuPerfil(){
     const linhas = await sbGet('perfis',
       `select=papel,nome,funcionario_id,ativo,vo_key,at_key&user_id=eq.${usuarioId}`, 1);
     meuPerfil = (linhas && linhas[0]) || null;
+    // ⚠️ Leu e NAO veio linha e MUITO diferente de "nao consegui ler". Sem esta
+    // distincao, quem nao tem perfil caia no padrao 'socio' e via o MENU
+    // INTEIRO DE ADMIN, com zero em tudo (o RLS protege o dado, nao a tela).
+    // Aconteceu em 17/ago/2026: um usuario foi recriado no Auth, o user_id
+    // mudou, e `perfis.user_id` tem ON DELETE CASCADE -- o perfil foi junto,
+    // calado. A pessoa abriu o painel e viu Custos, Equipe, Compras, tudo.
+    perfilLidoSemLinha = !meuPerfil;
   }catch(e){
+    perfilLidoSemLinha = false;   // falhou a LEITURA -- ver papelReal()
     // Nao derruba o login: o RLS ja e a trava real, e papelReal() cai no
     // padrao. Sem perfil o banco devolve zero linha e as telas ficam vazias --
     // que e o sintoma certo, e nao uma tela cheia de dado que nao devia.

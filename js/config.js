@@ -18,6 +18,10 @@ let usuarioId = '';
 // ⚠️ Isto decide o MENU, nao o acesso: o acesso de verdade e o RLS por papel
 // (supabase/migrations/*_rls_por_papel.sql). Ver docs/PERFIS-E-ACESSO.md.
 let meuPerfil = null;
+// true = a leitura de `perfis` FUNCIONOU e nao havia linha (usuario sem perfil).
+// false = ainda nao leu, ou a leitura falhou (rede/erro). A diferenca decide se
+// papelReal() cai no padrao 'socio' ou tranca a tela. Ver auth.js.
+let perfilLidoSemLinha = false;
 // So o dono ve o seletor "Ver como" no rodape da sidebar. Ver papelAtual() em shell.js:
 // e PREVIA VISUAL, nao trava de seguranca.
 const EMAIL_DONO = 'breno@phonestp.com';

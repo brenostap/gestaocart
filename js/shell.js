@@ -139,7 +139,19 @@ const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', comercial:'Comerci
 // seguranca: quem decide o que o banco entrega e o RLS. Se a leitura falhar por
 // rede, o dono continua com o menu inteiro; se falhar por falta de perfil, o
 // banco devolve zero linha e as telas ficam vazias -- que e o sintoma certo.
-function papelReal(){ return (meuPerfil && meuPerfil.papel) || 'socio'; }
+function papelReal(){
+  if(meuPerfil && meuPerfil.papel) return meuPerfil.papel;
+  // ⚠️ Duas ausencias diferentes, e so uma pode virar 'socio':
+  //   leitura FALHOU (rede)      -> 'socio'. E o padrao documentado: o dono nao
+  //                                 pode ficar travado por uma falha de rede, e
+  //                                 quem decide o dado e o RLS, nao o menu.
+  //   leitura OK, SEM LINHA      -> 'nenhum'. A pessoa nao tem perfil; abrir o
+  //                                 menu inteiro de admin pra ela e mentira --
+  //                                 ela ve Custos, Equipe e Compras com zero em
+  //                                 tudo e conclui que o painel esta quebrado
+  //                                 (ou que ela e admin). Aconteceu em 17/ago.
+  return perfilLidoSemLinha ? 'nenhum' : 'socio';
+}
 
 // Quem só cuida da bancada nao precisa (nem deve) carregar venda, custo e folha.
 function perfilSoBancada(){ return papelReal() === 'bancada'; }
@@ -353,12 +365,17 @@ function marcarAtivoShell(){
 // parece dado e nao parece bug (17/ago/2026, primeiro login do `comercial`).
 function renderSemAcesso(){
   const papel = (typeof papelAtual === 'function') ? papelAtual() : '?';
+  // Dois motivos distintos pra cair aqui, e a pessoa merece saber qual:
+  const semPerfil = papel === 'nenhum';
   return `<div class="c-card" style="text-align:center;padding:48px 24px">
-    <div class="t-title" style="margin-bottom:8px">Atualize o app</div>
+    <div class="t-title" style="margin-bottom:8px">${semPerfil ? 'Acesso não liberado' : 'Atualize o app'}</div>
     <div class="t-body" style="color:var(--text3);max-width:420px;margin:0 auto 18px">
-      Esta versão do painel não conhece o seu acesso${papel && papel !== '?' ? ` (<b>${papel}</b>)` : ''}.
-      Quase sempre é código antigo guardado no aparelho — atualizar resolve.
-      Se continuar assim depois de atualizar, fale com o Breno.
+      ${semPerfil
+        ? `O seu login funciona, mas ainda não tem acesso configurado no painel.
+           Fale com o Breno — é um cadastro de um minuto do lado dele.`
+        : `Esta versão do painel não conhece o seu acesso${papel && papel !== '?' ? ` (<b>${papel}</b>)` : ''}.
+           Quase sempre é código antigo guardado no aparelho — atualizar resolve.
+           Se continuar assim depois de atualizar, fale com o Breno.`}
     </div>
     ${typeof recarregarLimpo === 'function'
       ? UI.btn('Atualizar agora', {onclick:'recarregarLimpo()', variante:'primario'})

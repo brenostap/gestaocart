@@ -164,6 +164,25 @@ qualquer conta criada de agora em diante, inclusive a de sócio.
 3. **Tirar o acesso** é `update perfis set ativo = false` — não precisa apagar o usuário.
    `tem_perfil()` passa a devolver `false` e ele para de ler qualquer coisa.
 
+⚠️ **Nunca apague e recrie o usuário no Auth pra "resetar a senha".** `perfis.user_id` é
+`on delete cascade`: apagar o usuário **apaga o perfil junto, em silêncio**, e o `user_id` novo não
+tem perfil nenhum. Pra trocar senha use **Reset password** no dashboard, que preserva o `user_id`.
+Aconteceu em 17/ago/2026 — a pessoa entrou e viu **o menu inteiro de admin com zero em tudo**.
+
+### Sem perfil ≠ falha de leitura (corrigido em 17/ago/2026)
+
+O padrão `'socio'` do `papelReal()` existia por um motivo bom — o dono não pode ficar travado por uma
+queda de rede — mas cobria **duas ausências muito diferentes**:
+
+| O que aconteceu | Antes | Agora |
+|---|---|---|
+| A leitura de `perfis` **falhou** (rede) | `'socio'` | `'socio'` — mantido, é o caso que o padrão protege |
+| A leitura **funcionou e não veio linha** | `'socio'` ❌ | `'nenhum'` → tela *"Acesso não liberado"* |
+
+O dado nunca esteve exposto: o RLS devolvia zero em tudo. **Quem mentia era a tela** — e ver Custos,
+Equipe e Compras no menu faz a pessoa concluir que é admin, ou que o painel quebrou. `js/auth.js`
+marca `perfilLidoSemLinha` e `papelReal()` decide com isso. Protegido por `test/perfis.test.js`.
+
 ⚠️ **Usuário criado sem linha em `perfis` não lê nada.** É de propósito: o padrão é negar.
 
 ## O que ainda está aberto (e não resolvi hoje)

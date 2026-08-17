@@ -176,6 +176,30 @@ ok('sócio com a tabela segue calculando custo e margem',
 // 'estoque' — a tela que essa pessoa justamente não pode ler —, então o
 // sintoma aparecia como "estoque zerado", que parece dado e não parece bug.
 // Aconteceu no primeiro login do papel `comercial`.
+// -- Usuário sem perfil (17/ago/2026) ---------------------------------------
+// Um usuário foi recriado no Auth, o user_id mudou, e `perfis.user_id` tem
+// ON DELETE CASCADE — o perfil foi junto, calado. Sem a distinção abaixo, ela
+// caía no padrão 'socio' e via o MENU INTEIRO DE ADMIN com zero em tudo.
+// O RLS protegia o dado; a tela é que mentia.
+console.log('\nusuário sem perfil não vira admin\n');
+
+eq('leu e NÃO veio linha => papel "nenhum", não "socio"',
+   R(`(function(){ meuPerfil = null; perfilLidoSemLinha = true; return papelReal(); })()`),
+   'nenhum');
+eq('sem perfil não alcança tela nenhuma',
+   R(`(function(){ meuPerfil = null; perfilLidoSemLinha = true; return telasDoUsuario(); })()`),
+   []);
+ok('e a tela diz que o acesso não foi liberado — não manda atualizar à toa',
+   /Acesso não liberado/.test(R(`(function(){ meuPerfil=null; perfilLidoSemLinha=true; return renderSemAcesso(); })()`)));
+
+// A falha de LEITURA continua caindo em 'socio': o dono não pode ficar travado
+// por uma queda de rede, e quem decide o dado é o RLS.
+eq('leitura que FALHOU continua no padrão sócio',
+   R(`(function(){ meuPerfil = null; perfilLidoSemLinha = false; return papelReal(); })()`),
+   'socio');
+
+R(`perfilLidoSemLinha = false;`);
+
 console.log('\npapel desconhecido cai em tela honesta\n');
 
 // recarregarLimpo() mora em versao.js, que este teste nao carrega. Sem o stub
