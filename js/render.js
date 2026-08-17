@@ -460,6 +460,54 @@ function renderDash(){
       ${semLojaCount>0?`<div style="margin-top:8px;font-size:11px;color:var(--text4)">⚠ ${semLojaCount} venda${semLojaCount>1?'s':''} sem loja identificada</div>`:''}
     </div>`;
 
+  // -- De onde vieram as vendas ---------------------------------------------
+  // Le `_origem` (tabela venda_origem, populada por scripts/atribuicao/). Tres
+  // decisoes que a tela materializa:
+  //   1. So `confirmado` entra na conta de dinheiro. O nivel 5 erra 1 em cada 5
+  //      (medido); somar junto inflaria o Instagram e ninguem veria.
+  //   2. A cobertura aparece SEMPRE, porque isso aqui e piso e nao total -- a
+  //      falta pesa mais no Instagram, entao comparar canais e legitimo mas
+  //      afirmar "o Meta Ads deu X" nao e.
+  //   3. Venda nao avaliada e venda sem lead sao contadas separado.
+  // Sem nenhuma venda avaliada no periodo a secao nao aparece.
+  const vOrig = v.filter(x=>x._origem);
+  let origemHTML = '';
+  if(vOrig.length){
+    const oConf = vOrig.filter(x=>x._origem.confianca==='confirmado');
+    const oProv = vOrig.filter(x=>x._origem.confianca==='provavel').length;
+    const oSem  = vOrig.filter(x=>x._origem.confianca==='sem_origem').length;
+    const porOrigem={};
+    oConf.forEach(x=>{
+      const k = x._origem.origem || 'Sem origem gravada no lead';
+      const o = porOrigem[k] || (porOrigem[k]={vendas:0,bruto:0,lucro:0});
+      o.vendas++; o.bruto+=parseFloat(x.valor_total||0); o.lucro+=parseFloat(x.lucro||0);
+    });
+    const comMargem = podeVerMargem();
+    const colunas = [{titulo:'Origem'},{titulo:'Vendas',num:true},{titulo:'Receita',num:true}];
+    if(comMargem) colunas.push({titulo:'Lucro',num:true},{titulo:'Margem',num:true});
+    const linhas = Object.entries(porOrigem).sort((a,b)=>b[1].bruto-a[1].bruto).map(([nome,o])=>{
+      const mg = o.bruto>0?Math.round(o.lucro/o.bruto*100):0;
+      const cel = [UI.esc(nome), {v:o.vendas,num:true}, {v:money(o.bruto),num:true}];
+      if(comMargem) cel.push({v:brl(o.lucro),num:true,classe:'ok'},{v:mg+'%',num:true});
+      return cel;
+    });
+    const naoAval = v.length - vOrig.length;
+    const pctCob = v.length>0?Math.round((oConf.length+oProv)/v.length*100):0;
+    const notas = [
+      `${oConf.length+oProv} de ${v.length} vendas do período com origem identificada (${pctCob}%)`,
+      oProv>0 ? `${oProv} provável${oProv>1?'is':''} fora da tabela — o nível 5 aponta a pessoa errada 1 vez em 5` : '',
+      oSem>0 ? `${oSem} avaliada${oSem>1?'s':''} sem lead encontrado` : '',
+      naoAval>0 ? `${naoAval} ainda não avaliada${naoAval>1?'s':''}` : '',
+    ].filter(Boolean);
+    origemHTML = UI.card({
+      titulo:'De onde vieram as vendas',
+      sub:'só o que foi confirmado',
+      corpo: UI.tabela({colunas, linhas, vazio: UI.vazio({ico:'🔗', titulo:'Nenhuma venda confirmada no período',
+        texto:'As vendas do período foram avaliadas, mas nenhuma teve lead confirmado.'})})
+        + `<div style="margin-top:10px;font-size:11px;color:var(--text4);line-height:1.7">${notas.join(' · ')}</div>`
+    });
+  }
+
   // -- Alertas de margem ------------------------------------
   const mAlerts=v.map(x=>{
     const tot=parseFloat(x.valor_total||0);
@@ -582,7 +630,7 @@ function renderDash(){
       }).join('')}
     </div>`:''
 
-  return cabecalho+pendentesHTML+incompletasHTML+semDeviceHTML+kpi1+kpi2+metasHTML+vendedoresHTML+resultHTML+lojaHTML+alertasHTML+ultimasHTML+movsHTML;
+  return cabecalho+pendentesHTML+incompletasHTML+semDeviceHTML+kpi1+kpi2+metasHTML+vendedoresHTML+resultHTML+lojaHTML+origemHTML+alertasHTML+ultimasHTML+movsHTML;
 }
 
 function renderVendas(){

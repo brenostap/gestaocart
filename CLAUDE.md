@@ -21,6 +21,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
   Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
   a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
+- **Teste da origem da venda**: `node test/venda-origem.test.js`. Monta o dashboard e prova que a
+  seção "De onde vieram as vendas" **não soma o `provavel`** no dinheiro (o nível 5 erra 1 em 5) e
+  que a **cobertura aparece na tela** — o número é piso, não total, e esconder o denominador seria
+  mentir com fato. Rodar depois de mexer em `venda_origem` ou na seção de origem do dashboard.
 
 ## ⚠️ Arquitetura que quebra fácil (leia antes de mexer em JS)
 - **Sem bundler — `<script>` clássicos, um único escopo global.** Todos os `js/*.js` são
@@ -147,6 +151,19 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   tabela auto-limpante (não teria pra onde convergir). Três coisas separadas de propósito:
   `estoque_correcoes` = delta que converge · `estoque_estado` = informação nossa · `bancada` = saiu
   da loja. `status` (available/sold) continua sendo a venda que decide.
+- **`venda_origem`** — de qual lead veio cada venda, e por qual método. Tabela **do painel**,
+  populada **à mão** por `scripts/atribuicao/` (não vem do sync). Alimenta a seção "De onde vieram
+  as vendas" do dashboard. Ler `docs/ATRIBUICAO-LEADS-VENDAS.md` antes de mexer.
+  - ⚠️ **`confianca` não é enfeite.** `confirmado` (níveis 0–4) pode somar; **`provavel` (nível 5)
+    erra 1 em cada 5** e fica fora de qualquer conta de dinheiro; `sem_origem` = avaliada e sem
+    lead. **Venda sem linha ≠ venda com `sem_origem`** — a primeira nunca foi avaliada, e é essa
+    diferença que permite medir cobertura sem chutar o denominador.
+  - ⚠️ **`lead_id` só resolve dentro do projeto Supabase indicado em `projeto`** (cart ou urban, os
+    bancos do Dudu). Não há FK possível entre projetos: o lead 16582 da Cart e o da Urban são
+    pessoas diferentes.
+  - A cobertura é parcial de propósito (só o período já processado) e **a tela mostra isso**. O
+    número é piso, não total, e a falta pesa mais no Instagram — dá pra comparar canais, não pra
+    afirmar quanto o Meta Ads devolveu.
 - ⚠️ **Três interruptores de dinheiro, não um.** `podeVerValor()` (valor da venda) ·
   `podeVerMargem()` (custo/lucro/margem) · **`podeVerCustoServico()`** (o que a assistência cobra —
   sócio e bancada). `money()` responde aos dois primeiros; **`moneyServico()`** ao terceiro. O papel

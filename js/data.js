@@ -85,6 +85,26 @@ async function loadFromSupabase(){
   const trocasMap={};
   (trocas||[]).forEach(t=>{ (trocasMap[t.venda_id]=trocasMap[t.venda_id]||[]).push(t); });
 
+  // De qual lead veio cada venda. Tabela do PAINEL (`venda_origem`), populada a
+  // mao por scripts/atribuicao/ -- nao vem do sync. A cobertura e parcial de
+  // proposito: so tem linha pro periodo ja processado, e o dashboard diz isso na
+  // tela em vez de fingir que o resto e zero.
+  //   sem linha            = venda nunca avaliada
+  //   confianca=sem_origem = avaliada e nenhum lead encontrado
+  // Nao sao a mesma coisa, e a diferenca e o que permite medir cobertura.
+  // Detalhe e medicoes em docs/ATRIBUICAO-LEADS-VENDAS.md.
+  const origemMap={};
+  try {
+    let origensVenda = [];
+    for(let i=0;i<vendasIds.length;i+=100){
+      const lote = vendasIds.slice(i,i+100);
+      const o = await sbGet('venda_origem',
+        `select=venda_id,canal,origem,nivel,confianca&venda_id=in.(${lote.join(',')})`);
+      origensVenda = origensVenda.concat(o||[]);
+    }
+    (origensVenda||[]).forEach(o=>{ origemMap[o.venda_id]=o; });
+  } catch(e){ console.warn('[venda_origem]', e); } // degrada: a secao some, o resto abre
+
   setProgress(65,'Carregando estoque...');
   const estoque = await sbGet('estoque', 'status=eq.available&order=titulo.asc');
   const ajustes = await sbGet('ajustes_acessorios', 'order=id.asc', 500);
@@ -116,6 +136,8 @@ async function loadFromSupabase(){
     // {id, nome} de quem estava logado ao lancar. Null quando a venda nao gerou
     // conta a receber -- ai a conferencia simplesmente nao opina sobre ela.
     _cadastrador: cadMap[v.id] || null,
+    // Linha de `venda_origem`, ou null se a venda nunca foi avaliada.
+    _origem: origemMap[v.id] || null,
     _produtos: (prodsMap[v.id]||[]).map(p=>({
       ...p,
       apple_id: p.apple_id,
