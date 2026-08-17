@@ -505,6 +505,40 @@ daria número diferente do que a pessoa recebeu, e a tela discordaria do extrato
 De quebra, fecha o caso da Anne: o snapshot tem `bonus_extra`, então **em mês fechado o número dela
 é completo**. O aviso do 5% vale só para o mês corrente.
 
+### 6.0g ✅ Passo 5 — Vitrine + os quatro primeiros logins (17/ago/2026)
+
+**A Vitrine** (`js/vitrine.js`): busca por modelo, cor, etiqueta ou final de IMEI · preço de venda ·
+selo **Na assistência** · saldão/reservado/bloqueado · botão *copiar pro cliente*.
+
+Três coisas precisavam vir juntas, e **nenhuma** vem da tabela `estoque`:
+
+| | Por quê |
+|---|---|
+| **preço** | `estoque.preco_varejo` está **vazio em 100% dos itens** (218 de 218). O preço oficial é a planilha, que chega em `tabela_precos` — fechada em `eh_socio()`. Daí `v_tabela_precos` |
+| **assistência** | **35 dos 218** estão fora da loja marcados como disponíveis. `bancada` é fechada em `pode_operar()` — o selo chega pronto pela view |
+| **estado** | saldão · reservado · bloqueado, de `estoque_estado`, também fechada |
+
+O papel `comercial` **não ganhou permissão em nenhuma dessas tabelas** — a informação vem mastigada.
+E o preço continua casado pelo **mesmo `getPrecoVenda()`**: mudou de onde o cache é preenchido, não
+como o preço é resolvido.
+
+⚠️ **Aparelho na assistência não vira mensagem.** O botão *copiar pro cliente* recusa, com o motivo.
+Prometer o que não está na prateleira é exatamente o problema que a tabela `bancada` nasceu pra
+resolver — não adiantava resolver só pra quem opera a bancada.
+
+**Os quatro primeiros colaboradores entraram:** David (`vo:david`), Isa (`vo:isa`), Mel (`vo:mel`) e
+Maria (`vo+at:maria`, a híbrida). Conferido simulando cada um:
+
+| David | |
+|---|---:|
+| minhas vendas · vitrine · preços | 889 · 218 · 123 |
+| `vendas`, `venda_produtos`, `estoque`, `tabela_precos`, `bancada`, `custos`, `compras`, folha (**tabelas**) | **0** |
+| `perfis` | **1** (só a dele) |
+| escrita em vendas/estoque/preços/perfis | **0 linhas** cada |
+
+A Maria fecha o modelo híbrido: **83 vendas** — 80 vendendo, 7 atendendo, 4 nas duas pontas — e base
+de comissão de acessório de R$ 738,19 no mês.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra

@@ -6,6 +6,7 @@
 
 const ICO = {
   meudia:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
+  vitrine:   '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
@@ -23,6 +24,9 @@ const NAV = [
   { grupo:'Operação',  itens:[
     // Primeiro item de propósito: pra quem tem chave, é a tela que ele abre.
     {id:'meudia',  label:'Meu dia'},
+    // Busca de aparelho pra responder o cliente. Vive na Operação porque é isso
+    // que ela é: trabalho de balcão, não relatório.
+    {id:'vitrine', label:'Vitrine'},
     {id:'dash',    label:'Dashboard'},
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},
@@ -101,7 +105,7 @@ const MATRIZ_ACESSO = {
   bancada:   ['estoque','bancada'],
   // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta
   // aqui -- esta nas chaves vo_key/at_key do perfil. Ver docs/PERFIS-E-ACESSO.md.
-  comercial: ['meudia'],
+  comercial: ['meudia','vitrine'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],

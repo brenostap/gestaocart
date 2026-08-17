@@ -206,8 +206,10 @@ async function loadComercialData(){
   if(ov) ov.style.display='flex';
   allVendas=[];allMovs=[];ajustesAcessorios=[];estoqueItens=[];
   try{
-    setProgress(40,'Carregando seus números...');
+    setProgress(35,'Carregando seus números...');
     if(typeof carregarMeuDia === 'function') await carregarMeuDia();
+    setProgress(70,'Carregando o estoque...');
+    if(typeof carregarVitrine === 'function') await carregarVitrine();
     setProgress(100,'Pronto!');
   }catch(e){
     console.error('[comercial] carga falhou:', e);
@@ -419,7 +421,11 @@ function precoNomeCompleto(p){
 
 async function loadTabelaFromSB(){
   try {
-    const rows = await sbGet('tabela_precos', 'ativo=is.true&order=categoria.asc,modelo.asc', 1000);
+    // VIEW e nao tabela: `tabela_precos` e fechada em eh_socio(), e quem vende
+    // precisa do preco pra cotar. A view devolve as mesmas linhas ativas pra
+    // qualquer perfil -- sem custo, que ali nem existe. O casamento do preco
+    // segue no mesmo getPrecoVenda(); so mudou de onde o cache foi preenchido.
+    const rows = await sbGet('v_tabela_precos', 'order=categoria.asc,modelo.asc', 1000);
     _precos = (rows||[]).map(p => {
       const nome = precoNomeCompleto(p);
       return Object.assign({}, p, {
