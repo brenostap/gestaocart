@@ -78,3 +78,61 @@ longa perde detalhe.
 
 Toda ideia que surgir e não for a tarefa do momento vai pro `docs/IDEIAS.md`, na seção
 **Atendimento / Chatwoot**.
+
+## ⚠️ Atualização de 17/ago/2026 — leia antes de baixar qualquer coisa
+
+**Existe uma fonte melhor que o Chatwoot pra medir a Maju: `n8n_chat_histories_maju_v2`,
+no Supabase `supabase-cart`.** 161 mil mensagens, 8.338 sessões, `created_at` 100% preenchido,
+desde 10/jun/2026. O `session_id` é `<telefone>-cart` e casa com `contatosBreno.telefone` em
+**100%** das sessões — ou seja, cada conversa vem com o rótulo `comprou` colado.
+
+Vantagens sobre a API do Chatwoot: sem token, sem bater na produção, e cobre junho (o Chatwoot
+não — ver a seção sobre isso em `docs/CHATWOOT-ANALISE.md`). Limitação: **só WhatsApp**.
+
+Consultas prontas em `scripts/maju/`. Rode elas antes de inventar SQL novo.
+
+### A regra que organiza tudo: imediato x atrasado
+
+- **Comportamento** (escalou? reconheceu o sinal de compra? ofereceu visita?) se mede **no mesmo
+  dia**. Use `metricas-semanais.sql`.
+- **Conversão** só com atraso. Lag mediano lead→compra de 8 dias, p75 de 84, p90 de 138. A semana
+  corrente sempre parecerá catástrofe. Use `conversao-coorte.sql`, que só devolve coorte com 60+
+  dias.
+
+Misturar os dois é o erro que produz "a Maju piorou" quando ela só está mais nova.
+
+### ⚠️ Sempre olhe a SÉRIE, nunca o número da semana
+
+Foi a série semanal que revelou a **virada de prompt em 27/jul/2026**: escalada saltou de 27,6%
+(semana de 20/jul, o fundo) para 56,5% (semana de 10/ago). Um painel de "número da semana"
+teria escondido isso, e qualquer análise que misture antes e depois vira média de duas coisas
+diferentes.
+
+**Sempre pergunte ao dono se houve mudança de prompt no período** antes de comparar janelas.
+
+### O que já se sabe da versão nova (medido, não redescubra)
+
+Recorte: preço dado + 5 mensagens do cliente.
+
+| | até 26/jul | 27/jul em diante |
+|---|---|---|
+| escalou | 43,2% | **52,9%** |
+| escala se o cliente deu uma data | 75,7% | 76,4% *(inalterado)* |
+| **escala se só disse que quer comprar** | **30,5%** | **44,5%** |
+| ainda vaza (quis comprar, sem data, sem escalada) | 744 | 151 |
+
+O gatilho antigo era **de agendamento, não de intenção**: o que disparava a escalada era o cliente
+falar um dia (35,2% nas que escalaram contra 10,2% nas que vazaram), e não dizer que queria
+comprar — as que vazavam tinham *mais* sinal de compra (38,5%) que as que escalavam (29,7%). O
+prompt novo atacou justamente isso, e o número mexeu. **Ainda assim mais da metade dos sinais de
+compra sem data não escala.**
+
+### Armadilhas de regex que já custaram caro aqui
+
+- `quero` pega *"quero saber o preço"* — 62% das conversas têm. Inútil. Use a forma comprometida:
+  `vou querer|vou levar|pode separar|quero comprar|vou ficar com`.
+- Mesmo essa pega negação: *"eu **não** vou querer comprar não"*. Exclua negação nas ~25 letras
+  anteriores.
+- O **cartão de handoff do Chatwoot é nota privada** (318 conversas contra 1 pública). `temPreco()`
+  filtra `private`, `etapaDe()` não — divergem de propósito. Filtrar igual nos dois infla o balde
+  de preço-sem-handoff em 40%.
