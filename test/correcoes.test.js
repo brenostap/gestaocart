@@ -110,7 +110,12 @@ ok('editor aparece pra quem pode corrigir', /cor-bloco/.test(estBanc));
 // Abrir o aparelho mostra INFO. Os campos (etiqueta, IMEI) so aparecem depois
 // de pedir -- o IMEI estava a um toque de ser trocado sem querer.
 ok('editor de campos NAO abre junto com a linha', !/FoneNinja diz/.test(estBanc));
-ok('oferece o botão de corrigir', /Corrigir dados do aparelho/.test(estBanc));
+// O rótulo virou "Editar" a pedido do dono (17/ago) — "Corrigir dados do
+// aparelho" soava burocrático e não dizia o que havia dentro, então ninguém
+// tocava. O botão continua FECHANDO os campos; o que mudou é o convite.
+ok('oferece o botão de editar', /Editar</.test(estBanc));
+ok('e diz o que dá pra editar sem precisar abrir',
+   /bateria · etiqueta · IMEI/.test(estBanc));
 const estEdit = comoPapel('bancada', '(function(){ currentTab="estoque"; estoqueAbertos = new Set([101]); corAbrirEdicao(101); return renderEstoque(); })()');
 ok('depois de pedir, mostra o que a FoneNinja diz hoje', /FoneNinja diz/.test(estEdit));
 ok('e só então o campo de IMEI existe', /data-campo|imei_1/.test(estEdit));

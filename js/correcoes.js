@@ -300,7 +300,7 @@ function corBlocoHtml(d){
   // vista de propósito: é a marcação do dia a dia, e um toque a desfaz.
   const editando = _corEditando.has(String(id));
   const camposBloco = editando ? `
-    <div class="cor-titulo">Corrigir o que está errado
+    <div class="cor-titulo">Editando
       <span class="cor-sub">a FoneNinja continua sendo a fonte — isto marca a diferença</span></div>
     <div class="cor-grade">
       ${campo('bateria',  String(d.bateria || ''), 'inputmode="numeric" maxlength="3"')}
@@ -309,8 +309,13 @@ function corBlocoHtml(d){
     </div>
     <span class="cor-nota">IMEI só levanta a mão: é a chave que liga venda, reparo e assistência,
       então quem troca de verdade é um sócio na FoneNinja.</span>`
-    : UI.btn('✎ Corrigir dados do aparelho',
-        {onclick:`event.stopPropagation();corAbrirEdicao(${id})`, variante:'sutil', sm:true});
+    // O botao continua FECHANDO os campos (ver o aviso acima), mas agora diz o
+    // que ha dentro. Antes era "✎ Corrigir dados do aparelho": nao dava pra
+    // saber se valia o toque, entao ninguem tocava.
+    : `<div class="cor-abrir">
+        ${UI.btn('Editar', {onclick:`event.stopPropagation();corAbrirEdicao(${id})`, variante:'sutil', sm:true})}
+        <span class="cor-editaveis">bateria · etiqueta · IMEI</span>
+      </div>`;
 
   return `<div class="cor-bloco" onclick="event.stopPropagation()">
     ${_corErro ? `<div class="bnc-erro">${UI.esc(_corErro)}</div>` : ''}

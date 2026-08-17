@@ -173,8 +173,13 @@ else bad('limpar filtros não funcionou');
 
 // "Troca" virou "Upgrade" a pedido do dono — é a palavra que a loja usa.
 const comPreco = run(`renderVitrine()`);
-if (/Upgrade:/.test(comPreco) && !/Troca:/.test(comPreco)) ok('o preço de entrada se chama "Upgrade"');
+if (/upgrade /.test(comPreco) && !/Troca:/.test(comPreco)) ok('o preço de entrada se chama "upgrade"');
 else bad('ainda diz "Troca"');
+// Upgrade logo abaixo do preço de venda: são a mesma decisão do vendedor
+// ("por quanto sai, quanto pago na entrada"), e separados ele lia um sem o outro.
+if (/vit-precos[\s\S]{0,220}vit-upgrade/.test(comPreco))
+  ok('o upgrade fica na mesma coluna, abaixo do preço de venda');
+else bad('o upgrade não está abaixo do preço');
 
 // -- 6. o menu ---------------------------------------------------------------
 console.log('menu');

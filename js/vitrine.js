@@ -188,16 +188,16 @@ function vitCartao(d){
   return `<div class="vit-card${d.naAssistencia ? ' fora' : ''}">
     <div class="vit-card-topo">
       <div class="vit-nome">${UI.esc(d.modelo)} <span class="vit-cap">${UI.esc(d.capacidade)}</span></div>
-      <div class="vit-preco">${d.varejo != null ? brl(d.varejo) : '<span class="vit-sempreco">sem preço na tabela</span>'}</div>
+      <div class="vit-precos">
+        <span class="vit-preco">${d.varejo != null ? brl(d.varejo) : '<span class="vit-sempreco">sem preço na tabela</span>'}</span>
+        ${d.upgrade != null ? `<span class="vit-upgrade">upgrade ${brl(d.upgrade)}</span>` : ''}
+      </div>
     </div>
     <div class="vit-card-meta">
       <span class="vit-cor">${UI.esc(d.cor)}</span>
       ${meta ? `<span class="vit-mono">${meta}</span>` : ''}
     </div>
     ${selos.length ? `<div class="vit-selos">${selos.join('')}</div>` : ''}
-    ${d.upgrade != null ? `<div class="vit-acoes">
-      <span class="vit-upgrade">Upgrade: ${brl(d.upgrade)}</span>
-    </div>` : ''}
   </div>`;
 }
 

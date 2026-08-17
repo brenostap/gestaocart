@@ -1113,9 +1113,16 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 .vit-card-topo{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
 .vit-nome{ font-size:var(--fs-headline); font-weight:650; line-height:1.25; color:var(--text); }
 .vit-cap{ font-weight:500; color:var(--text3); }
+.vit-precos{ display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
 .vit-preco{
   font-size:var(--fs-headline); font-weight:700; white-space:nowrap;
   font-variant-numeric:tabular-nums; color:var(--success);
+}
+/* Upgrade logo abaixo do preco de venda: sao a mesma decisao ("por quanto sai,
+   quanto pago na entrada"), e separados o vendedor lia um sem o outro. */
+.vit-upgrade{
+  font-size:var(--fs-caption); color:var(--text4); white-space:nowrap;
+  font-variant-numeric:tabular-nums;
 }
 .vit-sempreco{ font-size:var(--fs-caption); font-weight:500; color:var(--text4); }
 
@@ -1126,16 +1133,8 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 }
 .vit-selos{ display:flex; gap:6px; flex-wrap:wrap; }
 
-.vit-acoes{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  margin-top:2px;
-}
-.vit-upgrade{ font-size:var(--fs-caption); color:var(--text3); font-variant-numeric:tabular-nums; }
-
 @media (max-width:720px){
   .vit-card{ padding:12px; }
-  /* Alvo de toque de 44px no botão de copiar, que é o gesto do dia todo. */
-  .vit-acoes .c-btn{ min-height:40px; padding-inline:14px; }
 }
 
 /* -- Meu dia: vendas agrupadas por dia (17/ago/2026) ----------------------
@@ -1179,4 +1178,14 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 
 @media (max-width:720px){
   .md-venda-cliente{ font-size:13px; }
+}
+
+/* -- Estoque: o botão de editar diz o que há dentro (17/ago/2026) ---------
+   Os campos seguem FECHADOS de propósito (etiqueta e IMEI estavam a um
+   toque de serem trocados sem querer). O que mudou é o convite: antes o
+   botão dizia "Corrigir dados do aparelho" e não dava pra saber se valia
+   o toque, então ninguém tocava. */
+.cor-abrir{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.cor-editaveis{
+  font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text4);
 }

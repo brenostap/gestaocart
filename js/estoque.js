@@ -422,12 +422,22 @@ function renderEstoqueTabela(dados){
 
   const corpo = linhas.map(l => {
     if(l.tipo === 'detalhe'){
-      const campos = [
-        ['Origem', detalheOrigemHtml(l.d)],
-        ['Entrada', dataEntradaFmt(l.d.item) || '—'],
-        ['Condição', UI.badge(l.d.condicao || 'Seminovo')],
-        ['IMEI', `<span class="est-imei">${escapeHtml(l.d.imei || '—')}</span>`],
-      ];
+      // ⚠️ Origem e Entrada só valem pra quem consegue resolvê-las: a origem sai
+      // de compras/vendas pelo proxy da FoneNinja, que exige papel `socio`. Pro
+      // Vitinho as duas viravam "sem registro de origem" e uma data solta no
+      // topo do card — duas linhas mortas empurrando pra baixo o que ele abriu
+      // o aparelho pra ver. Pedido do dono em 17/ago/2026.
+      const campos = podeVerMargem()
+        ? [
+            ['Origem', detalheOrigemHtml(l.d)],
+            ['Entrada', dataEntradaFmt(l.d.item) || '—'],
+            ['Condição', UI.badge(l.d.condicao || 'Seminovo')],
+            ['IMEI', `<span class="est-imei">${escapeHtml(l.d.imei || '—')}</span>`],
+          ]
+        : [
+            ['IMEI', `<span class="est-imei">${escapeHtml(l.d.imei || '—')}</span>`],
+            ['Condição', UI.badge(l.d.condicao || 'Seminovo')],
+          ];
       // fornecedor e margem sao informacao de socio (brief §2)
       if(podeVerMargem()){
         campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
