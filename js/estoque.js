@@ -168,6 +168,18 @@ function renderEstoque(){
   if(typeof _correcoesCache !== 'undefined' && _correcoesCache === null)
     carregarCorrecoes().then(() => { if(currentTab==='estoque') renderContent(); });
 
+  // Zero item e ambiguo de proposito nao: "a loja nao tem aparelho" e "eu nao
+  // consegui ler o estoque" davam a MESMA tela. Com 218 aparelhos na prateleira
+  // o segundo caso e o unico realista -- e o sintoma dele e app desatualizado.
+  if(!(estoqueItens || []).length){
+    return UI.card({ corpo: UI.vazio({
+      titulo:'Nenhum aparelho carregado',
+      texto:'Se você esperava ver aparelhos aqui, quase sempre é código antigo guardado no aparelho. Atualizar resolve.',
+      acao: typeof recarregarLimpo === 'function'
+        ? UI.btn('Atualizar agora', {onclick:'recarregarLimpo()', variante:'primario'}) : '',
+    })});
+  }
+
   const todos = (estoqueItens || []).map(dadosDoItem);
 
   // busca

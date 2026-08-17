@@ -157,6 +157,9 @@ function renderContent(){
   else if(currentTab==='tabela')c.innerHTML=renderTabela();
   else if(currentTab==='contas')c.innerHTML=renderContas();
   else if(currentTab==='fechamento')c.innerHTML=renderFechamento();
+  // Qualquer aba que este JS nao conhece cai aqui -- inclusive 'semacesso',
+  // que e como um papel novo aterrissa num app desatualizado.
+  else c.innerHTML=renderSemAcesso();
 
   // Modal de WhatsApp do Estoque (renderiza por cima quando aberto)
   // Remove qualquer instância anterior do modal "geral" (sem id), preserva o modal direto (id=wa-modal-direto)

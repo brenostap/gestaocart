@@ -347,6 +347,25 @@ function marcarAtivoShell(){
   if(d) d.innerHTML = gerarDatePickers();
 }
 
+// Tela de "este app nao sabe quem voce e". Aparece quando o papel do usuario
+// nao existe neste JS -- ou seja, quando o codigo esta velho e o banco ja tem
+// um papel novo. E o sintoma CERTO: antes isso virava "estoque zerado", que
+// parece dado e nao parece bug (17/ago/2026, primeiro login do `comercial`).
+function renderSemAcesso(){
+  const papel = (typeof papelAtual === 'function') ? papelAtual() : '?';
+  return `<div class="c-card" style="text-align:center;padding:48px 24px">
+    <div class="t-title" style="margin-bottom:8px">Atualize o app</div>
+    <div class="t-body" style="color:var(--text3);max-width:420px;margin:0 auto 18px">
+      Esta versão do painel não conhece o seu acesso${papel && papel !== '?' ? ` (<b>${papel}</b>)` : ''}.
+      Quase sempre é código antigo guardado no aparelho — atualizar resolve.
+      Se continuar assim depois de atualizar, fale com o Breno.
+    </div>
+    ${typeof recarregarLimpo === 'function'
+      ? UI.btn('Atualizar agora', {onclick:'recarregarLimpo()', variante:'primario'})
+      : ''}
+  </div>`;
+}
+
 // Placeholder honesto para a secao que o brief prevê mas ainda nao existe.
 function renderFechamento(){
   return `<div class="card" style="text-align:center;padding:48px 24px">

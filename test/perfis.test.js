@@ -171,5 +171,38 @@ ok('sócio com a tabela segue calculando custo e margem',
    dSocio.custo === 3000 && dSocio.margem === 1200 && dSocio.origem === 'STP',
    JSON.stringify({custo:dSocio.custo, margem:dSocio.margem, origem:dSocio.origem}));
 
+// -- Papel que este JS não conhece (17/ago/2026) ----------------------------
+// Código velho + papel novo no banco = `permitidas` vazio. O fallback era
+// 'estoque' — a tela que essa pessoa justamente não pode ler —, então o
+// sintoma aparecia como "estoque zerado", que parece dado e não parece bug.
+// Aconteceu no primeiro login do papel `comercial`.
+console.log('\npapel desconhecido cai em tela honesta\n');
+
+// recarregarLimpo() mora em versao.js, que este teste nao carrega. Sem o stub
+// o botao some -- e a tela ficaria sem saida de emergencia, que e justo o que
+// ela existe pra oferecer.
+R(`function recarregarLimpo(){}`);
+
+const semAcesso = R(`(function(){
+  meuPerfil = { papel:'papel_que_ainda_nao_existe', ativo:true };
+  papelPreview = '';
+  const permitidas = telasDoUsuario();
+  return { permitidas, html: renderSemAcesso() };
+})()`);
+ok('papel desconhecido não alcança tela nenhuma', semAcesso.permitidas.length === 0,
+   JSON.stringify(semAcesso.permitidas));
+ok('a tela diz pra atualizar, não mostra número vazio',
+   /Atualize o app/.test(semAcesso.html) && /Atualizar agora/.test(semAcesso.html));
+
+// Estoque sem item não pode dizer "vazio": com 218 aparelhos na prateleira, o
+// caso realista é leitura que não veio.
+const estVazio = R(`(function(){
+  meuPerfil = { papel:'bancada', ativo:true };
+  const antes = estoqueItens; estoqueItens = [];
+  const h = renderEstoque(); estoqueItens = antes; return h;
+})()`);
+ok('estoque sem item manda atualizar em vez de dizer que está vazio',
+   /Nenhum aparelho carregado/.test(estVazio) && /Atualizar agora/.test(estVazio));
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

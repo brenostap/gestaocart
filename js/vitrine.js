@@ -120,10 +120,14 @@ function renderVitrine(){
 function vitListaHTML(){
   const dados = vitFiltrados();
   if(!dados.length){
+    // Sem busca e sem item nao e "estoque vazio": e leitura que nao veio.
+    // Dizer "vazio" faz o vendedor acreditar que a loja nao tem aparelho.
     return UI.vazio({
-      titulo: vitBusca ? 'Nenhum aparelho com esse termo' : 'Estoque vazio',
+      titulo: vitBusca ? 'Nenhum aparelho com esse termo' : 'Nenhum aparelho carregado',
       texto: vitBusca ? 'Tente o modelo ("13 Pro"), a cor, a etiqueta ou os últimos dígitos do IMEI.'
-                      : 'Quando entrar aparelho, ele aparece aqui.',
+                      : 'Se você esperava ver aparelhos aqui, quase sempre é código antigo guardado no aparelho. Atualizar resolve.',
+      acao: (!vitBusca && typeof recarregarLimpo === 'function')
+        ? UI.btn('Atualizar agora', {onclick:'recarregarLimpo()', variante:'primario'}) : '',
     });
   }
   return `<div class="vit-lista">${dados.map(vitCartao).join('')}</div>`;

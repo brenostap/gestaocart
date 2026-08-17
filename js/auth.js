@@ -39,11 +39,20 @@ async function doLogin(){
     enterApp();
     await loadAllData();
   }catch(e){
+    // ⚠️ Ate 17/ago/2026 QUALQUER erro virava "E-mail ou senha inválidos" -- o
+    // catch-all. Falha de rede, CORS e projeto fora do ar diziam a mesma coisa
+    // que senha errada, e a pessoa ficava redigitando a senha certa. Agora o
+    // desconhecido aparece como ele e.
     const msg = String(e?.message||'');
+    console.error('[login]', msg);
     document.getElementById('login-error').textContent =
-      /Email not confirmed/i.test(msg) ? 'E-mail ainda não confirmado. Fale com o Breno.'
+      /invalid login credentials|invalid credentials/i.test(msg)
+        ? 'E-mail ou senha incorretos.'
+      : /Email not confirmed/i.test(msg) ? 'E-mail ainda não confirmado. Fale com o Breno.'
       : /rate limit|too many/i.test(msg) ? 'Muitas tentativas. Aguarde um minuto e tente de novo.'
-      : 'E-mail ou senha inválidos.';
+      : /failed to fetch|networkerror|load failed/i.test(msg)
+        ? 'Sem conexão com o servidor. Confira a internet e tente de novo.'
+      : 'Não consegui entrar: ' + msg;
     btn.disabled=false;btn.textContent='Entrar';
   }
 }
@@ -70,7 +79,12 @@ async function carregarMeuPerfil(){
   if(typeof podeVer === 'function' && !podeVer(currentTab)){
     const permitidas = (typeof telasDoUsuario === 'function')
       ? telasDoUsuario() : (MATRIZ_ACESSO[papelAtual()] || []);
-    currentTab = permitidas[0] || 'estoque';
+    // ⚠️ O fallback era 'estoque', e isso e uma armadilha: papel que este JS
+    // NAO CONHECE (o caso de codigo velho diante de um papel novo) cai com
+    // `permitidas` vazio e ia parar justamente na tela que ele nao pode ler --
+    // aparecendo como "estoque zerado" em vez de "app desatualizado".
+    // Aconteceu em 17/ago/2026 com o primeiro login do papel `comercial`.
+    currentTab = permitidas[0] || 'semacesso';
   }
   return meuPerfil;
 }
