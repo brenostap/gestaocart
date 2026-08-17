@@ -236,3 +236,41 @@ consertar, é desambiguar resposta curta depois da pergunta de troca — não af
 
 O problema de verdade continua sendo o outro: **365 conversas morrem com uma pergunta da Maju
 pendurada**, sem escalada e sem follow-up. Esse tem 368 casos, não 4.
+
+## ⚠️ Baixar dado fresco do Chatwoot NÃO dá a coorte madura (17/ago/2026)
+
+A lista da API vem ordenada por **última atividade**. Baixar mais páginas traz mais conversas
+*recentes*, não mais antigas. Medido no cache:
+
+| arquivo | conversas | iniciadas em ago | em jun |
+|---|---|---|---|
+| `cart.json` | 1.200 | **1.101** | 18 |
+| `cart-7d.json` | 1.379 | **1.199** | 30 |
+| `urban.json` | 800 | **755** | 7 |
+
+Junho aparece a ~2% do fluxo. Para juntar ~500 conversas de junho seriam ~25 mil conversas
+baixadas — e a API exige **uma chamada por conversa**, contra a instância de produção. Não vale.
+
+**Os tokens servem para outra coisa:** medir se um conserto funcionou (dado fresco depois da
+mudança) e atualizar a Urban. Não para análise de conversão.
+
+### A coorte madura já estava no Supabase
+
+**`n8n_chat_histories_maju_v2`** (projeto `supabase-cart`): 161.053 mensagens, 8.338 sessões,
+`created_at` **100% preenchido**, desde **10/jun/2026**. É o WhatsApp da Maju v2.
+
+- `session_id` = `<telefone>-cart`. Tirando o sufixo, **3.674 de 3.674 sessões de junho (100%)
+  casam com `contatosBreno.telefone`**. Ligação perfeita com o rótulo `comprou`.
+- ⚠️ Só WhatsApp. O Instagram (`n8n_chat_histories_instagram`) continua sem data antes de 10/ago.
+
+**Rodando na coorte de junho (~68 dias de maturação):**
+
+| | sessões | compraram | conversão |
+|---|---|---|---|
+| **transferidas pra um vendedor** | 1.152 | 131 | **11,37%** |
+| **não transferidas** | 2.522 | 49 | **1,94%** |
+| total | 3.674 | 180 | 4,90% |
+
+**Ser transferido multiplica a conversão por 5,9×** — medido em coorte madura, com 1.152 contra
+2.522 casos. Isso confirma o achado dos 71% com estatística muito melhor que os 11 contra 1 do
+Chatwoot de agosto. É o mesmo fato, medido duas vezes por caminhos independentes.
