@@ -103,8 +103,9 @@ insert into public.apelidos (apelido, chave, tipo, obs) values
   ('do','do','lixo',null),
   ('sem','sem','lixo',null),
   ('de','de','lixo',null),
-  -- ---- nao identificado: chave NULL de proposito ----
-  ('malu','malu','duvida','1 venda em 29/06/2026. Pode ser typo de maju (que so aparece a partir de 10/07) ou pessoa de verdade. NAO chutado.')
+  -- 'malu' entrou como tipo 'duvida' com chave NULL (nao chutar quem e gente).
+  -- O dono confirmou em 17/ago que e typo de 'maju', e virou IA.
+  ('malu','maju','ia','typo de maju (IA da Cart) -- confirmado pelo dono em 17/ago/2026')
 on conflict (apelido) do update
   set chave = excluded.chave, tipo = excluded.tipo, obs = excluded.obs, atualizado_em = now();
 

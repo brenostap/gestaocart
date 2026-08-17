@@ -46,8 +46,11 @@ const ALIASES={
   // marcela, marcella, maju, duda -> tratados em SOCIOS_LOJA
 };
 
-// Socios e IAs -- aparecem nas vendas mas NAO sao VO nem AT
-const SOCIOS_LOJA = ['breno','gustavo','marcella','marcela','marcelo','maju','duda','cart','urban','online','loja'];
+// Socios e IAs -- aparecem nas vendas mas NAO sao VO nem AT.
+// ⚠️ A FONTE da normalizacao e a tabela `apelidos` no Postgres (17/ago/2026);
+// esta lista continua porque telas como a Conferencia perguntam "isso e nome de
+// loja?" sem ir ao banco. 'malu' e typo de 'maju' (confirmado pelo dono).
+const SOCIOS_LOJA = ['breno','gustavo','marcella','marcela','marcelo','maju','malu','duda','cart','urban','online','loja','pessoal'];
 
 // Vendedores online OFICIAIS -- so esses recebem comissao por device
 // maria: SAC/online (entrou jun/2026) -- device com curva 80
