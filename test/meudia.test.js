@@ -137,7 +137,70 @@ comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
   else bad('não diz quanto falta pro degrau');
 });
 
-// -- 3. estado de erro é honesto -------------------------------------------
+// -- 3. bônus coletivo entra no herói --------------------------------------
+// Sem isso a tela mentia PRA BAIXO: em ago/2026 são ~R$1.000 por pessoa que
+// não apareciam. Número de comissão incompleto é pior que número nenhum —
+// a pessoa descobre no dia do pagamento.
+console.log('meta do time');
+
+// ago/2026: faixas dev 400/450/500 -> 600/800/1000 · acess 30k/40k/50k -> 400/700/1000
+const REDE_BATE_UMA = { mes:'2026-08', aparelhos:423, acess_bruto:'37800.00' }; // 400 e 30k
+
+comPerfil({papel:'bancada', nome:'Vitor Lima', at_key:'vitinho', ativo:true}, () => {
+  run(`mdResumo = ${JSON.stringify(RESUMO)}; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = ${JSON.stringify(REDE_BATE_UMA)};`);
+  const rede = run(`mdMetaRede()`);
+  if (rede.bonus === 1000) ok('bônus coletivo = R$600 (400 aparelhos) + R$400 (30k acess)');
+  else bad('bônus coletivo errado: ' + rede.bonus);
+
+  const html = run(`renderMeuDia()`);
+  // 374 de acessório + 1.000 de meta = 1.374
+  if (html.includes('R$1.374')) ok('o herói soma a meta do time (R$374 + R$1.000)');
+  else bad('o herói não somou o bônus coletivo');
+  if (html.includes('Meta do time')) ok('o card da meta do time aparece');
+  else bad('card da meta do time sumiu');
+  if (html.includes('Faltam <b>27</b> aparelhos')) ok('diz quanto falta pra próxima faixa (450 − 423)');
+  else bad('não diz quanto falta pra próxima faixa da rede');
+});
+
+// Quem está fora do rateio no mês não pode ver o bônus somado.
+comPerfil({papel:'comercial', nome:'Davi', at_key:'davi', ativo:true}, () => {
+  run(`mdResumo = null; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = ${JSON.stringify(REDE_BATE_UMA)};
+       SEM_BONUS_COLETIVO['2026-08'] = ['davi'];`);
+  const rede = run(`mdMetaRede()`);
+  const mesAgora = run(`mdMesCorrente()`);
+  if (mesAgora !== '2026-08') {
+    ok('(fora de ago/2026 — caso do rateio não se aplica neste mês)');
+  } else if (rede.bonus === 0 && rede.bonusSeEntrasse === 1000) {
+    ok('quem está fora do rateio não recebe o bônus somado');
+    const html = run(`renderMeuDia()`);
+    if (html.includes('fora do rateio')) ok('e a tela diz por quê, em vez de só somar menos');
+    else bad('a tela escondeu o motivo de o bônus não entrar');
+  } else bad('rateio não respeitado: ' + JSON.stringify(rede));
+});
+
+// A Anne tem 5% do lucro de acessórios DA REDE — lucro de terceiros, que não
+// pode ir pro navegador. A tela precisa dizer isso, não fingir que o total fecha.
+comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
+  run(`mdResumo = ${JSON.stringify(RESUMO)}; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = ${JSON.stringify(REDE_BATE_UMA)};`);
+  const html = run(`renderMeuDia()`);
+  if (html.includes('5% do lucro de acessórios da rede')) ok('Anne é avisada do extra que não cabe na tela');
+  else bad('Anne veria um total incompleto sem aviso');
+});
+
+// Sem o total da rede (view fora do ar), o bônus é 0 e a tela não inventa.
+comPerfil({papel:'bancada', nome:'Vitor', at_key:'vitinho', ativo:true}, () => {
+  run(`mdResumo = ${JSON.stringify(RESUMO)}; mdVendas = []; mdCarregado = true; mdErro=''; mdRede = null;`);
+  const html = run(`renderMeuDia()`);
+  if (!html.includes('Meta do time')) ok('sem dado da rede, o card não aparece (não inventa faixa)');
+  else bad('card da meta apareceu sem dado');
+  if (html.includes('R$374')) ok('e a comissão própria continua certa');
+  else bad('a comissão própria quebrou sem o dado da rede');
+});
+
+// -- 4. estado de erro é honesto -------------------------------------------
 comPerfil({papel:'bancada', nome:'Vitor', at_key:'vitinho', ativo:true}, () => {
   run(`mdCarregado = true; mdErro = 'HTTP 500';`);
   const html = run(`renderMeuDia()`);

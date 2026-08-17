@@ -23,6 +23,7 @@
 
 let mdResumo = null;      // linha de v_minha_comissao_mes do mes corrente
 let mdVendas = [];        // v_minhas_vendas do mes corrente
+let mdRede   = null;      // linha de v_meta_rede_mes -- total da rede, sem nome
 let mdCarregado = false;
 let mdErro = '';
 
@@ -41,18 +42,51 @@ async function carregarMeuDia(){
   mdErro = '';
   const mes = mdMesCorrente();
   try{
-    const [resumo, vendas] = await Promise.all([
+    const [resumo, vendas, rede] = await Promise.all([
       sbGet('v_minha_comissao_mes', `mes=eq.${mes}`, 1),
       sbGet('v_minhas_vendas', `data_saida=gte.${mes}-01&order=data_saida.desc`, 500),
+      sbGet('v_meta_rede_mes', `mes=eq.${mes}`, 1),
     ]);
     mdResumo = (resumo && resumo[0]) || null;
     mdVendas = vendas || [];
+    mdRede   = (rede && rede[0]) || null;
   }catch(e){
     console.warn('[meudia] carga falhou:', e.message);
     mdErro = e.message || 'falha ao carregar';
-    mdResumo = null; mdVendas = [];
+    mdResumo = null; mdVendas = []; mdRede = null;
   }
   mdCarregado = true;
+}
+
+// A linha do cadastro (FUNC) desta pessoa, achada pela chave. Serve pra duas
+// coisas que o perfil nao sabe: se ela esta fora do rateio do bonus coletivo
+// neste mes, e se ela tem o extra de 5% (hoje so a Anne).
+function mdFunc(){
+  if(!meuPerfil) return null;
+  const vo = meuPerfil.vo_key, at = meuPerfil.at_key;
+  return FUNC.find(f => (vo && f.voKey === vo) || (at && f.atKey === at)) || null;
+}
+
+// BONUS COLETIVO -- pago CHEIO por pessoa quando a REDE bate a faixa. Sem ele o
+// heroi mentia pra baixo: em ago/2026 sao ~R$1.000 que a tela nao contava.
+//
+// As faixas vem de metasColetivas() (core.js), que e por mes e nunca retroativa.
+// Os totais vem da view v_meta_rede_mes. Nenhum dos dois mora aqui de proposito.
+function mdMetaRede(){
+  if(!mdRede) return null;
+  const metas = metasColetivas(mdMesCorrente());
+  const un    = Number(mdRede.aparelhos || 0);
+  const ac    = Number(mdRede.acess_bruto || 0);
+  const devBatida = metas.dev.filter(x => un >= x.qt).pop() || null;
+  const devProx   = metas.dev.find(x => un < x.qt) || null;
+  const acBatida  = metas.acess.filter(x => ac >= x.val).pop() || null;
+  const acProx    = metas.acess.find(x => ac < x.val) || null;
+  const f = mdFunc();
+  // Ferias/afastamento tiram a pessoa do rateio naquele mes (SEM_BONUS_COLETIVO).
+  const entra = !f || typeof entraNoBonusColetivo !== 'function'
+              || entraNoBonusColetivo(f.id, mdMesCorrente());
+  const bruto = (devBatida?.bonus || 0) + (acBatida?.bonus || 0);
+  return { un, ac, devBatida, devProx, acBatida, acProx, entra, bonus: entra ? bruto : 0, bonusSeEntrasse: bruto };
 }
 
 // Comissao de vendedor: a curva de 80 un e fonte unica em core.js. Atendente que
@@ -87,13 +121,15 @@ function renderMeuDia(){
 
   const commVo = mdTemVo() ? mdComissaoVendedor(aparelhos) : 0;
   const commAt = mdTemAt() ? acessLucro * 0.25 : 0;
-  const total  = commVo + commAt;
+  const rede   = mdMetaRede();
+  const bonusCol = rede ? rede.bonus : 0;
+  const total  = commVo + commAt + bonusCol;
 
   // -- Herói: uma métrica só, que é a pergunta que a pessoa abre o app pra fazer
   const heroi = `<div class="md-heroi">
     <span class="md-heroi-rot">Comissão de ${mdRotuloMes(mes)}</span>
     <span class="md-heroi-val">${brl(total)}</span>
-    <span class="md-heroi-sub">${mdLinhaComposicao(commVo, commAt)}</span>
+    <span class="md-heroi-sub">${mdLinhaComposicao(commVo, commAt, bonusCol)}</span>
   </div>`;
 
   // -- Lado vendedor
@@ -162,7 +198,7 @@ function renderMeuDia(){
       <div class="md-ola">Olá${nome ? ', '+UI.esc(nome.split(' ')[0]) : ''}</div>
       ${heroi}
     </div>
-    ${blocoVo}${blocoAt}${tabela}
+    ${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${tabela}
     <div class="md-rodape">Fecha no fim do mês. Número da folha é o do Breno — se não bater, fale com ele.</div>
   </div>`;
 }
@@ -180,11 +216,61 @@ function mdBaseDaConta(bruto, lucro, comissao){
   </div>`;
 }
 
-function mdLinhaComposicao(commVo, commAt){
+function mdLinhaComposicao(commVo, commAt, bonusCol){
   const p = [];
   if(mdTemVo()) p.push(`${brl(commVo)} de aparelho`);
   if(mdTemAt()) p.push(`${brl(commAt)} de acessório`);
+  if(bonusCol)  p.push(`${brl(bonusCol)} de meta do time`);
   return p.join(' + ') || 'Sem comissão neste mês ainda.';
+}
+
+// -- Meta do time ------------------------------------------------------------
+// A barra sozinha nao muda comportamento; o que muda e "faltam N". E aqui o
+// "faltam" vale pra TODO MUNDO ao mesmo tempo, que e o ponto de uma meta
+// coletiva -- por isso ela aparece na tela de cada um.
+function mdCardMetaRede(rede){
+  if(!rede) return '';
+  const pct = (v, alvo) => alvo ? Math.min(100, v / alvo * 100) : 100;
+
+  const linhaDev = rede.devProx
+    ? `Faltam <b>${rede.devProx.qt - rede.un}</b> aparelhos pro time liberar ${brl(rede.devProx.bonus)} pra cada um.`
+    : `Faixa máxima batida — ${brl(rede.devBatida ? rede.devBatida.bonus : 0)} pra cada um.`;
+  const linhaAc = rede.acProx
+    ? `Faltam <b>${brl(rede.acProx.val - rede.ac)}</b> em acessório pro time liberar ${brl(rede.acProx.bonus)}.`
+    : `Faixa máxima batida — ${brl(rede.acBatida ? rede.acBatida.bonus : 0)} pra cada um.`;
+
+  const aviso = !rede.entra && rede.bonusSeEntrasse
+    ? `<div class="md-conta-linha" style="margin-top:8px">Você está fora do rateio deste mês (férias/afastamento), então ${brl(rede.bonusSeEntrasse)} não entram na sua conta.</div>`
+    : '';
+
+  // 5% do lucro de acessórios da REDE: e lucro de terceiros, nao da pra mandar
+  // pro navegador de ninguem. Some no fechamento -- dizer isso e melhor que
+  // mostrar um total que a pessoa vai descobrir incompleto no dia do pagamento.
+  const f = mdFunc();
+  const extra = (f && f.bonus)
+    ? `<div class="md-conta-linha" style="margin-top:8px">Você também recebe <b>5% do lucro de acessórios da rede</b>. Esse valor não aparece aqui — sai no fechamento do mês.</div>`
+    : '';
+
+  return UI.card({
+    titulo:'Meta do time',
+    sub: mdRotuloMes(mdMesCorrente()),
+    corpo: `
+      <div class="md-meta">
+        <span class="md-meta-txt"><b>${rede.un}</b> aparelhos vendidos pela rede</span>
+        ${UI.barra(pct(rede.un, rede.devProx ? rede.devProx.qt : rede.un), rede.devProx ? 'marca' : 'ok')}
+        <span class="md-meta-txt">${linhaDev}</span>
+      </div>
+      <div class="md-meta" style="margin-top:16px">
+        <span class="md-meta-txt"><b>${brl(rede.ac)}</b> vendidos em acessório pela rede</span>
+        ${UI.barra(pct(rede.ac, rede.acProx ? rede.acProx.val : rede.ac), rede.acProx ? 'marca' : 'ok')}
+        <span class="md-meta-txt">${linhaAc}</span>
+      </div>
+      ${rede.bonus ? `<div class="md-conta" style="margin-top:14px">
+        <span class="md-conta-rot">Já garantido pra você</span>
+        <span class="md-conta-linha">Meta do time até agora: <b>${brl(rede.bonus)}</b></span>
+      </div>` : ''}
+      ${aviso}${extra}`
+  });
 }
 
 function mdProximaFaixaVo(aparelhos){

@@ -457,6 +457,29 @@ Duas coisas que apareceram só ao fazer:
    *"Entrada (cliente)"* em quem simplesmente não recebeu o campo — que teria virado 100% do
    estoque na tela dele.
 
+### 6.0e ✅ Passo 4 (parte 1) — a comissão parou de mentir pra baixo
+
+Achado ao revisar o que já estava no ar: o herói do "Meu dia" mostrava **R$ 374** como
+*"Comissão de ago/2026"* e **não somava o bônus coletivo**. Em agosto isso é **~R$ 1.000 por
+pessoa** — o número estava ~73% abaixo do que ela vai receber. Rodapé dizendo *"o número da folha é
+o do Breno"* não conserta número errado.
+
+O bônus coletivo depende dos totais da **rede**, e o colaborador só enxerga as próprias linhas.
+Resolvido com `v_meta_rede_mes`: aparelhos e bruto de acessórios da rede por mês — **sem nome, sem
+lucro, sem dinheiro de ninguém**. Volume e bruto são informação de time.
+
+⚠️ **As faixas não foram pro SQL.** Elas vivem em `metasColetivas()` (core.js), são por mês e nunca
+retroativas — já custaram R$ 1.000 por pessoa quando estavam copiadas em 6 lugares. A view devolve
+o número cru; quem aplica a faixa é o front.
+
+Na tela, isso virou a alavanca que você escolheu — **meta ao vivo**: *"faltam 27 aparelhos pro time
+liberar R$ 800 pra cada um"*. É o único número do painel em que o esforço de um ajuda todo mundo.
+
+**O que ainda não fecha, e a tela diz isso:** a Anne tem 5% do **lucro de acessórios da rede** —
+lucro de terceiros, que não vai pro navegador de ninguém. A tela dela avisa que o extra sai no
+fechamento, em vez de mostrar um total que ela descobriria incompleto no dia do pagamento. Fecha de
+vez com o snapshot.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra
