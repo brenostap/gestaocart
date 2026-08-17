@@ -455,6 +455,47 @@ A trava do N5 hoje usa `vendedor_obs` cru. Trocar por `vendedor_key` deixa o N5 
 typo no nome do vendedor dentro da observação. Ver `CLAUDE.md` e
 `docs/PLANO-UPGRADE-2026-08.md`.
 
+## ⚠️ Para analisar CONVERSA, a direção é outra — e tem uma armadilha
+
+O matcher responde *"de onde veio esta venda"*. Analisar conversa para melhorar
+conversão pergunta o contrário: *"este lead virou venda?"* — e essa resposta **já existe
+e é boa**: `contatos.comprou` + `id_venda`, os mesmos campos do N0, com **97,7% de
+precisão** medida. Em agosto, `comprou` e `id_venda` estão **100% consistentes** entre si
+(zero divergência nos 2.588 leads do período). Não é preciso cruzar nada para rotular
+conversa: o rótulo está no lead.
+
+**A armadilha é o tempo de maturação.** Lag entre o lead chegar e comprar (740 compras
+com data medida, desde jun/2026):
+
+| lag | compras | |
+|---|---|---|
+| mesmo dia | 91 | 12% |
+| 1 a 3 dias | 105 | 14% |
+| 4 a 7 dias | 47 | 6% |
+| 8 a 30 dias | 81 | 11% |
+| **31 a 90 dias** | **129** | **17%** |
+| **mais de 90 dias** | **167** | **23%** |
+
+**Mediana 8 dias, p75 84 dias, p90 138 dias. 40% compram depois de 30 dias.**
+
+Consequência direta: os leads de 1–15/ago aparecem hoje com **1,9% de conversão** (50 de
+2.588). Isso **não é a taxa de conversão** — é a foto de 15 dias de uma curva que leva
+três meses. Marcar essas conversas como "não converteu" e treinar a Maju em cima disso
+seria aprender o padrão errado, porque metade dos "perdidos" ainda vai comprar.
+
+**Regra para a análise de conversa:**
+
+1. **Coorte madura**: analisar leads com pelo menos ~90 dias de estrada. Hoje isso
+   significa **maio e junho**, não agosto.
+2. **Ou métrica de janela fixa**: "converteu em até 7 dias" é estável e comparável entre
+   meses, ao custo de ignorar a cauda longa.
+3. Nunca comparar coortes de maturidades diferentes na mesma tabela.
+
+⚠️ E o limite do histórico de conversa: `n8n_chat_histories_instagram` só tem
+`created_at` desde **10/ago** (95% das mensagens sem data). Coorte madura tem conversa,
+mas **sem carimbo de tempo por mensagem** — dá para ler o conteúdo, não para medir tempo
+de resposta.
+
 ## Próximo passo proposto
 
 Rodar o cruzamento **no painel** (que já tem venda + produto + cliente + loja) e gravar
