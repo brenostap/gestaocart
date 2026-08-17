@@ -129,3 +129,78 @@ não foi investigado.
 - A API do Chatwoot exige **uma chamada por conversa** pra pegar mensagens. Varrer as 49 mil
   conversas seriam ~50 mil requisições contra a instância de produção. Se isso virar rotina, o
   caminho é ler o Postgres do Chatwoot direto, não a API.
+
+---
+
+## O buraco dos 71%: investigado em 17/ago/2026
+
+Script: `node scripts/preco-sem-handoff.js cart`. Roda sobre o mesmo cache do `chatwoot.js`,
+sem rede e sem token.
+
+**Ponto de partida:** 457 conversas da Cart (71% das que viram preço) receberam valor e não
+geraram cartão de handoff. A pergunta era *por quê*.
+
+### Primeiro: o cartão é NOTA PRIVADA
+
+⚠️ Armadilha que me pegou na primeira rodada. O cartão de handoff avisa a **equipe**, não o
+cliente: no cache da Cart, **318 conversas têm o cartão só em nota privada e apenas 1 em mensagem
+pública**. `temPreco()` filtra `private` (correto — nota não foi pro cliente); `etapaDe()` **não
+filtra** (também correto, pelo mesmo motivo invertido). Filtrar nos dois igual inflou o balde de
+457 para 643. As duas funções divergem de propósito.
+
+### A segmentação
+
+| | conversas | |
+|---|---|---|
+| **o cliente respondeu depois do preço** | **368** | **80,5%** |
+| o cliente sumiu (parado há 10 dias na mediana) | 89 | 19,5% |
+
+Ou seja: o balde **não é** gente que sumiu. Em 4 de cada 5 o cliente continuou falando — e mesmo
+assim ninguém foi acionado.
+
+### O mecanismo: a IA não trava, ela conversa até acabar
+
+Nessas 368, **a última palavra é da Maju em 365** (99%). Ela responde tudo — garantia (97),
+disponibilidade (84), parcelamento (42), troca (31) — e nunca decide que é hora de chamar gente.
+A conversa morre com uma pergunta dela pendurada.
+
+⭐ **28 clientes sinalizaram compra explicitamente** ("vou querer", "quero", "pode separar") e
+nenhum gerou handoff. Três exemplos lidos:
+
+- **#37346** — Maju cota 15 Pro Max R$ 3.950, cliente responde "Okk / Vou querer". Fim da conversa.
+- **#28397** — cliente escreve "Quero comprar um iPhone…", pede 15 Pro Max, e ao ser perguntado se
+  tem aparelho de troca responde **"Não quero compra"** (é "não [tenho troca], quero comprar"). A
+  Maju lê como desistência: *"Tranquilo, então deixamos o 15 Pro Max de lado"*. Cliente perdido por
+  interpretação.
+- **#37286** — cliente engajado, sabe o endereço, quer pagar no Pix, R$ 7.450, diz "já está tudo
+  certo pro mês que vem". A Maju oferece simular entrada, o cliente aceita ("Pode ser") e ela
+  **não simula** — encerra com "quando chegar o mês que vem, me chama".
+
+### E o follow-up também não cobre
+
+Não é só o handoff que falha. Dos leads de WhatsApp da Cart que **não compraram** (jun–ago),
+**68,7% nunca receberam nenhum follow-up** (4.667 de 6.797). O fluxo existe — 2.130 têm follow-up
+agendado e 1.454 foram reengajados — mas alcança só um terço. **Os dois portões estão fechados ao
+mesmo tempo**: ninguém é acionado e ninguém volta depois.
+
+### Quanto isso vale
+
+| grupo | conversas | compraram | taxa |
+|---|---|---|---|
+| **gerou handoff** | 319 | 11 | **3,4%** |
+| **viu preço, sem handoff** | 457 | 1 | **0,2%** |
+| nunca viu preço | 424 | 4 | 0,9% |
+
+**Quem passa pelo handoff converte ~16× mais.** Valor cotado nas 364 conversas vivas com aparelho
+identificado: **R$ 1,55 milhão**, mediana de **R$ 3.950** por aparelho.
+
+⚠️ Três ressalvas, porque este número vai virar decisão:
+
+1. **As taxas absolutas estão subestimadas** — a coorte é de agosto e a mediana de lag lead→compra
+   é 8 dias com p75 de 84 (ver `docs/ATRIBUICAO-LEADS-VENDAS.md`). A **razão entre os grupos** é
+   mais confiável que o nível, porque os três têm a mesma maturidade.
+2. **Correlação, não causa provada.** O handoff pode ser emitido *porque* o cliente já estava
+   quente. O que é evidência direta de perda são os 28 que disseram que iam comprar e não geraram
+   handoff — esses não são viés de seleção.
+3. O 0,9% do grupo "nunca viu preço" ser maior que o 0,2% do "preço sem handoff" é **ruído** —
+   são 4 e 1 conversas. Não construa nada em cima disso.
