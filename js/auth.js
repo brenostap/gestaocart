@@ -54,8 +54,10 @@ async function doLogin(){
 async function carregarMeuPerfil(){
   if(!usuarioId){ meuPerfil = null; return null; }
   try{
+    // vo_key/at_key decidem QUAIS LINHAS sao minhas e se a tela "Meu dia"
+    // existe -- sem elas no select, quem atende no balcao nao ve o que ganhou.
     const linhas = await sbGet('perfis',
-      `select=papel,nome,funcionario_id,ativo&user_id=eq.${usuarioId}`, 1);
+      `select=papel,nome,funcionario_id,ativo,vo_key,at_key&user_id=eq.${usuarioId}`, 1);
     meuPerfil = (linhas && linhas[0]) || null;
   }catch(e){
     // Nao derruba o login: o RLS ja e a trava real, e papelReal() cai no
@@ -66,7 +68,8 @@ async function carregarMeuPerfil(){
   }
   // O papel muda o menu inteiro; a tela aberta pode nem existir pra ele.
   if(typeof podeVer === 'function' && !podeVer(currentTab)){
-    const permitidas = (MATRIZ_ACESSO[papelAtual()] || []);
+    const permitidas = (typeof telasDoUsuario === 'function')
+      ? telasDoUsuario() : (MATRIZ_ACESSO[papelAtual()] || []);
     currentTab = permitidas[0] || 'estoque';
   }
   return meuPerfil;

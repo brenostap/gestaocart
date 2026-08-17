@@ -144,7 +144,8 @@ function calc(){
 function renderContent(){
   const c=document.getElementById('content');
   if(!c)return;
-  if(currentTab==='dash')c.innerHTML=(typeof renderDashV2==='function'&&typeof dashV2Ativo==='function'&&dashV2Ativo())?renderDashV2():renderDash();
+  if(currentTab==='meudia')c.innerHTML=renderMeuDia();
+  else if(currentTab==='dash')c.innerHTML=(typeof renderDashV2==='function'&&typeof dashV2Ativo==='function'&&dashV2Ativo())?renderDashV2():renderDash();
   else if(currentTab==='vendas')c.innerHTML=renderVendas();
   else if(currentTab==='compras')c.innerHTML=renderCompras();
   else if(currentTab==='estoque')c.innerHTML=renderEstoque();

@@ -5,6 +5,7 @@
 // ============================================================================
 
 const ICO = {
+  meudia:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
@@ -20,6 +21,8 @@ const ICO = {
 
 const NAV = [
   { grupo:'Operação',  itens:[
+    // Primeiro item de propósito: pra quem tem chave, é a tela que ele abre.
+    {id:'meudia',  label:'Meu dia'},
     {id:'dash',    label:'Dashboard'},
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},
@@ -80,7 +83,7 @@ function fecharNavMais(){
 // havia como rolar a barra nem descobrir que faltava coisa; simplesmente nao
 // estavam la. Agora as 4 primeiras ficam fixas e o resto vai pro botao "Mais".
 function navMobile(){
-  const permitidas = MATRIZ_ACESSO[papelAtual()] || [];
+  const permitidas = telasDoUsuario();
   if(permitidas.length <= 5) return { fixas: permitidas, mais: [] };
   const fixas = NAV_MOBILE.filter(id => permitidas.includes(id)).slice(0, 4);
   return { fixas, mais: permitidas.filter(id => !fixas.includes(id)) };
@@ -96,19 +99,36 @@ const MATRIZ_ACESSO = {
   socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento'],
   // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
   bancada:   ['estoque','bancada'],
+  // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta
+  // aqui -- esta nas chaves vo_key/at_key do perfil. Ver docs/PERFIS-E-ACESSO.md.
+  comercial: ['meudia'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],
 };
 
+// ⚠️ `meudia` NAO e do papel, e da CHAVE. O Vitinho e `bancada` e atende no
+// balcao (52 vendas em ago/2026): ele mantem Estoque e Assistencia E ganha esta
+// tela. Papel diz o teto de dinheiro; chave diz o que e meu.
+function temChaveComercial(){ return !!(meuPerfil && (meuPerfil.vo_key || meuPerfil.at_key)); }
+
+// As telas que este usuario alcanca = as do papel + `meudia` se ele tem chave.
+// Fonte unica de podeVer() e navMobile(): sem isso a barra do celular volta a
+// esconder tela que existe no desktop, que ja aconteceu em 13/ago.
+function telasDoUsuario(){
+  const doPapel = MATRIZ_ACESSO[papelAtual()] || [];
+  if(temChaveComercial() && !doPapel.includes('meudia')) return ['meudia', ...doPapel];
+  return doPapel;
+}
+
 // ⚠️ Só 'socio' e 'bancada' têm RLS de verdade no banco. Os outros três seguem
 // sendo PREVIA VISUAL do dono: criar um perfil 'vendedor' hoje daria uma tela
 // de Vendas aberta lendo zero linha. Por isso o CHECK da tabela `perfis` só
 // aceita os dois. Ver docs/PERFIS-E-ACESSO.md.
-const PAPEIS_COM_RLS = ['socio','bancada'];
-const PAPEIS = ['socio','bancada','gerente','vendedor','atendente'];
-const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', gerente:'Gerente',
-                      vendedor:'Vendedor', atendente:'Atendente' };
+const PAPEIS_COM_RLS = ['socio','bancada','comercial'];
+const PAPEIS = ['socio','bancada','comercial','gerente','vendedor','atendente'];
+const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', comercial:'Comercial',
+                      gerente:'Gerente', vendedor:'Vendedor', atendente:'Atendente' };
 
 // Papel de verdade do usuario logado: vem da tabela `perfis` (auth.js carrega).
 // Padrao 'socio' quando o perfil nao carregou -- e escolha de UX, nao de
@@ -119,6 +139,12 @@ function papelReal(){ return (meuPerfil && meuPerfil.papel) || 'socio'; }
 
 // Quem só cuida da bancada nao precisa (nem deve) carregar venda, custo e folha.
 function perfilSoBancada(){ return papelReal() === 'bancada'; }
+
+// Quem nao tem tela que use loja+periodo nao precisa do seletor ocupando a
+// sidebar. "Meu dia" e sempre o mes corrente e as duas lojas.
+function semContextoLojaPeriodo(){
+  return perfilSoBancada() || papelAtual() === 'comercial';
+}
 
 // So o dono. Usado pra decidir quem enxerga o seletor "Ver como".
 function ehDono(){ return usuarioEmail === EMAIL_DONO; }
@@ -155,14 +181,14 @@ function renderPreviewBar(){
     : '';
 }
 
-function podeVer(secao){ return (MATRIZ_ACESSO[papelAtual()] || []).includes(secao); }
+function podeVer(secao){ return telasDoUsuario().includes(secao); }
 
 // Duas permissoes distintas, a pedido do dono:
 //   VALOR  = por quanto foi vendido. O colaborador negociou o preco, entao ve.
 //   MARGEM = custo e lucro. So socio.
 // 'bancada' nao entra em nenhuma das duas: o Vitinho precisa do aparelho, nao
 // do preco dele. Assim money() devolve '—' em qualquer tela que ele abrir.
-const VE_VALOR  = ['socio','gerente','vendedor','atendente'];
+const VE_VALOR  = ['socio','comercial','gerente','vendedor','atendente'];
 const VE_MARGEM = ['socio'];
 
 function podeVerValor(){  return VE_VALOR.includes(papelAtual()); }
@@ -187,6 +213,15 @@ function podeVerCustoServico(){ return VE_CUSTO_SERVICO.includes(papelAtual()); 
 function moneyServico(valor, mudo){
   return podeVerCustoServico() ? brl(valor) : (mudo === undefined ? '—' : mudo);
 }
+
+// QUARTO interruptor (17/ago/2026): a BASE DA PROPRIA COMISSAO. O atendente
+// ganha 25% de um lucro que ele nao pode ver -- e comissao que a pessoa nao
+// consegue conferir vira desconfianca. Entao ele ve a soma do mes DAS VENDAS
+// DELE, agregada, e nunca item a item.
+//
+// Nao e podeVerMargem() disfarcado: isto e o dinheiro DELE, agregado, e vale
+// justamente pra quem NAO ve margem. Quem tem chave de atendente, ve.
+function podeVerBaseComissao(){ return !!(meuPerfil && meuPerfil.at_key); }
 
 // Mantido porque varias telas ja chamam; hoje significa "pode ver custo/lucro"
 function podeVerDinheiro(){ return podeVerMargem(); }
@@ -235,7 +270,7 @@ function renderShell(){
       </div>
     </div>
 
-    ${perfilSoBancada() ? '' : `
+    ${semContextoLojaPeriodo() ? '' : `
     <div class="sb-context">
       <div class="label-mono">Loja</div>
       <div class="sb-stores">

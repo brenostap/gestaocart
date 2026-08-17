@@ -176,6 +176,13 @@ async function loadBancadaData(){
     estoqueItens = (estoque||[]).map(i=>({ ...i, produto:{ titulo:i.titulo } }));
     setProgress(70,'Carregando bancada...');
     if(typeof carregarBancada === 'function') await carregarBancada();
+    // O Vitinho e `bancada` E atende no balcao. Se ele tem chave, a tela "Meu
+    // dia" existe pra ele -- e ela le VIEW, nao tabela: o RLS devolve zero em
+    // `vendas` pra ele, e e assim que tem que ser.
+    if(typeof temChaveComercial === 'function' && temChaveComercial()){
+      setProgress(85,'Carregando seus números...');
+      if(typeof carregarMeuDia === 'function') await carregarMeuDia();
+    }
     setProgress(100,'Pronto!');
   }catch(e){
     console.error('[bancada] carga falhou:', e);
@@ -187,7 +194,30 @@ async function loadBancadaData(){
   renderContent();
 }
 
+// Carga do papel `comercial`: SO as views. Nao e otimizacao, e consequencia --
+// o RLS devolve zero linha em vendas/produtos/pagamentos pra ele, entao a carga
+// cheia seriam 40+ requisicoes na franquia do celular dele pra montar array
+// vazio. Ver docs/PLANO-UPGRADE-2026-08.md §2.3.
+async function loadComercialData(){
+  const ov=document.getElementById('loading-overlay');
+  if(ov) ov.style.display='flex';
+  allVendas=[];allMovs=[];ajustesAcessorios=[];estoqueItens=[];
+  try{
+    setProgress(40,'Carregando seus números...');
+    if(typeof carregarMeuDia === 'function') await carregarMeuDia();
+    setProgress(100,'Pronto!');
+  }catch(e){
+    console.error('[comercial] carga falhou:', e);
+  }
+  if(ov) ov.style.display='none';
+  const app=document.getElementById('app');
+  if(app) app.style.display='grid';
+  updateStatusBar();
+  renderContent();
+}
+
 async function loadAllData(){
+  if(typeof papelReal === 'function' && papelReal() === 'comercial') return loadComercialData();
   if(typeof perfilSoBancada === 'function' && perfilSoBancada()) return loadBancadaData();
   document.getElementById('loading-overlay').style.display='flex';
   allVendas=[];allMovs=[];estoqueItens=[];

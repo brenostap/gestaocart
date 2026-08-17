@@ -21,6 +21,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
   Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
   a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
+- **Teste do "Meu dia"**: `node test/meudia.test.js`. Prova que a tela vem da **chave**
+  (`vo_key`/`at_key`), não do papel — o Vitinho é `bancada` e precisa dela —, que o sócio **não**
+  ganha a tela, que o HTML não vaza campo de custo, e que a comissão bate com a curva do `core.js`.
+- **Teste do espelho da regra de item**: `node test/regra-acessorio.test.js`. A classificação
+  principal/acessório/cancelado existe em **dois lugares** (`js/equipe.js` e as funções
+  `eh_*` no Postgres) porque o sócio calcula no navegador e o colaborador **não pode receber os
+  itens** (`valor_estoque` é custo). Divergir ali não quebra tela: **paga comissão errada, calada.**
 - **Teste da origem da venda**: `node test/venda-origem.test.js`. Monta o dashboard e prova que a
   seção "De onde vieram as vendas" **não soma o `provavel`** no dinheiro (o nível 5 erra 1 em 5) e
   que a **cobertura aparece na tela** — o número é piso, não total, e esconder o denominador seria
@@ -164,10 +171,15 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   - A cobertura é parcial de propósito (só o período já processado) e **a tela mostra isso**. O
     número é piso, não total, e a falta pesa mais no Instagram — dá pra comparar canais, não pra
     afirmar quanto o Meta Ads devolveu.
-- ⚠️ **Três interruptores de dinheiro, não um.** `podeVerValor()` (valor da venda) ·
+- ⚠️ **Quatro interruptores de dinheiro, não um.** `podeVerValor()` (valor da venda) ·
   `podeVerMargem()` (custo/lucro/margem) · **`podeVerCustoServico()`** (o que a assistência cobra —
-  sócio e bancada). `money()` responde aos dois primeiros; **`moneyServico()`** ao terceiro. O papel
+  sócio e bancada) · **`podeVerBaseComissao()`** (a base da *própria* comissão — quem tem `at_key`).
+  `money()` responde aos dois primeiros; **`moneyServico()`** ao terceiro. O papel
   `bancada` vê custo de serviço e **não** vê custo de aparelho: são dinheiros diferentes.
+  - O quarto nasceu em 17/ago/2026 e é o mais fácil de confundir com `podeVerMargem()`. **Não é.**
+    Ele mostra a soma **agregada do mês** do lucro de acessórios **das vendas da própria pessoa**,
+    porque a comissão dela é 25% disso — e comissão que a pessoa não consegue conferir vira
+    desconfiança. Nunca item a item; aí seria custo de produto.
 
 ## Verdades não óbvias (pra não errar)
 - O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.

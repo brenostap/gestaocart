@@ -1024,3 +1024,59 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   margin:12px 0; max-width:62ch;
 }
 .conf-nota strong{ color:var(--text); font-weight:600; }
+
+/* ============================================================================
+   MEU DIA — a tela de quem vende e de quem atende (17/ago/2026)
+
+   Regra da tela: UMA metrica-heroi. O colaborador abre o app no celular pra
+   responder uma pergunta so ("quanto eu ganhei ate agora?"), e tudo o mais e
+   apoio. Por isso o heroi nao e um card entre outros: e o topo da tela.
+   ========================================================================= */
+.md-tela{ display:flex; flex-direction:column; gap:14px; }
+
+.md-topo{
+  display:flex; flex-direction:column; gap:4px;
+  padding:20px 20px 22px;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius-card); box-shadow:var(--shadow-sm);
+}
+.md-ola{
+  font-family:var(--font-mono); font-size:var(--fs-caption);
+  letter-spacing:.08em; text-transform:uppercase; color:var(--text4);
+}
+.md-heroi{ display:flex; flex-direction:column; gap:2px; }
+.md-heroi-rot{ font-size:var(--fs-body); color:var(--text3); }
+.md-heroi-val{
+  font-size:var(--fs-display); line-height:var(--lh-display); font-weight:700;
+  letter-spacing:-.02em; color:var(--success); font-variant-numeric:tabular-nums;
+}
+.md-heroi-sub{ font-size:var(--fs-caption); color:var(--text4); margin-top:4px; }
+
+/* Meta: a barra so vale acompanhada do "faltam X" -- barra sozinha nao diz o
+   que fazer amanha, e essa tela existe pra mudar comportamento. */
+.md-meta{ display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+.md-meta-txt{ font-size:var(--fs-caption); line-height:1.5; color:var(--text3); }
+
+/* A conta aberta. Existe porque comissao que a pessoa nao consegue conferir
+   sozinha vira desconfianca -- e a base agregada e o minimo pra ela fechar. */
+.md-conta{
+  display:flex; flex-direction:column; gap:3px;
+  margin-top:14px; padding:12px 14px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius-sm);
+}
+.md-conta-rot{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--text4); margin-bottom:3px;
+}
+.md-conta-linha{ font-size:var(--fs-caption); line-height:1.6; color:var(--text3); }
+.md-conta-linha b{ color:var(--text); font-variant-numeric:tabular-nums; }
+
+.md-rodape{
+  font-size:var(--fs-caption); line-height:1.5; color:var(--text4);
+  text-align:center; padding:4px 12px 8px;
+}
+
+@media (max-width:720px){
+  .md-topo{ padding:16px 16px 18px; }
+  .md-heroi-val{ font-size:38px; }
+}

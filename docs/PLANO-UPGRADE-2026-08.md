@@ -415,6 +415,34 @@ Vitinho**, que lê a tabela direto. Fecha no passo 3, com as duas pontas na mesm
 ⚠️ **Não criar usuário `comercial` antes do passo 3:** o `CHECK` já aceita, mas o `MATRIZ_ACESSO`
 do front não conhece o papel — hoje daria menu de sócio lendo zero linha.
 
+### 6.0c ✅ Passo 3 — feito em 17/ago/2026 (a primeira coisa que aparece na tela)
+
+`js/meudia.js` + papel `comercial` no front. **O Vitinho passa a ver o que ganhou.**
+
+| | |
+|---|---|
+| **Meu dia** | métrica-herói (comissão do mês), aparelhos vendidos com o degrau de 80, attach rate, meta de acessórios com "faltam R$ X", e as vendas do mês |
+| Quem alcança | **quem tem chave**, não quem tem papel — `podeVer('meudia')` olha `vo_key`/`at_key`. Sócio não ganha (não é comissionado) |
+| De onde vem o número | **views**, não tabelas. `v_minhas_vendas` pro que ele fez, `v_minha_comissao_mes` pra base agregada |
+| Carga | `loadComercialData()` — o papel `comercial` faz **2 requisições**, não 40+ |
+| 4º interruptor | `podeVerBaseComissao()` — a conta dos 25% aberta, agregada, só pra quem tem `at_key` |
+
+**A regra de item virou espelho, e o espelho está provado.** Classificar
+principal/acessório/cancelado agora existe em SQL (`eh_principal`, `eh_acessorio`, `eh_cancelado`)
+além do JS, porque o colaborador não pode receber `valor_estoque`. Conferido **exaustivamente**:
+as 9 combinações que existem de fato nos **14.897 itens** dão o mesmo veredito nos dois lados.
+Guardado por `test/regra-acessorio.test.js` — divergir ali não quebra tela, **paga comissão errada
+em silêncio**.
+
+⚠️ **Só o mês corrente, de propósito.** Mês fechado recalculado por aqui daria um número diferente
+do que a folha pagou, por causa dos atendimentos resgatados no passo 1. Histórico só depois do
+snapshot (§2.2).
+
+**Ficou pra 3b, e é honesto dizer:** a tabela `estoque` **não** foi fechada. `v_estoque_vitrine`
+existe, mas o `estoque.js` ainda lê a tabela direto, e a view não tem `ultimo_fornecedor` — trocar
+a fonte agora **muda o que o Vitinho vê hoje** (o filtro de Origem some da tela dele). Isso merece
+conferência própria, não um efeito colateral desta entrega.
+
 ### 6.1 O primeiro passo, concretamente
 
 Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra
