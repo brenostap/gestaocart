@@ -14,7 +14,7 @@
 
 | Pergunta | Decisão |
 |---|---|
-| Quem entra | **Sócios** (Gustavo, Marcella) + **vendedores online** (David, Isa, Mel) + **atendentes** (Anne, Davi, Leo, Gabi). Gerente adiado — não há gerente ativo |
+| Quem entra | **Sócios** (Gustavo, Marcella) + **vendedores online** (David, Isa, Mel) + **atendentes** (Anne, Davi, Leo, Gabi) + **Maria** (vende *e* atende) + **Vitinho**, que já entra hoje mas ainda não vê o que ganha. Gerente adiado — não há gerente ativo |
 | Dinheiro do colaborador | **Valor da venda + comissão própria.** Custo, lucro e margem seguem só do sócio |
 | Quais linhas ele vê | **Só as próprias vendas** — e isso vira **RLS de verdade**, não cortina |
 | Ranking | **Só posição**, sem R$ do colega |
@@ -124,6 +124,54 @@ Hoje há dois cortes: 900px (sidebar → bottom tabs) e 720px (tabela → cartã
 **Nenhum dos dois é o balcão**, que tem largura de desktop e dedo de celular. Largura de tela é a
 pergunta errada — a certa é `pointer: coarse`.
 
+### 2.8 ⛔ Ninguém tem um papel só — e o Vitinho é a prova
+
+Corrigido em 17/ago, depois que o dono apontou que o Vitinho e a Maria tinham ficado de fora.
+Medido no banco:
+
+| ago/2026 | vendeu | atendeu | papel hoje |
+|---|---:|---:|---|
+| **Vitinho** | 3 | **52** | `bancada` — `money()` devolve `—` em tudo |
+| **Maria** | 27 | 3 | nenhum |
+| Gustavo | 1 | 0 | `socio` |
+
+Duas conclusões, e a segunda derruba o desenho de papel único:
+
+1. **O Vitinho atende no balcão.** 88 atendimentos em maio, 76 em junho, **52 em agosto** — e o
+   papel dele foi desenhado só pra assistência. Ele recebe 25% de lucro de acessórios como qualquer
+   atendente (`AT_KEYS` inclui `vitinho`) e **não consegue ver um centavo do que gerou**. O único
+   colaborador que já usa o painel é justamente o que menos enxerga o próprio trabalho.
+2. **A Maria vende *e* atende.** É a única híbrida ativa (a Pietra era a outra, e saiu). Com papel
+   único ela precisaria de dois logins ou de um papel `vendedor_atendente` — e aí o próximo híbrido
+   pede o terceiro, e o seguinte o quarto.
+
+**A saída é parar de empilhar papéis e separar dois eixos que nunca foram o mesmo:**
+
+```
+perfis(user_id, papel, vo_key, at_key, ativo)
+                  │      └──────┴── CHAVES: o que é "meu" (as linhas que a RLS libera)
+                  └── PAPEL: que menu abre e qual é o teto de dinheiro
+```
+
+| Papel | Quem | Teto de dinheiro |
+|---|---|---|
+| `socio` | Breno, Gustavo, Marcella | tudo |
+| `bancada` | Vitinho | sem valor de venda, sem margem; **vê custo de serviço** e, novidade, **a própria comissão** |
+| `comercial` | David, Isa, Mel, Anne, Davi, Leo, Gabi, Maria | valor da venda + comissão própria; sem custo, lucro ou margem |
+
+O **menu se monta pelas chaves**, não por papel novo: quem tem `vo_key` ganha Vitrine e ranking de
+aparelho; quem tem `at_key` ganha attach rate e meta de acessórios; a Maria tem os dois e vê os
+dois; o Vitinho mantém Estoque e Assistência **e ganha o Meu dia** porque tem `at_key`.
+
+Isso não é invenção nova — é a regra que o repo já escolheu duas vezes e nunca generalizou:
+`podeCorrigirEstoque()` é descrito no código como *"eixo próprio, e não um degrau da escada de
+dinheiro"*, e `podeVerCustoServico()` nasceu pelo mesmo motivo. **Três papéis e duas chaves cobrem
+todo mundo hoje, e o híbrido de amanhã não pede papel nenhum.**
+
+⚠️ **Isto muda uma política, não só código:** mostrar a comissão pro Vitinho significa que ele passa
+a ver o **lucro de acessórios das vendas que ele atendeu**. Hoje ele não vê dinheiro nenhum de
+venda. É a mesma decisão em aberto da §4.2, agora com nome e sobrenome — precisa do seu ok.
+
 ---
 
 ## 3. Arquitetura alvo
@@ -144,9 +192,9 @@ Quatro camadas, de baixo pra cima. A regra é que **cada uma resolve o que a de 
 
 ### 3.1 Banco — o que precisa nascer
 
-1. **`perfis.func_key text`** — a chave do `FUNC` (`'mel'`, `'anne'`). O `funcionario_id` que já
-   existe aponta pra tabela `funcionarios` da FoneNinja, que **não tem os vendedores online** — não
-   serve pra isso.
+1. **`perfis.vo_key` e `perfis.at_key`** — as chaves do `FUNC` (`'mel'`, `'anne'`), **duas colunas
+   porque a pessoa pode ter as duas** (§2.8). O `funcionario_id` que já existe aponta pra tabela
+   `funcionarios` da FoneNinja, que **não tem os vendedores online** — não serve pra isso.
 2. **Normalização do apelido no sync** (`phonecar-sync`): mapa único de sinônimos
    (`deni→denilson`, `ane→anne`) gravado em colunas novas `vendedor_key` / `atendente_key`, com
    `null` quando não casar com pessoa nenhuma. ⚠️ **O mapa vive em um lugar só** — o repo já pagou
@@ -154,8 +202,10 @@ Quatro camadas, de baixo pra cima. A regra é que **cada uma resolve o que a de 
 3. **`CHECK` de `perfis` aceitando `vendedor` e `atendente`** — hoje ele recusa, de propósito,
    porque papel sem RLS é tela aberta lendo zero linha. Muda **junto** com as policies.
 4. **Policies** em `vendas`, `venda_produtos`, `pagamentos`, `venda_trocas`:
-   `own_row` = a chave bate. Índice em `vendas(vendedor_key)` e `vendas(atendente_key)` —
-   sem ele, cada leitura do filho vira varredura.
+   `own_row` = `vendedor_key = meu_vo() or atendente_key = meu_at()`. Uma policy só serve vendedor,
+   atendente e híbrida — quem não tem a chave compara com `null` e não casa com nada, que é o
+   padrão certo. Índice em `vendas(vendedor_key)` e `vendas(atendente_key)`: sem ele, cada leitura
+   do filho vira varredura.
 5. **Views sem coluna de custo** — `v_estoque_vitrine`, `v_minhas_vendas`. Isto fecha o item que o
    `PERFIS-E-ACESSO.md` deixou explicitamente aberto: *RLS é por linha, não por coluna*, então hoje
    o papel `bancada` alcança `estoque.valor_estoque` pela API mesmo com a tela escondendo.
@@ -177,8 +227,13 @@ dizer isso — *"a prévia mostra as telas, não os dados"* — senão a confer�
 | Papel | Carrega |
 |---|---|
 | `socio` | o que carrega hoje |
-| `bancada` | `estoque` + `bancada` (já é assim) |
-| `vendedor` / `atendente` | **mês corrente**, só as próprias vendas (a RLS já filtra), + `v_estoque_vitrine` + a linha dele em `folha_mensal` |
+| `bancada` **sem** `at_key` | `estoque` + `bancada` (já é assim) |
+| `bancada` **com** `at_key` (Vitinho) | o de cima **+** as vendas que ele atendeu no mês + a linha dele em `folha_mensal` |
+| `comercial` | **mês corrente**, só as próprias vendas (a RLS já filtra), + `v_estoque_vitrine` + a linha dele em `folha_mensal` |
+
+⚠️ `perfilSoBancada()` (shell.js) hoje decide a carga **e** esconde o seletor de loja/período. Com o
+Vitinho ganhando uma tela de mês, esse `if` deixa de valer como está — a carga passa a ser função de
+`papel × chaves`, não de um booleano.
 
 Alvo: **uma tela útil em menos de 2 s no 4G**, e o boot do colaborador em ~1 requisição em vez de 40.
 
@@ -211,14 +266,31 @@ Comissão que a pessoa não consegue conferir vira desconfiança. Recomendo most
 do mês** (soma do lucro de acessórios *das vendas dele*) — é o mínimo pra fechar a conta, e não
 abre lucro de aparelho nem de ninguém. Precisa do seu ok.
 
-### 4.3 Bancada (Vitinho) — já funciona, ganha três coisas
+### 4.3 Vitinho — assistência **e** balcão (o perfil que já existe)
 
-- **Prazo**: dias fora da loja por aparelho, e uma lista do que passou do normal. Hoje a tela sabe
-  *onde está*, não *há quanto tempo dói*.
+É o único colaborador que já usa o painel, e o plano tinha esquecido dele. Ele mantém tudo o que
+tem hoje — Estoque, Assistência, corrigir aparelho, marcar estado, exportar a lista do "não vender",
+ver custo de serviço — e ganha:
+
+- **Meu dia**, pela `at_key`: 52 atendimentos em agosto que hoje não aparecem em lugar nenhum pra
+  ele. Comissão do mês, attach rate, meta de acessórios.
+- **Prazo na Assistência**: dias fora da loja por aparelho e a lista do que passou do normal. Hoje a
+  tela sabe *onde está*, não *há quanto tempo dói*.
 - **Modo toque** no iPad — é a tela mais operada em pé de todas.
-- Continuar sem preço: é o que já permite a ele exportar a lista do "não vender".
 
-### 4.4 Sócio — onde está o resultado, não o volume
+Continua **sem preço de aparelho, sem custo e sem margem**. O que muda é só o dinheiro **dele**.
+
+### 4.4 Maria — vende e atende
+
+Papel `comercial` com as duas chaves. A home dela é a única que soma dois blocos: comissão de
+aparelho (27 vendas em agosto) e comissão de acessórios (3 atendimentos). Serve de teste do modelo:
+**se a tela da Maria fecha certo, o híbrido de amanhã não pede código novo.**
+
+⚠️ Confirmar: os 3–4 atendimentos/mês dela **geram 25% de acessório de verdade**, ou o `at_key` é
+resíduo de cadastro? Se for resíduo, tirar a chave — meia comissão fantasma na tela é pior que
+nenhuma.
+
+### 4.5 Sócio — onde está o resultado, não o volume
 
 1. **Margem real no Estoque.** O `CONTEXT.md` é direto: a margem que o painel mostra é só
    `preço − custo`, e falta **carrego** (3% a.m.), **reparo** e **taxa** — R$ 250–600 por aparelho,
@@ -269,7 +341,7 @@ primeira classe, `tabular-nums`, estado vazio que diz o próximo passo. Está ce
 
 | # | O que entra | Pronto quando |
 |---|---|---|
-| **0. Fechadura** | `func_key`, normalização no sync, `CHECK` + policies dos dois papéis novos, índices, views sem custo, roteiro de conferência por papel, `test/perfis.test.js` estendido | Um usuário `vendedor` de teste lê **só** as vendas dele, e `custos`/`compras`/`funcionarios_config` alheio voltam **zero linha** — medido com `row_count` |
+| **0. Fechadura** | `vo_key`/`at_key` no perfil, normalização no sync, papel `comercial`, policies, índices, views sem custo, roteiro de conferência por papel, `test/perfis.test.js` estendido | Um usuário `comercial` de teste lê **só** as vendas dele, a Maria lê as duas pontas, e `custos`/`compras`/cadastro alheio voltam **zero linha** — medido com `row_count` |
 | **1. Piloto de um** | `loadPorPapel()`, home **Meu dia** do vendedor, **Minhas vendas**, rota no hash | **Uma** pessoa (sugestão: Mel ou David) usando de verdade por uma semana, com a comissão batendo com a folha |
 | **2. Loja** | Home do atendente, attach rate, **modo Toque**, **Balcão**/Vitrine com busca, compartilhar no WhatsApp | O iPad do balcão sendo usado em pé sem ninguém pedir ajuda |
 | **3. Kit** | Componentes que faltam, varredura de inline styles, skeletons, timeline | `styleguide.html` mostrando todos, e zero cor literal nas telas grandes |
@@ -278,6 +350,23 @@ primeira classe, `tabular-nums`, estado vazio que diz o próximo passo. Está ce
 
 **Ordem tem motivo:** a fase 0 é a única que não dá pra pular — sem ela toda tela nova é teatro. A 1
 é deliberadamente **uma pessoa**: se a comissão sair errada, erra com uma pessoa, não com sete.
+
+### 6.1 O primeiro passo, concretamente
+
+Não é a policy. É o **mapa de gente**, que não muda comportamento nenhum e pode ser conferido contra
+a folha antes de qualquer trava existir:
+
+1. Migration: `vendedor_key` e `atendente_key` em `vendas` (normalizadas, `null` quando não casar),
+   `vo_key`/`at_key` em `perfis`, e os dois índices.
+2. Backfill dos ~1.800 registros + o mesmo mapa de apelidos no `phonecar-sync`, pra venda nova já
+   nascer normalizada. **O mapa em um lugar só.**
+3. **Conferência:** por mês, quantas vendas casam com alguém do cadastro, quantas ficam `null`, e o
+   total por pessoa **batendo com o que a folha daquele mês pagou**. Divergiu, é aqui que aparece —
+   não depois, com a pessoa olhando a tela.
+
+Nada disso é visível pra ninguém ainda, nada quebra, e tudo é reversível. Só depois de o mapa fechar
+com a folha é que as policies entram — porque policy em cima de atribuição errada esconde a venda da
+pessoa certa e mostra pra errada, e **os dois erros são silenciosos**.
 
 ---
 
@@ -300,11 +389,16 @@ primeira classe, `tabular-nums`, estado vazio que diz o próximo passo. Está ce
 
 ## 8. Ainda em aberto
 
-1. **Franquia de dados** — celular do colaborador é pessoal? Muda o quanto vale investir em carga
+1. **O Vitinho passa a ver a comissão dele?** (§2.8) É o que muda de política: hoje ele não vê R$
+   nenhum de venda. Recomendo **sim** — 52 atendimentos em agosto sem retorno na tela é o pior dos
+   dois mundos.
+2. **A base da comissão do atendente** (§4.2) — mostrar ou não a soma do lucro de acessórios das
+   vendas dele. Vale pro Vitinho, pra Anne, pro Leo, pra Gabi e pro Davi de uma vez.
+3. **A Maria recebe 25% de acessório de verdade?** Se não, tirar o `at_key` dela.
+4. **`maju`** — a IA entra no cadastro como pessoa? São 18 vendas em julho sem dono.
+5. **O Gustavo aparece no ranking de vendedor?** Ele vende 1–3 por mês e é sócio.
+6. **Franquia de dados** — celular do colaborador é pessoal? Muda o quanto vale investir em carga
    enxuta na fase 1 (e se o manifest PWA sobe de prioridade).
-2. **Qual tela você abre 10× por dia, e qual você nunca abre?** Quero ancorar a estrutura no uso
+7. **Qual tela você abre 10× por dia, e qual você nunca abre?** Quero ancorar a estrutura no uso
    real antes da fase 4.
-3. **Alguém de fora precisa ver algo?** (contador, sócio investidor)
-4. **A base da comissão do atendente** (§4.2) — mostrar ou não a soma do lucro de acessórios das
-   vendas dele.
-5. **`maju`** — a IA entra no cadastro como pessoa?
+8. **Alguém de fora precisa ver algo?** (contador, sócio investidor)
