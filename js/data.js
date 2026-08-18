@@ -173,6 +173,45 @@ async function loadFromSupabase(){
 // a carga cheia gastaria a franquia do celular do Vitinho pra montar array
 // vazio. Tambem evita o fetch do estoque "fresco" da FoneNinja, que traz
 // valor_estoque pelo proxy.
+// ESTOQUE "FRESCO" DA FONENINJA -- fora do caminho critico (18/ago/2026).
+//
+// ⚠️ MERGE, nao substituicao. Antes era `if(ae.length>0) estoqueItens=ae;`: a
+// lista inteira era trocada pelo payload do ERP. Dois problemas nisso:
+//   1. campo que o payload nao traz (valor_estoque, ultimo_fornecedor) sumia --
+//      e com a regra de "ausente NAO e zero" da margem real, o custo virava
+//      null e a margem desaparecia da tela do socio;
+//   2. se o ERP devolvesse menos itens, o estoque encolhia sem aviso.
+// Agora ele so PREENCHE campo por campo, por id, e nunca remove ninguem.
+async function atualizarEstoqueFresco(hd){
+  const dp = encodeURIComponent(JSON.stringify({first:0,rows:1000,sortField:'id',sortOrder:-1,
+    filters:{global:{value:null,matchMode:'contains'},status:{value:'available',matchMode:'equals'}}}));
+  try{
+    const re = await fetch(BASE+'/apples?dt_params='+dp, {headers:hd});
+    if(!re.ok){
+      console.warn('[estoque fresco] HTTP '+re.status+' — mantendo o do Supabase');
+      return;
+    }
+    const de = await re.json();
+    const frescos = de.payload?.data || de.data || [];
+    if(!frescos.length) return;
+
+    const porId = {};
+    (estoqueItens||[]).forEach(i => { porId[i.id] = i; });
+    let atualizados = 0, novos = 0;
+    frescos.forEach(f => {
+      const atual = porId[f.id];
+      if(!atual){ estoqueItens.push({ ...f, produto:{ titulo:f.titulo } }); novos++; return; }
+      // Só sobrescreve o que o ERP realmente mandou. undefined/null não apaga.
+      Object.keys(f).forEach(k => { if(f[k] !== undefined && f[k] !== null) atual[k] = f[k]; });
+      atualizados++;
+    });
+    console.log(`[estoque fresco] ${atualizados} atualizados, ${novos} novos (total ${estoqueItens.length})`);
+    if(currentTab === 'estoque') renderContent();
+  }catch(e){
+    console.warn('[estoque fresco] indisponivel — mantendo o do Supabase:', e.message);
+  }
+}
+
 async function loadBancadaData(){
   const ov=document.getElementById('loading-overlay');
   if(ov) ov.style.display='flex';
@@ -246,28 +285,17 @@ async function loadAllData(){
     if(USE_SUPABASE){
       try{
         const result = await loadFromSupabase();
-        setProgress(95,'Carregando estoque FoneNinja...');
-        // Buscar estoque atualizado do FoneNinja (dados mais frescos)
-        const dp=encodeURIComponent(JSON.stringify({first:0,rows:1000,sortField:'id',sortOrder:-1,filters:{global:{value:null,matchMode:'contains'},status:{value:'available',matchMode:'equals'}}}));
-        // Estoque "fresco" do FoneNinja e nice-to-have: se falhar (timeout/cold-start/erro),
-        // mantem o estoque ja carregado do Supabase em vez de descartar a carga e deslogar.
-        try{
-          const re=await fetch(BASE+'/apples?dt_params='+dp,{headers:hd});
-          if(re.ok){
-            const de=await re.json();
-            const ae=de.payload?.data||de.data||[];
-            if(ae.length>0) estoqueItens=ae;
-          }else{
-            console.warn('Estoque fresco FoneNinja: HTTP '+re.status+' — mantendo estoque do Supabase');
-          }
-        }catch(freshErr){
-          console.warn('Estoque fresco FoneNinja indisponivel — mantendo estoque do Supabase:', freshErr.message);
-        }
+        // ⚠️ O estoque "fresco" da FoneNinja NAO bloqueia mais o boot (18/ago/2026).
+        // Era um await no meio da carga: 300-900ms de Edge Function MAIS a
+        // latencia da FoneNinja atras, e ja deu 504 duas vezes. O dono via a
+        // tela do admin travar enquanto a do Vitinho -- que nao faz essa
+        // chamada -- abria na hora. Agora ela sai depois do primeiro desenho.
         setProgress(100,'Pronto!');
         await carregarTabelaPrecos();
         document.getElementById('loading-overlay').style.display='none';
         updateStatusBar();
         renderContent();
+        atualizarEstoqueFresco(hd);   // sem await: chega depois, se chegar
         iniciarPolling();
         return;
       }catch(sbErr){

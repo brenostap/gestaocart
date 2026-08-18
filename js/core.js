@@ -329,9 +329,12 @@ function getPrecoVendaSync(item){
 // Por que medido e nao constante: em ago/2026 o custo liquido caiu de 3,70%
 // para 1,92% com a virada do credito pro PicPay. Constante teria mentido no mes
 // seguinte, e mentido pra MAIS, que e o lado que trava compra boa.
-let _taxaCartaoCache = null;
+// ⚠️ O cache guarda ATE o null. Sem isso, o caminho "nao deu pra medir" era
+// recalculado a cada item do estoque -- 215 aparelhos x milhares de pagamentos
+// a cada render, o pior caso justamente quando nao ha resposta pra dar.
+let _taxaCartaoCache;   // undefined = nunca calculou · null = calculou e nao da
 function taxaCartaoEfetiva(){
-  if(_taxaCartaoCache != null) return _taxaCartaoCache;
+  if(_taxaCartaoCache !== undefined) return _taxaCartaoCache;
   if(!Array.isArray(allVendas) || !allVendas.length) return null;
   let valor = 0, custo = 0;
   const corte = new Date(Date.now() - 90*24*60*60*1000);
@@ -343,11 +346,10 @@ function taxaCartaoEfetiva(){
       custo += parseFloat(p.taxa || 0) - parseFloat(p.taxa_extra || 0);
     });
   });
-  if(valor <= 0) return null;
-  _taxaCartaoCache = Math.max(0, custo / valor);
+  _taxaCartaoCache = valor > 0 ? Math.max(0, custo / valor) : null;
   return _taxaCartaoCache;
 }
-function limparTaxaCartaoCache(){ _taxaCartaoCache = null; }
+function limparTaxaCartaoCache(){ _taxaCartaoCache = undefined; }
 
 function filterByPeriodStatic(vendas, period){
   // Sempre usar BRT para consistencia (banco grava UTC)
