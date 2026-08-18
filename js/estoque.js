@@ -235,13 +235,39 @@ function origemDoItem(item){
   return (f && String(f).trim()) ? String(f).trim() : 'Entrada (cliente)';
 }
 
+// ⚠️ LACO DE MICROTASK -- 18/ago/2026, o dono nao conseguia abrir o Estoque.
+//
+// Os ganchos de "carrega e redesenha" rodavam a CADA render enquanto o cache
+// estivesse vazio. E carregarBancada()/carregarCorrecoes() tem guard contra
+// FETCH duplicado, mas quando ja estao carregando devolvem uma promise JA
+// RESOLVIDA. Resultado:
+//
+//   render -> cache ainda null -> chama -> .then(renderContent) vira microtask
+//          -> render -> cache ainda null -> ... para sempre
+//
+// E microtask tem prioridade sobre callback de rede: o fetch de verdade NUNCA
+// resolvia. Medido: 1.502 renders por segundo, e como carregarFotos() nao tem
+// guard de duplicata, cada volta disparava uma requisicao real -- 3.241 chamadas
+// a `fotos_modelos` em 5 minutos, contra 4 do resto. A tela congelava inteira.
+//
+// A guarda certa nao e sobre o fetch, e sobre AGENDAR O REDESENHO: uma vez por
+// carga, ponto. O cache virar `[]` ja impede a proxima.
+const _recargasPedidas = new Set();
+function recarregarUmaVez(chave, carregar){
+  if(_recargasPedidas.has(chave)) return;
+  _recargasPedidas.add(chave);
+  Promise.resolve(carregar()).then(() => {
+    if(currentTab === 'estoque') renderContent();
+  }).catch(e => console.warn('[estoque] recarga '+chave+' falhou:', e));
+}
+
 function renderEstoque(){
-  if(!_precosCache) carregarTabelaPrecos().then(() => renderContent());
+  if(!_precosCache) recarregarUmaVez('precos', carregarTabelaPrecos);
   // Sem isso a tela mostraria como disponivel o aparelho que esta na bancada.
   if(typeof _bancadaCache !== 'undefined' && _bancadaCache === null)
-    carregarBancada().then(() => { if(currentTab==='estoque') renderContent(); });
+    recarregarUmaVez('bancada', carregarBancada);
   if(typeof _correcoesCache !== 'undefined' && _correcoesCache === null)
-    carregarCorrecoes().then(() => { if(currentTab==='estoque') renderContent(); });
+    recarregarUmaVez('correcoes', carregarCorrecoes);
 
   // Zero item e ambiguo de proposito nao: "a loja nao tem aparelho" e "eu nao
   // consegui ler o estoque" davam a MESMA tela. Com 218 aparelhos na prateleira
@@ -273,7 +299,7 @@ function renderEstoque(){
     && (estoqueModelo  === 'todos' || d.modelo   === estoqueModelo)
     && (estoqueCap     === 'todas' || d.capacidade === estoqueCap));
   _estoqueVisivel = visiveis;                       // usado pelo painel de detalhe
-  if(_fotos === null) carregarFotos().then(() => { if(currentTab==='estoque') renderContent(); });
+  if(_fotos === null) recarregarUmaVez('fotos', carregarFotos);
 
   // -- KPIs ---------------------------------------------------------------
   const capital = visiveis.reduce((a,d) => a + d.custo, 0);

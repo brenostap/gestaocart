@@ -27,6 +27,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
   Ele também **chama `renderVendas()`**: em 06/ago/2026 renomear uma chave da Conferência derrubou
   a tela de Vendas inteira e nenhum teste de unidade viu, porque ninguém montava a tela.
+- **Teste do laço de render**: `node test/estoque-render-loop.test.js`. ⚠️ **Gancho de
+  "carrega e redesenha" tem que ser guardado no REDESENHO, não no fetch.** Em 18/ago/2026 o
+  Estoque congelou o celular do dono: `carregarBancada()` tem guard contra fetch duplicado, mas
+  quando já está carregando devolve **promise já resolvida** — e `.then(renderContent)` virou
+  laço de microtask, que tem prioridade sobre callback de rede, então **o fetch nunca resolvia**.
+  1.502 renders/s, e 3.241 chamadas a `fotos_modelos` em 5 min (contra 4 do resto). Use
+  `recarregarUmaVez()` em `estoque.js` pra qualquer gancho novo desse tipo.
 - **Teste do estoque "fresco"**: `node test/estoque-fresco.test.js`. Prova que a resposta da
   FoneNinja **nunca encolhe nem apaga campo** do estoque. Até 18/ago/2026 a carga fazia
   `estoqueItens = ae` — trocava a lista inteira pelo payload do ERP, e campo que ele não traz
