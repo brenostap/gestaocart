@@ -192,6 +192,79 @@ ok('mas aparece contado no rodapé', /\+ 1 de cliente\/garantia/.test(wa));
 // `bancada` exportar, ao contrário do Exportar WhatsApp do Estoque.
 ok('não vaza preço nenhum', !/R\$/.test(wa));
 
+console.log('\nserviço — mais de um por aparelho\n');
+
+// A nota da RR já cobra assim ("Subida de Bateria + Troca de Bateria"). Gravar
+// no mesmo formato é o que mantém o preço de referência valendo pro combo.
+eq('junta os serviços com " + "',
+   R("bncJuntarServico(['Troca de tela','Face ID'], '')"), 'Troca de tela + Face ID');
+eq('o campo livre entra junto',
+   R("bncJuntarServico(['Troca de tela'], 'polimento')"), 'Troca de tela + polimento');
+eq('não repete o mesmo serviço',
+   R("bncJuntarServico(['Troca de tela'], 'troca de tela')"), 'Troca de tela');
+eq('nada marcado vira NULL, não string vazia',
+   R("bncJuntarServico([], '')"), null);
+
+// Ordem não é significado: sem normalizar, a mediana perderia metade das
+// amostras e o preço de referência (mín. 3) deixaria de existir.
+ok('"A + B" e "B + A" são o mesmo serviço',
+   R("bncNormServico('Troca de tela + Face ID') === bncNormServico('Face ID + Troca de tela')"));
+ok('serviços diferentes continuam diferentes',
+   R("bncNormServico('Troca de tela') !== bncNormServico('Troca de tela + Face ID')"));
+
+// Editar linha antiga não pode comer o que veio da planilha do Vitinho.
+eq('o que não está na lista volta pro campo livre, não some',
+   R("bncSepararServico('Troca de tela, NFC').extra"), 'NFC');
+eq('e o que está na lista vira chip marcado',
+   R("bncSepararServico('Troca de tela, NFC').sel"), ['Troca de tela']);
+eq('os três serviços novos existem na lista',
+   R("['Câmera frontal','Troca de carcaça','Botão power / NFC'].filter(s => BNC_SERVICOS.indexOf(s) >= 0).length"), 3);
+
+console.log('\nfiltro — achar o aparelho na lista\n');
+
+eq('acha pelos 4 do IMEI',   R("(function(){_bncFiltro='3324'; const r=bncFiltrar(_bancadaCache).map(l=>l.id); _bncFiltro=''; return r;})()"), [2]);
+// A etiqueta com prefixo tem que ser respeitada: `E1030` e `SP1030` são
+// aparelhos diferentes e 138 itens do estoque colidem sem o prefixo.
+eq('etiqueta com prefixo não traz o vizinho', R("(function(){_bncFiltro='E1030'; const r=bncFiltrar(_bancadaCache).map(l=>l.id); _bncFiltro=''; return r;})()"), [1]);
+eq('mas só o número traz os dois (a pessoa desempata olhando)', R("(function(){_bncFiltro='1030'; const r=bncFiltrar(_bancadaCache).map(l=>l.id); _bncFiltro=''; return r;})()"), [1,3]);
+eq('acha pelo modelo',       R("(function(){_bncFiltro='16 plus'; const r=bncFiltrar(_bancadaCache).map(l=>l.id); _bncFiltro=''; return r;})()"), [2]);
+eq('acha pelo serviço',      R("(function(){_bncFiltro='placa'; const r=bncFiltrar(_bancadaCache).map(l=>l.id); _bncFiltro=''; return r;})()"), [1]);
+eq('filtro vazio não filtra nada', R("(function(){_bncFiltro=''; return bncFiltrar(_bancadaCache).length;})()"), 4);
+
+const filtrada = R("(function(){ _bncAba='abertas'; currentTab='bancada'; _bncFiltro='3324'; const h=renderBancada(); _bncFiltro=''; return h; })()");
+ok('a tela filtrada mostra só 1 linha', (filtrada.match(/class="bnc-linha"/g) || []).length === 1);
+// O filtro corta a lista, nunca o placar: capital parado e "quantos estão fora"
+// são da operação inteira. Filtrar não pode fazer o problema parecer menor.
+ok('o KPI continua contando os 3 que estão fora', /Na assistência[\s\S]{0,200}>3</.test(filtrada),
+   'o KPI mudou com o filtro');
+
+console.log('\nexportar pra WhatsApp — o que voltou hoje\n');
+
+const waV = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:20,imei4:'1111',modelo_txt:'iPhone 14 Pro 128GB Preto',fornecedor:'RR',origem:'estoque'," +
+    " servico:'Troca de tela + Face ID',saiu_em:'2026-08-01',voltou_em:bncHoje()}," +
+    "{id:21,imei4:'2222',modelo_txt:'iPhone 13 Azul',fornecedor:'RR',origem:'garantia'," +
+    " servico:'Troca de bateria',saiu_em:'2026-08-02',voltou_em:bncHoje()}," +
+    "{id:22,imei4:'3333',modelo_txt:'iPhone 12 Verde',fornecedor:'RR',origem:'estoque'," +
+    " servico:'x',saiu_em:'2026-07-01',voltou_em:'2026-08-04'}]");
+  const t = R('bncTextoWhatsAppVoltaram()');
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return t;
+})();
+ok('lista o que voltou HOJE', waV.includes('1111') && waV.includes('2222'));
+ok('não lista o que voltou em outro dia', !waV.includes('3333'));
+// Aparelho de garantia voltou pra ser ENTREGUE, não vendido. Misturar poria na
+// prateleira aparelho que já tem dono.
+ok('separa "já pode vender" de "entregar ao dono"',
+   /Já pode vender \(1\)/.test(waV) && /Entregar ao dono \(1\)/.test(waV));
+ok('diz o serviço que foi feito', waV.includes('Troca de tela + Face ID'));
+ok('não vaza preço nenhum', !/R\$/.test(waV));
+ok('a palavra iPhone não aparece', !/iPhone/i.test(waV));
+ok('dia sem baixa não gera lista falsa',
+   /Nenhum aparelho voltou hoje/.test(R("bncTextoWhatsAppVoltaram('2026-01-01')")));
+
 R('_bancadaCache = [];');
 ok('bancada vazia não gera lista falsa',
    /Nenhum aparelho do estoque/.test(R('bncTextoWhatsApp()')));

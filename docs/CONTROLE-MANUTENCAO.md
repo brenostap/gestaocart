@@ -454,9 +454,9 @@ Três decisões que não são óbvias:
 2. **Só quem saiu do `estoque`.** Aparelho de cliente e de garantia também está fora da loja, mas
    não há o que dar baixa: nunca esteve disponível pra venda, e os de cliente nem IMEI têm
    (`imei4 = '0000'`). Em vez de sumirem calados, viram a linha de contagem do rodapé.
-3. **Ordenado por modelo, não por data de saída.** A tela ordena por tempo, porque lá o que
-   importa é o que está atrasado; o grupo procura pelo aparelho. São leituras diferentes da
-   mesma lista.
+3. **Mesma ordem da tela** (`saiu_em` crescente, o mais velho no topo) e **separado por
+   assistência**. Conferir a lista colada no grupo contra a tela não pode exigir procurar, e quem
+   cobra, cobra uma assistência de cada vez.
 
 Protegido por `node test/bancada.test.js` — inclusive a parte de não vazar `R$`.
 
@@ -523,3 +523,78 @@ com o sinal invertido.
 
 **Regra:** `origem = 'cliente'` ⇒ `apple_id` nulo, sempre. O casamento por 4 dígitos só vale para
 `estoque` e `garantia`.
+
+## Quatro ajustes pedidos pelo dono — 19/ago/2026
+
+### 1. Três serviços novos na lista
+
+`Câmera frontal`, `Troca de carcaça` e `Botão power / NFC` entraram em `BNC_SERVICOS`. Eles
+acontecem na bancada, mas **não apareciam no histórico de `reparos`**: a nota da RR escreve com
+outras palavras e a da Access é texto livre. Enquanto não houver 3 notas com esse nome, o `~R$`
+de referência fica em branco — que é o certo, 2 amostras não são padrão.
+
+### 2. Mais de um serviço por aparelho
+
+O serviço agora é uma **lista de chips** (marca quantos quiser) + um campo livre pro que não está
+na lista. Grava no mesmo campo `servico`, separado por `" + "`.
+
+⚠️ **O formato não foi escolhido à toa: é o que a nota já usa.** `Subida de Bateria + Troca de
+Bateria` é uma linha só na nota da RR, e combos são 20 das 175 linhas. Guardar igual é o que faz
+o preço de referência continuar existindo pro combo — em vez de virar 20 serviços únicos sem
+amostra suficiente.
+
+`bncNormServico()` compara o combo **como conjunto**: `A + B` e `B + A` são o mesmo serviço. Sem
+isso a mediana perderia metade das amostras (a nota escreve nas duas ordens).
+
+**Também dá pra editar depois:** a célula de serviço, nas duas abas, virou botão. O motivo é o
+caso real: o aparelho sai como *Análise* e a assistência acha mais duas coisas. Sem esse caminho,
+registrar o segundo serviço exigiria uma segunda linha — e o mesmo aparelho apareceria duas vezes
+fora da loja, que é exatamente o que a tela existe pra evitar. O que não está na lista de chips
+(o `up`/`bat`/`NFC` que veio da planilha) volta pro campo livre em vez de sumir.
+
+### 3. Filtro pra achar o aparelho
+
+Busca no topo das abas *Na assistência* e *Voltaram*: IMEI, etiqueta, modelo, serviço, fornecedor.
+
+Duas decisões:
+
+- **O filtro corta a lista, nunca os KPIs.** "Quantos estão fora" e "capital parado" são da
+  operação inteira. Filtrar não pode fazer o problema parecer menor.
+- **Etiqueta com prefixo é respeitada.** Só cai no casamento por número quando a busca *é* um
+  número: digitou `E1030`, não traz o `SP1030` junto (138 aparelhos colidem sem o prefixo). Digitou
+  `1030`, traz os dois — aí a pessoa desempata olhando modelo e cor, que é o gesto certo.
+- Nas *Voltaram*, o filtro roda **antes** do corte em 100 linhas: procurar um aparelho de junho não
+  pode depender de ele estar entre as 100 últimas voltas.
+
+### 4. A lista do que VOLTOU hoje
+
+Botão `✅ Voltaram hoje (N)` no cabeçalho, irmão do `📋 Copiar lista`. Mesma lógica: a baixa
+acontece no grupo, não no painel.
+
+```
+✅ VOLTOU DA ASSISTÊNCIA — 19/ago
+
+Já pode vender (3):
+• 14 Pro 128GB Preto · 2880 — Troca de tela + Face ID
+...
+
+Entregar ao dono (1):
+• 13 Azul · 2222 — Troca de bateria
+```
+
+- **Só aparece quando há o que avisar.** Botão que copia "nada voltou hoje" é ruído no cabeçalho.
+- **`estoque` e `cliente/garantia` em blocos separados.** O de garantia voltou pra ser *entregue*,
+  não vendido — misturar poria na prateleira aparelho que já tem dono.
+- **Sem preço**, igual à outra lista: por isso o papel `bancada` também exporta.
+
+Tudo protegido por `node test/bancada.test.js`.
+
+### Limpeza de duas linhas erradas
+
+Removidas da `bancada` (a pedido do dono, 19/ago): `E1655` ⋯2880 (14 Pro 128, saiu 11/ago, `NFC`)
+e `E1618` ⋯6999 (14 Pro Max 256 Roxo, saiu 13/ago, `Face ID`) — não estavam no sistema da
+assistência. Sobraram **35 aparelhos fora** de 121 idas no total.
+
+⚠️ **Apagar linha da `bancada` ainda é operação de banco** (policy: só sócio). Não há botão de
+excluir na tela, e é de propósito: "Voltou" é o gesto de todo dia e um toque a desfaz; excluir
+apaga a história da ida. Se virar rotina, vira botão — atrás de `podeVerMargem()`.

@@ -20,10 +20,64 @@
 // imaginacao. "Subida de bateria" vem primeiro porque e 125 das 175 linhas.
 const BNC_SERVICOS = [
   'Subida de bateria', 'Troca de bateria', 'Troca de tela', 'Troca de vidro da tela',
-  'Troca de tampa traseira', 'Face ID', 'Conector de carga', 'Câmera traseira',
-  'Lente de câmera', 'Auricular', 'Alto-falante', 'Reparo em placa',
+  'Troca de tampa traseira', 'Troca de carcaça', 'Face ID', 'Conector de carga',
+  'Botão power / NFC', 'Câmera traseira', 'Câmera frontal', 'Lente de câmera',
+  'Auricular', 'Alto-falante', 'Reparo em placa',
   'Não liga', 'Análise',
 ];
+
+// Carcaça, botão power/NFC e câmera frontal entraram em 19/ago/2026 a pedido do
+// dono: acontecem na bancada, mas a nota da RR escreve com outras palavras
+// (a da Access é texto livre), então não apareciam no histórico de `reparos`.
+// Enquanto não houver 3 notas com esse nome, o preço de referência fica em
+// branco -- que é o certo: 2 amostras não são um padrão.
+
+// ---------------------------------------------------------------------------
+// SERVIÇO — mais de um por aparelho
+//
+// A nota já cobra assim: "Subida de Bateria + Troca de Bateria" é uma linha só,
+// e combos são 20 das 175 linhas da RR. Guardar no MESMO formato (um texto,
+// partes separadas por " + ") é o que faz o preço de referência continuar
+// valendo pro combo -- e evita uma tabela filha pra guardar duas palavras.
+// ---------------------------------------------------------------------------
+const BNC_SERV_SEP = ' + ';
+
+function bncPartesServico(txt){
+  return String(txt || '').split(/\s*[+,]\s*/).map(s => s.trim()).filter(Boolean);
+}
+
+function bncJuntarServico(lista, extra){
+  const vistos = new Set(), out = [];
+  (lista || []).concat(bncPartesServico(extra)).forEach(s => {
+    const k = s.toLowerCase();
+    if(!vistos.has(k)){ vistos.add(k); out.push(s); }
+  });
+  return out.length ? out.join(BNC_SERV_SEP) : null;
+}
+
+// "A + B" e "B + A" são o mesmo serviço. Sem normalizar, a mediana perderia
+// metade das amostras -- e referência com menos de 3 amostras não existe.
+function bncNormServico(txt){
+  return bncPartesServico(txt).map(s => s.toLowerCase()).sort().join('+');
+}
+
+// Separa o que está na lista de chips do que foi digitado à mão. É isso que
+// permite editar uma linha antiga sem comer o texto que veio da planilha
+// ("traseira,up", "NFC") -- o desconhecido volta pro campo livre, não some.
+function bncSepararServico(txt){
+  const conhecidos = new Map(BNC_SERVICOS.map(s => [s.toLowerCase(), s]));
+  const sel = [], extra = [];
+  bncPartesServico(txt).forEach(p => {
+    const k = conhecidos.get(p.toLowerCase());
+    if(k){ if(sel.indexOf(k) < 0) sel.push(k); } else extra.push(p);
+  });
+  return { sel, extra: extra.join(BNC_SERV_SEP) };
+}
+
+function bncChipsServico(sel, fn){
+  return BNC_SERVICOS.map((s, i) =>
+    UI.chip(UI.esc(s), (sel || []).indexOf(s) >= 0, `${fn}(${i})`)).join('');
+}
 
 const BNC_DIAS_ALERTA = 14;   // acima disso o aparelho vira cobranca, nao registro
 
@@ -34,11 +88,16 @@ let _bncBusca      = '';
 let _bncSel        = new Set();   // apple_ids marcados no modal (lote)
 let _bncForn       = 'RR';
 let _bncOrigem     = 'estoque';
-let _bncServico    = BNC_SERVICOS[0];
+let _bncServs      = [BNC_SERVICOS[0]];  // mais de um serviço por aparelho
+let _bncServExtra  = '';                 // serviço que não está na lista
 let _bncObs        = '';
 let _bncManual     = null;    // {modelo, imei4} quando o aparelho nao e do estoque
 let _bncSalvando   = false;
 let _bncErro       = '';
+let _bncFiltro     = '';      // busca da tela (achar o aparelho na lista)
+let _bncEditId     = null;    // linha aberta no editor de serviços
+let _bncEditServs  = [];
+let _bncEditExtra  = '';
 
 // ---------------------------------------------------------------------------
 // DADOS
@@ -165,16 +224,18 @@ function bncConciliar(){
 // fornecedor. Nasce do próprio histórico da loja -- não de tabela transcrita à
 // mão, que erra em silêncio e produz alarme falso toda semana.
 function bncPrecoRef(fornecedor, servico){
-  const alvo = String(servico || '').toLowerCase().trim();
+  // Normalizado: o combo é comparado como conjunto, não como frase. "Subida de
+  // Bateria + Troca de Bateria" e a ordem invertida são o mesmo serviço.
+  const alvo = bncNormServico(servico);
   if(!alvo) return null;
   const vals = [];
   (_reparosCache || []).forEach(r => {
-    if(r.fornecedor === fornecedor && String(r.servico||'').toLowerCase().trim() === alvo)
+    if(r.fornecedor === fornecedor && bncNormServico(r.servico) === alvo)
       vals.push(parseFloat(r.valor_liquido || 0));
   });
   (_bancadaCache || []).forEach(l => {
     if(l.fornecedor === fornecedor && l.valor_cobrado != null &&
-       String(l.servico||'').toLowerCase().trim() === alvo)
+       bncNormServico(l.servico) === alvo)
       vals.push(parseFloat(l.valor_cobrado));
   });
   if(vals.length < 3) return null;          // 2 amostras não são um padrão
@@ -307,6 +368,69 @@ function bncCampoValor(l){
 }
 
 // ---------------------------------------------------------------------------
+// EDITAR OS SERVIÇOS DE UMA LINHA
+//
+// O serviço nem sempre é conhecido na saída: o aparelho vai pra "Análise" e a
+// assistência acha mais duas coisas. Sem este caminho, o jeito de registrar o
+// segundo serviço seria uma segunda linha -- e aí o mesmo aparelho apareceria
+// duas vezes fora da loja, que é exatamente o que a tela existe pra evitar.
+// ---------------------------------------------------------------------------
+
+function bncAbrirServico(id){
+  const l = (_bancadaCache || []).find(x => String(x.id) === String(id));
+  if(!l) return;
+  const p = bncSepararServico(l.servico);
+  _bncEditId = l.id; _bncEditServs = p.sel; _bncEditExtra = p.extra;
+  UI.abrirModal({ titulo:'Serviços do aparelho', id:'bnc-modal-serv',
+                  corpo: bncCorpoServico(l), foot: bncPeServico(),
+                  onFechar:'bncFecharServico()' });
+}
+
+function bncFecharServico(){ _bncEditId = null; UI.fecharModal(); }
+
+function bncToggleEditServico(i){
+  const s = BNC_SERVICOS[i]; if(!s) return;
+  const k = _bncEditServs.indexOf(s);
+  if(k >= 0) _bncEditServs.splice(k, 1); else _bncEditServs.push(s);
+  bncRedesenharChips('bnc-servs-edit', _bncEditServs, 'bncToggleEditServico');
+}
+function bncSetEditExtra(v){ _bncEditExtra = v; }
+
+function bncCorpoServico(l){
+  const imei = (l.imei4 && l.imei4 !== '0000')
+    ? ` <span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : '';
+  return `
+    <div class="bnc-edit-alvo">${bncProduto(l)}${imei}</div>
+    <div class="bnc-servs" id="bnc-servs-edit">${bncChipsServico(_bncEditServs, 'bncToggleEditServico')}</div>
+    <input class="c-input bnc-serv-outro" placeholder="outro serviço (opcional)"
+       value="${UI.esc(_bncEditExtra)}" oninput="bncSetEditExtra(this.value)">
+    <div class="bnc-dica-inline">Marque tudo que esta ida à assistência inclui. A nota
+      cobra junto (“Subida de bateria + Troca de tela”) — registrar junto é o que faz
+      a conferência bater.</div>`;
+}
+
+function bncPeServico(){
+  return UI.btn('Cancelar', {onclick:'bncFecharServico()', variante:'sutil'})
+       + UI.btn('Salvar serviços', {onclick:'bncSalvarServico()', variante:'primario'});
+}
+
+async function bncSalvarServico(){
+  const id = _bncEditId;
+  if(id == null) return;
+  const txt = bncJuntarServico(_bncEditServs, _bncEditExtra);
+  try { await bncPatch(id, { servico: txt }); }
+  catch(e){ _bncErro = 'Não gravou o serviço: ' + e.message; }
+  bncFecharServico();
+  if(currentTab === 'bancada') renderContent();
+}
+
+// Célula clicável na tabela. O serviço é o campo que mais muda depois da saída.
+function bncCelulaServico(l){
+  return `<button class="bnc-serv-btn" onclick="event.stopPropagation();bncAbrirServico(${l.id})"
+    title="Editar os serviços deste aparelho">${UI.esc(l.servico || '—')}<span class="bnc-serv-mais">✎</span></button>`;
+}
+
+// ---------------------------------------------------------------------------
 // MODAL DE SAIDA
 // ---------------------------------------------------------------------------
 
@@ -334,7 +458,8 @@ function bncCandidatos(){
 
 function bncAbrirSaida(){
   _bncBusca = ''; _bncSel = new Set(); _bncManual = null;
-  _bncForn = 'RR'; _bncOrigem = 'estoque'; _bncServico = BNC_SERVICOS[0];
+  _bncForn = 'RR'; _bncOrigem = 'estoque';
+  _bncServs = [BNC_SERVICOS[0]]; _bncServExtra = '';
   _bncObs = ''; _bncErro = '';
   UI.abrirModal({ titulo:'Registrar saída', corpo: bncCorpoModal(), foot: bncPeModal(),
                   id:'bnc-modal', onFechar:'bncFecharModal()' });
@@ -372,7 +497,20 @@ function bncToggle(id){
 
 function bncSetForn(f){ _bncForn = f; bncRedesenharModal(); }
 function bncSetOrigem(o){ _bncOrigem = o; bncRedesenharModal(); }
-function bncSetServico(s){ _bncServico = s; }
+// Redesenha SÓ os chips: `bncRedesenharModal()` remonta o corpo inteiro e
+// tiraria o cursor do campo "outro serviço" a cada toque.
+function bncRedesenharChips(id, sel, fn){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = bncChipsServico(sel, fn);
+}
+
+function bncToggleServico(i){
+  const s = BNC_SERVICOS[i]; if(!s) return;
+  const k = _bncServs.indexOf(s);
+  if(k >= 0) _bncServs.splice(k, 1); else _bncServs.push(s);
+  bncRedesenharChips('bnc-servs-saida', _bncServs, 'bncToggleServico');
+}
+function bncSetServExtra(v){ _bncServExtra = v; }
 function bncSetObs(v){ _bncObs = v; }
 
 // Aparelho do cliente nao esta no estoque e nao tem apple_id. Sem este caminho
@@ -444,15 +582,15 @@ function bncCorpoModal(){
     <div class="c-sep"></div>
 
     ${UI.campo({label:'Para onde vai', corpo:`<div class="bnc-chips">${chipsForn}</div>`})}
-    ${UI.linha(
-      UI.campo({label:'Serviço', corpo: UI.select({id:'bnc-servico', valor:_bncServico,
-        opcoes: BNC_SERVICOS, extra:'onchange="bncSetServico(this.value)"'})}),
-      UI.campo({label:'Origem', corpo: UI.select({id:'bnc-origem', valor:_bncOrigem, extra:'onchange="bncSetOrigem(this.value)"', opcoes:[
-        {v:'estoque', t:'Estoque (recondicionamento)'},
-        {v:'garantia', t:'Garantia (já vendido)'},
-        {v:'cliente',  t:'Cliente (serviço pago)'},
-      ]})})
-    )}
+    ${UI.campo({label:'Serviço — pode marcar mais de um', corpo:
+      `<div class="bnc-servs" id="bnc-servs-saida">${bncChipsServico(_bncServs, 'bncToggleServico')}</div>
+       <input class="c-input bnc-serv-outro" placeholder="outro serviço (opcional)"
+          value="${UI.esc(_bncServExtra)}" oninput="bncSetServExtra(this.value)">`})}
+    ${UI.campo({label:'Origem', corpo: UI.select({id:'bnc-origem', valor:_bncOrigem, extra:'onchange="bncSetOrigem(this.value)"', opcoes:[
+      {v:'estoque', t:'Estoque (recondicionamento)'},
+      {v:'garantia', t:'Garantia (já vendido)'},
+      {v:'cliente',  t:'Cliente (serviço pago)'},
+    ]})})}
     ${UI.campo({label:'Observação', corpo:`<input class="c-input" placeholder="opcional"
        value="${UI.esc(_bncObs)}" oninput="bncSetObs(this.value)">`})}`;
 }
@@ -468,7 +606,8 @@ function bncPeModal(){
 async function bncSalvar(){
   if(_bncSalvando) return;
   const quem = (typeof usuarioEmail === 'string' ? usuarioEmail : '') || null;
-  const base = { fornecedor:_bncForn, origem:_bncOrigem, servico:_bncServico,
+  const base = { fornecedor:_bncForn, origem:_bncOrigem,
+                 servico: bncJuntarServico(_bncServs, _bncServExtra),
                  saiu_em: bncHoje(), obs: _bncObs || null, quem };
 
   let linhas;
@@ -514,6 +653,60 @@ async function bncSalvar(){
 // ---------------------------------------------------------------------------
 
 function setBancadaAba(a){ _bncAba = a; if(currentTab === 'bancada') renderContent(); }
+
+// ---------------------------------------------------------------------------
+// FILTRO — achar o aparelho na lista
+//
+// Com 30+ linhas na tela e o aparelho na mão, rolar a lista é o que faz a baixa
+// não acontecer. Procura pelo que a pessoa tem: 4 do IMEI, etiqueta, modelo.
+// ---------------------------------------------------------------------------
+function setBancadaFiltro(v){
+  _bncFiltro = v;
+  if(typeof window !== 'undefined' && window._bncFiltroTimer) clearTimeout(window._bncFiltroTimer);
+  const t = setTimeout(() => {
+    if(currentTab !== 'bancada') return;
+    renderContent();
+    // re-focar e pôr o cursor no fim: renderContent() remonta a tela inteira
+    const el = document.getElementById('bnc-filtro');
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }, 150);
+  if(typeof window !== 'undefined') window._bncFiltroTimer = t;
+}
+
+function limparBancadaFiltro(){
+  _bncFiltro = '';
+  if(currentTab === 'bancada') renderContent();
+}
+
+function bncFiltrar(linhas){
+  const q = String(_bncFiltro || '').toLowerCase().trim();
+  if(!q) return linhas;
+  // ⚠️ Só cai no casamento por número quando a busca É um número. Digitou
+  // `E1030`? Respeita o prefixo: jogá-lo fora traria o `SP1030` junto, e são
+  // 138 aparelhos que colidem assim (docs/CONTROLE-MANUTENCAO.md).
+  const dig = /^\d+$/.test(q) ? q : '';
+  return (linhas || []).filter(l => {
+    const txt = [l.modelo_txt, l.etiqueta, l.servico, l.obs,
+                 l.fornecedor === 'RR' ? 'rr legacy' : 'access'].join(' ').toLowerCase();
+    return txt.includes(q)
+        || (dig.length >= 2 && String(l.imei4 || '').includes(dig))
+        || (dig.length >= 2 && String(l.imei_1 || '').includes(dig))
+        || (dig.length >= 2 && String(l.etiqueta || '').replace(/\D/g,'') === dig);
+  });
+}
+
+function bncBarraFiltro(){
+  return `
+    <div class="bnc-filtro-barra">
+      <div class="est-busca">
+        <span class="est-busca-ico">⌕</span>
+        <input type="text" id="bnc-filtro" autocomplete="off"
+               placeholder="Achar aparelho: IMEI, etiqueta, modelo ou serviço"
+               value="${UI.esc(_bncFiltro)}" oninput="setBancadaFiltro(this.value)">
+      </div>
+      ${_bncFiltro ? UI.btn('Limpar', {onclick:'limparBancadaFiltro()', variante:'sutil', sm:true}) : ''}
+    </div>`;
+}
 
 // ---------------------------------------------------------------------------
 // EXPORTAR PRA WHATSAPP -- a lista do que nao pode ser vendido
@@ -563,6 +756,49 @@ function bncTextoWhatsApp(){
        + (outros ? '\n\n+ ' + outros + ' de cliente/garantia (não são do estoque).' : '');
 }
 
+// ---------------------------------------------------------------------------
+// EXPORTAR PRA WHATSAPP -- o que VOLTOU hoje
+//
+// A outra metade do recado. A lista de "nao vender" tira o aparelho da venda;
+// sem o aviso da volta, ele fica fora da venda mais tempo do que ficou fora da
+// loja -- ninguem no balcao sabe que ele chegou. Mesma regra da outra lista:
+// sem preco, so o que o balcao precisa saber.
+// ---------------------------------------------------------------------------
+function bncVoltaramNoDia(dia){
+  const d = dia || bncHoje();
+  return (_bancadaCache || [])
+    .filter(l => String(l.voltou_em || '').slice(0,10) === d)
+    .sort((a, b) => String(a.saiu_em).localeCompare(String(b.saiu_em)));
+}
+
+function bncTextoWhatsAppVoltaram(dia){
+  const d = dia || bncHoje();
+  const linhas = bncVoltaramNoDia(d);
+  const quando = bncFmtData(d);
+
+  if(!linhas.length)
+    return '✅ Voltou da assistência — ' + quando + '\n\nNenhum aparelho voltou hoje.';
+
+  // Mesmo formato da lista de "não vender": sem "iPhone", sem a palavra
+  // "final". O serviço entra porque quem vende precisa saber o que foi feito.
+  const linha = l => '• ' + String(l.modelo_txt || 'sem modelo').replace(/^i?[Pp]hone\s*/i, '')
+                   + ((l.imei4 && l.imei4 !== '0000') ? ' · ' + l.imei4 : '')
+                   + (l.servico ? ' — ' + l.servico : '');
+
+  const doEstoque = linhas.filter(l => l.origem === 'estoque');
+  const outros    = linhas.filter(l => l.origem !== 'estoque');
+
+  const blocos = [];
+  if(doEstoque.length)
+    blocos.push('Já pode vender (' + doEstoque.length + '):\n' + doEstoque.map(linha).join('\n'));
+  // Cliente e garantia voltaram pra ser ENTREGUES, nao vendidos. Misturar os
+  // dois no mesmo bloco poria na prateleira aparelho que tem dono.
+  if(outros.length)
+    blocos.push('Entregar ao dono (' + outros.length + '):\n' + outros.map(linha).join('\n'));
+
+  return '✅ VOLTOU DA ASSISTÊNCIA — ' + quando + '\n\n' + blocos.join('\n\n');
+}
+
 function renderBancada(){
   if(_bancadaCache === null){
     carregarBancada().then(() => { if(currentTab === 'bancada') renderContent(); });
@@ -599,6 +835,8 @@ function renderBancada(){
       sub: semValor ? semValor + ' sem valor da nota' : doMes.length + ' serviços lançados' });
   }
 
+  const voltaramHoje = bncVoltaramNoDia().length;
+
   const cabecalho = `
     <div class="pg-head">
       <div>
@@ -609,6 +847,10 @@ function renderBancada(){
       <div class="pg-acoes">
         ${UI.btn('📋 Copiar lista', {onclick:'copiarTextoWa(bncTextoWhatsApp())',
           titulo:'Lista pra colar no grupo: modelo e final do IMEI, sem preço'})}
+        ${/* só aparece quando há o que avisar -- botão que copia "nada voltou" é ruído */ ''}
+        ${voltaramHoje ? UI.btn('✅ Voltaram hoje (' + voltaramHoje + ')',
+          {onclick:'copiarTextoWa(bncTextoWhatsAppVoltaram())',
+           titulo:'Lista do que chegou da assistência hoje, pra colar no grupo'}) : ''}
         ${UI.btn('+ Registrar saída', {onclick:'bncAbrirSaida()', variante:'primario'})}
       </div>
     </div>`;
@@ -634,8 +876,8 @@ function renderBancada(){
     ? `<div class="bnc-erro">${UI.esc(_bncErro)}</div>` : '';
 
   const corpo = _bncAba === 'conferencia' ? bncTelaConferencia(conf)
-              : _bncAba === 'fechadas'    ? bncTabelaFechadas()
-              : bncTabelaAbertas(abertas);
+              : _bncAba === 'fechadas'    ? bncBarraFiltro() + bncTabelaFechadas()
+              : bncBarraFiltro() + bncTabelaAbertas(abertas);
 
   return cabecalho + UI.kpis(kpis) + erro + abas + corpo;
 }
@@ -722,14 +964,25 @@ function bncTabelaAbertas(abertas){
     })});
   }
 
-  const linhas = abertas.map(l => {
+  // O filtro corta a LISTA, nunca os KPIs: o número de aparelhos fora e o
+  // capital parado são da operação inteira, não da busca.
+  const visiveis = bncFiltrar(abertas);
+  if(!visiveis.length){
+    return UI.card({corpo: UI.vazio({
+      ico:'⌕', titulo:'Nada com esse filtro',
+      texto:'Nenhum dos ' + abertas.length + ' aparelhos que estão fora bate com “' + UI.esc(_bncFiltro) + '”.',
+      acao: UI.btn('Limpar filtro', {onclick:'limparBancadaFiltro()'}),
+    })});
+  }
+
+  const linhas = visiveis.map(l => {
     const n = bncDias(l.saiu_em);
     return `<tr class="bnc-linha">
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="IMEI" data-campo="imei">${(l.imei4 && l.imei4 !== '0000') ? `<span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
+      <td data-rot="Serviço" data-campo="servico">${bncCelulaServico(l)}</td>
       <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Dias" data-campo="dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
@@ -739,7 +992,12 @@ function bncTabelaAbertas(abertas){
   }).join('');
 
   return UI.card({
-    titulo:'Na assistência', sub: abertas.length + ' aparelhos · do mais velho pro mais novo', flush:true,
+    titulo:'Na assistência',
+    sub: (visiveis.length === abertas.length
+            ? abertas.length + ' aparelhos'
+            : visiveis.length + ' de ' + abertas.length + ' aparelhos')
+         + ' · do mais velho pro mais novo',
+    flush:true,
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>IMEI</th><th>Onde</th><th>Serviço</th>
@@ -750,14 +1008,20 @@ function bncTabelaAbertas(abertas){
 }
 
 function bncTabelaFechadas(){
-  const fechadas = (_bancadaCache || []).filter(l => l.voltou_em)
-    .sort((a,b) => String(b.voltou_em).localeCompare(String(a.voltou_em)))
-    .slice(0, 100);
+  // Filtra ANTES de cortar em 100: procurar um aparelho de junho não pode
+  // depender de ele estar entre as 100 últimas voltas.
+  const todas = bncFiltrar((_bancadaCache || []).filter(l => l.voltou_em))
+    .sort((a,b) => String(b.voltou_em).localeCompare(String(a.voltou_em)));
+  const fechadas = todas.slice(0, 100);
 
   if(!fechadas.length){
     return UI.card({corpo: UI.vazio({
-      ico:'📋', titulo:'Nada voltou ainda',
-      texto:'Assim que você der baixa num aparelho, ele aparece aqui com o tempo que ficou fora.',
+      ico: _bncFiltro ? '⌕' : '📋',
+      titulo: _bncFiltro ? 'Nada com esse filtro' : 'Nada voltou ainda',
+      texto: _bncFiltro
+        ? 'Nenhum aparelho que já voltou bate com “' + UI.esc(_bncFiltro) + '”.'
+        : 'Assim que você der baixa num aparelho, ele aparece aqui com o tempo que ficou fora.',
+      acao: _bncFiltro ? UI.btn('Limpar filtro', {onclick:'limparBancadaFiltro()'}) : undefined,
     })});
   }
 
@@ -769,7 +1033,7 @@ function bncTabelaFechadas(){
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço" data-campo="servico">${UI.esc(l.servico || '—')}</td>
+      <td data-rot="Serviço" data-campo="servico">${bncCelulaServico(l)}</td>
       <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
@@ -782,8 +1046,8 @@ function bncTabelaFechadas(){
   const semValor = fechadas.filter(l => l.valor_cobrado == null).length;
   return UI.card({
     titulo:'Voltaram',
-    sub: fechadas.length + ' últimas' + (podeVerCustoServico() && semValor
-          ? ' · ' + semValor + ' sem valor da nota' : ''),
+    sub: (_bncFiltro ? fechadas.length + ' com esse filtro' : fechadas.length + ' últimas')
+         + (podeVerCustoServico() && semValor ? ' · ' + semValor + ' sem valor da nota' : ''),
     flush:true,
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
