@@ -205,10 +205,9 @@ O que eles alcançam: **Meu dia** + **Vitrine**. Nada de dashboard, vendas, cust
 insert into public.perfis (user_id, email, nome, papel, at_key)
 select u.id, u.email, x.nome, 'comercial', x.at_key
   from (values
-    ('<email-anne>', 'Anne', 'anne'),
-    ('<email-davi>', 'Davi', 'davi'),
-    ('<email-leo>',  'Leo',  'leo'),
-    ('<email-gabi>', 'Gabi', 'gabi')
+    ('alauanyramosdecampos@gmail.com', 'Anne', 'anne'),
+    ('pacheco.2016.com@gmail.com',     'Davi', 'davi')
+    -- Leo e Gabi: e-mail ainda não existe no cadastro (20/ago/2026)
   ) as x(email, nome, at_key)
   join auth.users u on u.email = x.email
 on conflict (user_id) do update
@@ -217,7 +216,7 @@ on conflict (user_id) do update
 
 ⚠️ **Confira o número de linhas.** O `join` com `auth.users` significa que e-mail digitado
 diferente do que está no Auth **não dá erro — dá zero linha**, e a pessoa entra vendo
-*"Acesso não liberado"*. Esperado: **4**.
+*"Acesso não liberado"*. Esperado: **uma linha por e-mail da lista**.
 
 ### O que eles vão ver (medido em 20/ago/2026, dados reais de agosto)
 
@@ -244,6 +243,57 @@ diferente do que está no Auth **não dá erro — dá zero linha**, e a pessoa 
    vê o rótulo (ele só aparece pra quem tem as duas chaves) e ela não tem nenhuma venda assim em
    agosto — mas era erro esperando o primeiro caso. Corrigido em
    `supabase/migrations/20260820_minhas_vendas_papel_sem_null.sql`.
+
+### A lista de vendas mostra a COMISSÃO, por dia (20/ago/2026)
+
+Pedido do dono: o valor da venda não é o número da pessoa — um iPhone de R$7 mil no nome dela não
+é dinheiro dela. Agora cada dia tem um **resumo** (como o "resumo do dia" da tela de Vendas do
+sócio) e o valor em destaque é **a comissão daquele dia**.
+
+⚠️ **Por que a comissão fecha no DIA e não na venda.** A do vendedor até poderia ser por venda —
+é aparelho × taxa, conta que não usa custo. A do atendente é **25% do lucro de acessório**:
+comissão por venda = lucro por venda = **custo por item**, exatamente o que foi fechado em 17/ago
+("a base é a soma do mês, agregada, não venda a venda"). Medido em jul+ago/2026 nos quatro
+atendentes:
+
+| Agrupamento | Casos com **um único item** de acessório | O que isso significa |
+|---|---:|---|
+| por venda | 66 de 354 (**19%**) | a pessoa deriva o custo exato daquele acessório |
+| por dia | 6 de 124 (**4,8%**) | mesma derivação, 4× menos frequente |
+
+Por dia divide a exposição por 4 **e** responde melhor à pergunta que ela faz ("quanto eu fiz
+hoje?"). Na linha da venda o atendente vê o que **vendeu** de acessório (preço, não custo —
+informação que ele já tem, foi ele que passou no balcão), rotulado *acess.* pra não ser lido como
+comissão. Vendedor vê a comissão exata da venda, pelo quanto ela **acrescentou no acumulado** do
+mês (mesma técnica do `.xlsx` do fechamento — é o que faz a 81ª unidade aparecer valendo R$35).
+
+Views novas/alteradas em `supabase/migrations/20260820_comissao_por_dia_e_brt.sql`.
+
+⚠️ **O mês passou a fechar em BRT.** `to_char(data_saida,'YYYY-MM')` usava UTC; a folha filtra com
+`toBRT()` (core.js: *"SEMPRE comparar datas em BRT"*). Venda das 21h BRT cai no dia seguinte em UTC
+— e no dia 1º do mês, mudava de **mês**. São 6 vendas em toda a história (1 com dono, abr/2026),
+mas é divergência que só aparece no fechamento, que é exatamente quando a pessoa confere contra o
+extrato. Com dia e mês em BRT, **a soma dos dias fecha com o mês por construção** (conferido: 30
+aparelhos e R$738,19 de lucro na Maria, ago/2026).
+
+### 🎁 O brinde sai da comissão de quem entregou — e agora aparece
+
+Acessório dado como brinde entra com **preço 0 e custo > 0** (`FONE AIRDOTS`, R$11,63). Como a
+comissão é 25% do *lucro*, o brinde **reduz** a comissão de quem atendeu. Isso sempre foi assim na
+folha; o que muda é que agora **dá pra ver**: um dia só de brinde aparece como `−R$3`.
+
+Agosto/2026 até o dia 20 — **169 brindes**:
+
+| | brindes | custo | tira da comissão |
+|---|---:|---:|---:|
+| Anne | 56 | R$ 339 | R$ 85 |
+| Vitinho | 50 | R$ 293 | R$ 73 |
+| Gabi | 37 | R$ 212 | R$ 53 |
+| Leo | 23 | R$ 137 | R$ 34 |
+
+A tela escreve `−R$3` (não `R$-3`) e explica no toque/hover: *"acessório entregue como brinde entra
+pelo custo"*. **Se a regra devia ser essa é decisão do dono** — quem dá o brinde fecha a venda e
+paga por ele. Não mudei a conta: mudei o que dá pra enxergar.
 
 ### ⚠️ Antes de todo mundo entrar: congelar os meses fechados
 

@@ -62,7 +62,7 @@ const FUNC=[
   {id:'isa',    ap:'Isa',     nome:'Isabella de Almeida Teixeira',cargo:'Vendedora',          pix:'(11) 97710-4588',          tipo:'online',    email:'contatoisabelladealmeida@gmail.com',  voKey:'isa'    },
   {id:'mel',    ap:'Mel',     nome:'Melissa',                     cargo:'Vendedora',          pix:'11947154518',              tipo:'online',    email:'melfiengo@gmail.com',                 voKey:'mel'    },
   {id:'vitinho',ap:'Vitinho', nome:'Vitor Lima',                  cargo:'Atendente',          pix:'(11) 95836-7649',          tipo:'presencial',email:'vitorgsc31@gmail.com',                atKey:'vitinho'},
-  {id:'davi',   ap:'Davi',    nome:'Davi Pacheco da Silva',        cargo:'Atendente',          pix:'(11) 95774-6749',          tipo:'presencial',email:'',                                   atKey:'davi'   },
+  {id:'davi',   ap:'Davi',    nome:'Davi Pacheco da Silva',        cargo:'Atendente',          pix:'(11) 95774-6749',          tipo:'presencial',email:'pacheco.2016.com@gmail.com',           atKey:'davi'   },
   {id:'anne',   ap:'Anne',    nome:'Alauany Ramos de Campos',     cargo:'Atendente',          pix:'(11) 95143-9933',          tipo:'presencial',email:'alauanyramosdecampos@gmail.com',     atKey:'anne',  bonus:true},
   {id:'pietra', ap:'Pietra',  nome:'Pietra Castro',               cargo:'Atendente / Gerente (saiu)',pix:'pietracassttro@gmail.com', tipo:'presencial',email:'pietraurban@gmail.com',              atKey:'pietra', voKey:'pietra' },
   {id:'denilson',ap:'Denilson',nome:'Denilson Henrique Campos',   cargo:'Atendente (saiu)',   pix:'47362104863',              tipo:'presencial',email:'denilson.h.c2708@gmail.com',         atKey:'denilson', saiuEm:'2026-08'},

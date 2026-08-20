@@ -1162,6 +1162,8 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   margin-left:auto; font-weight:700; color:var(--success);
   font-variant-numeric:tabular-nums;
 }
+/* Dia negativo existe: brinde entra pelo custo. Não é crítico — é neutro. */
+.md-dia-total.neg{ color:var(--text3); font-weight:600; }
 
 .md-venda{
   display:flex; align-items:center; gap:10px;
@@ -1177,6 +1179,14 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 .md-venda-valor{
   font-variant-numeric:tabular-nums; font-weight:600; color:var(--text);
   white-space:nowrap;
+}
+/* "acess." depois do número: sem isso o valor do acessório seria lido como
+   comissão, e são coisas diferentes (a comissão do atendente fecha no dia). */
+.md-venda-uni{ font-style:normal; font-weight:500; font-size:11px; color:var(--text4); }
+.md-venda-zero{ color:var(--text4); font-weight:500; }
+.md-nota{
+  margin-top:10px; color:var(--text4);
+  font-size:var(--fs-caption); line-height:var(--lh-body);
 }
 
 /* -- Vitrine: filtros de modelo e capacidade ------------------------------ */

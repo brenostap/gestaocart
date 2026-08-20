@@ -22,6 +22,7 @@
 // ============================================================================
 
 let mdResumo = null;      // linha de v_minha_comissao_mes do mes corrente
+let mdDias   = [];        // v_minha_comissao_dia -- a base agregada POR DIA
 let mdVendas = [];        // v_minhas_vendas do mes corrente
 let mdRede   = null;      // linha de v_meta_rede_mes -- total da rede, sem nome
 let mdFolha  = [];        // folha_mensal -- meses JA FECHADOS, congelados
@@ -43,8 +44,12 @@ async function carregarMeuDia(){
   mdErro = '';
   const mes = mdMesCorrente();
   try{
-    const [resumo, vendas, rede, folha] = await Promise.all([
+    const [resumo, dias, vendas, rede, folha] = await Promise.all([
       sbGet('v_minha_comissao_mes', `mes=eq.${mes}`, 1),
+      // A comissao do dia sai daqui, nao das vendas: 25% incide sobre o LUCRO
+      // de acessorio, que nunca chega no navegador item a item. Ver a migration
+      // 20260820_comissao_por_dia_e_brt.sql pro numero que decidiu o "por dia".
+      sbGet('v_minha_comissao_dia', `dia=gte.${mes}-01&order=dia.desc`, 62),
       sbGet('v_minhas_vendas', `data_saida=gte.${mes}-01&order=data_saida.desc`, 500),
       sbGet('v_meta_rede_mes', `mes=eq.${mes}`, 1),
       // Mes fechado NAO se recalcula: vem congelado de folha_mensal, gravado
@@ -52,13 +57,14 @@ async function carregarMeuDia(){
       sbGet('folha_mensal', `mes=lt.${mes}&order=mes.desc`, 12),
     ]);
     mdResumo = (resumo && resumo[0]) || null;
+    mdDias   = dias || [];
     mdVendas = vendas || [];
     mdRede   = (rede && rede[0]) || null;
     mdFolha  = folha || [];
   }catch(e){
     console.warn('[meudia] carga falhou:', e.message);
     mdErro = e.message || 'falha ao carregar';
-    mdResumo = null; mdVendas = []; mdRede = null; mdFolha = [];
+    mdResumo = null; mdDias = []; mdVendas = []; mdRede = null; mdFolha = [];
   }
   mdCarregado = true;
 }
@@ -223,6 +229,59 @@ function mdVendasFiltradas(){
     (mdFiltroDia  === 'todos' || mdChaveDia(v.data_saida) === mdFiltroDia));
 }
 
+// ---------------------------------------------------------------------------
+// O QUE ESTA VENDA ME DEU
+//
+// Pedido do dono (20/ago): na lista, o valor da venda nao e o numero da pessoa
+// -- um iPhone de R$7 mil no nome dela nao e dinheiro dela. O numero dela e a
+// comissao. Duas comissoes muito diferentes, e so uma cabe por venda:
+//
+//   VENDEDOR   aparelho x taxa. Conta que nao usa custo nenhum -> exata, por
+//              venda, e a soma do mes fecha com a curva de core.js.
+//   ATENDENTE  25% do LUCRO de acessorio. Por venda seria custo por item, que
+//              e o que o dono fechou em 17/ago. Fica no RESUMO DO DIA (medido:
+//              por venda o custo de um item vaza em 19% dos casos; por dia, em
+//              4,8%). Na linha da venda entra o que ela VENDEU de acessorio --
+//              preco, nao custo, e informacao que ela ja tem.
+// ---------------------------------------------------------------------------
+
+// A comissao de cada venda e o quanto ela ACRESCENTOU no acumulado do mes --
+// mesma tecnica do .xlsx do fechamento. E o que faz a 81a unidade aparecer
+// valendo R$35 sem inventar uma segunda regra.
+function mdComissaoPorVenda(){
+  const map = {};
+  let acum = 0;
+  (mdVendas || []).slice()
+    .sort((a, b) => String(a.data_saida).localeCompare(String(b.data_saida)))
+    .forEach(v => {
+      if(!v.fui_vendedor) return;
+      const un = Number(v.aparelhos || 0);
+      if(!un) return;
+      const antes = mdComissaoVendedor(acum);
+      acum += un;
+      map[v.id] = mdComissaoVendedor(acum) - antes;
+    });
+  return map;
+}
+
+// brl() escreve "R$-3" quando o numero e negativo. E acontece: acessorio dado
+// como BRINDE entra com preco 0 e custo > 0, entao o dia fica negativo (foram
+// 169 brindes em ago/2026 -- R$85 da comissao da Anne, R$73 do Vitinho). O
+// numero e verdade e fica, mas escrito como gente escreve.
+function mdBrlSinal(v){
+  return v < 0 ? '−' + brl(-v) : brl(v);
+}
+
+function mdDiaInfo(chave){
+  return (mdDias || []).find(d => String(d.dia).slice(0,10) === chave) || null;
+}
+
+// Acessorio da venda so conta pra quem ATENDEU: a view traz o acessorio da
+// venda inteira, e numa venda que eu so vendi o acessorio e de outra pessoa.
+function mdAcessDaVenda(v){
+  return v.fui_atendente ? Number(v.acess_bruto || 0) : 0;
+}
+
 function mdCardVendas(){
   const todas = mdVendas || [];
   const dias  = [...new Set(todas.map(v => mdChaveDia(v.data_saida)))].sort().reverse();
@@ -230,13 +289,17 @@ function mdCardVendas(){
   const vs    = mdVendasFiltradas();
 
   // Agrupa preservando a ordem (a carga ja vem por data desc).
+  const comissao = mdComissaoPorVenda();
   const grupos = [];
   const porDia = {};
   vs.forEach(v => {
     const k = mdChaveDia(v.data_saida);
-    if(!porDia[k]){ porDia[k] = { dia:k, itens:[], total:0 }; grupos.push(porDia[k]); }
-    porDia[k].itens.push(v);
-    porDia[k].total += Number(v.valor_total || 0);
+    if(!porDia[k]){ porDia[k] = { dia:k, itens:[], comVo:0, acess:0, un:0 }; grupos.push(porDia[k]); }
+    const g = porDia[k];
+    g.itens.push(v);
+    g.comVo  += comissao[v.id] || 0;
+    g.acess  += mdAcessDaVenda(v);
+    g.un     += v.fui_vendedor ? Number(v.aparelhos || 0) : 0;
   });
 
   const chip = (txt, ativo, on) => UI.chip(txt, ativo, on);
@@ -248,12 +311,28 @@ function mdCardVendas(){
       opcoes:[{v:'todos', t:'Todos os dias'}, ...dias.map(d => ({v:d, t:mdRotuloDia(d)}))] })
   );
 
-  const corpo = grupos.length ? grupos.map(g => `
+  const corpo = grupos.length ? grupos.map(g => {
+    const d = mdDiaInfo(g.dia);
+    // ⚠️ A parte de acessorio do resumo vem da VIEW (dia inteiro), a de
+    // aparelho vem das linhas listadas. Com filtro de loja ligado os dois
+    // deixariam de falar do mesmo conjunto -- por isso o resumo e sempre do
+    // dia inteiro, e o card avisa quando ha filtro.
+    const comAt = (mdTemAt() && d) ? Number(d.acess_lucro || 0) * 0.25 : 0;
+    const comDia = g.comVo + comAt;
+    const contexto = [
+      g.itens.length + ' venda' + (g.itens.length === 1 ? '' : 's'),
+      mdTemVo() && g.un ? g.un + ' aparelho' + (g.un === 1 ? '' : 's') : '',
+      mdTemAt() && d && Number(d.acess_bruto) ? brl(Number(d.acess_bruto)) + ' em acessórios' : '',
+    ].filter(Boolean).join(' · ');
+
+    return `
     <div class="md-dia">
       <div class="md-dia-cab">
         <span class="md-dia-nome">${mdRotuloDia(g.dia)}</span>
-        <span class="md-dia-meta">${g.itens.length} venda${g.itens.length===1?'':'s'}</span>
-        <span class="md-dia-total">${brl(g.total)}</span>
+        <span class="md-dia-meta">${contexto}</span>
+        <span class="md-dia-total${comDia < 0 ? ' neg' : ''}" title="${comDia < 0
+          ? 'Acessório entregue como brinde entra pelo custo — foi isso que deixou o dia negativo.'
+          : 'A sua comissão deste dia'}">${mdBrlSinal(comDia)}</span>
       </div>
       ${g.itens.map(v => `<div class="md-venda">
         <span class="md-venda-cliente">${UI.esc(v.cliente_nome || 'Sem nome')}</span>
@@ -261,9 +340,9 @@ function mdCardVendas(){
           ${UI.badge(v.loja === 'urban' ? 'Urban' : 'Cart', v.loja === 'urban' ? 'alerta' : 'marca')}
           ${mdTemVo() && mdTemAt() ? `<span class="md-venda-papel">${mdPapelNaVenda(v)}</span>` : ''}
         </span>
-        <span class="md-venda-valor">${brl(Number(v.valor_total || 0))}</span>
+        ${mdValorDaVenda(v, comissao)}
       </div>`).join('')}
-    </div>`).join('')
+    </div>`; }).join('')
   : UI.vazio({
       titulo: (mdFiltroLoja !== 'todas' || mdFiltroDia !== 'todos')
         ? 'Nenhuma venda com esse filtro' : 'Nenhuma venda ainda neste mês',
@@ -272,13 +351,30 @@ function mdCardVendas(){
         : 'Venda registrada com o seu nome na observação aparece aqui.',
     });
 
-  const totalFiltrado = vs.reduce((a,v) => a + Number(v.valor_total || 0), 0);
+  const comFiltro = mdFiltroLoja !== 'todas' || mdFiltroDia !== 'todos';
+  const nota = comFiltro && grupos.length
+    ? `<div class="md-nota">Com filtro ligado, o total de cada dia continua sendo o do dia inteiro.</div>`
+    : '';
 
   return UI.card({
     titulo:'Minhas vendas',
-    sub: `${vs.length} · ${brl(totalFiltrado)}`,
-    corpo: filtros + `<div class="md-dias">${corpo}</div>`
+    sub: `${vs.length} venda${vs.length === 1 ? '' : 's'} · o valor de cada dia é a sua comissão`,
+    corpo: filtros + nota + `<div class="md-dias">${corpo}</div>`
   });
+}
+
+// O numero da LINHA. Vendedor tem comissao exata por venda; atendente ve o que
+// vendeu de acessorio ali (a comissao dele fecha no dia, no cabecalho).
+function mdValorDaVenda(v, comissao){
+  const com = comissao[v.id] || 0;
+  if(v.fui_vendedor && com)
+    return `<span class="md-venda-valor">${brl(com)}</span>`;
+  const ac = mdAcessDaVenda(v);
+  if(ac)
+    return `<span class="md-venda-valor">${brl(ac)} <i class="md-venda-uni">acess.</i></span>`;
+  // Venda que nao rendeu nada pra pessoa e informacao, nao buraco: e o outro
+  // lado do attach rate que o card de cima mostra.
+  return `<span class="md-venda-valor md-venda-zero">—</span>`;
 }
 
 // "seg, 11/08" — o dia da semana ajuda mais que o número quando a pessoa está

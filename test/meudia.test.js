@@ -132,11 +132,11 @@ console.log('vendas por dia');
 
 const VENDAS_DIAS = [
   { id:1, loja:'cart',  data_saida:'2026-08-15T18:00:00+00:00', cliente_nome:'Ana',
-    valor_total:'1000.00', fui_vendedor:true, fui_atendente:false },
+    valor_total:'1000.00', aparelhos:1, acess_bruto:'0.00',   fui_vendedor:true, fui_atendente:false },
   { id:2, loja:'urban', data_saida:'2026-08-15T20:00:00+00:00', cliente_nome:'Bruno',
-    valor_total:'2000.00', fui_vendedor:true, fui_atendente:false },
+    valor_total:'2000.00', aparelhos:2, acess_bruto:'0.00',   fui_vendedor:true, fui_atendente:false },
   { id:3, loja:'cart',  data_saida:'2026-08-14T15:00:00+00:00', cliente_nome:'Carla',
-    valor_total:'500.00',  fui_vendedor:true, fui_atendente:false },
+    valor_total:'500.00',  aparelhos:1, acess_bruto:'120.00', fui_vendedor:true, fui_atendente:false },
 ];
 
 comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
@@ -145,9 +145,18 @@ comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
        mdFiltroLoja='todas'; mdFiltroDia='todos';`);
   const html = run(`renderMeuDia()`);
 
-  if (html.includes('R$3.000') && html.includes('R$500'))
-    ok('total por dia: 15/08 soma R$3.000, 14/08 soma R$500');
-  else bad('totais por dia errados');
+  // O total do dia é a COMISSÃO, não o valor vendido (pedido do dono, 20/ago):
+  // um iPhone de R$7 mil no nome da pessoa não é dinheiro dela. 15/08 = 3
+  // aparelhos x R$25 = R$75; 14/08 = 1 x R$25 = R$25.
+  if (html.includes('R$75') && html.includes('R$25'))
+    ok('o total do dia é a comissão do dia (15/08 R$75 · 14/08 R$25)');
+  else bad('totais por dia errados — deviam ser comissão');
+  if (!html.includes('R$3.000'))
+    ok('e o valor vendido saiu do lugar do dinheiro da pessoa');
+  else bad('a lista ainda soma o valor da venda como se fosse dela');
+  if (html.includes('3 vendas') || html.includes('2 vendas'))
+    ok('o resumo do dia diz quantas vendas');
+  else bad('resumo do dia sem contagem');
   if (/s[áa]b, 15\/08/.test(html)) ok('o dia traz o dia da semana');
   else bad('rótulo do dia sem dia da semana');
 
@@ -160,9 +169,15 @@ comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
   if (so14.length === 1 && so14[0].cliente_nome === 'Carla') ok('filtro por dia funciona');
   else bad('filtro por dia errado');
 
-  const vazio = run(`renderMeuDia()`);
-  if (/R\$500/.test(vazio) && !/R\$3\.000/.test(vazio)) ok('o total do card acompanha o filtro');
-  else bad('o total não respeitou o filtro');
+  // Só o dia 14 na tela: a comissão dele é R$25 e a do dia 15 (R$75) some junto.
+  const soUmDia = run(`renderMeuDia()`);
+  if (/R\$25/.test(soUmDia) && !/R\$75/.test(soUmDia)) ok('a lista acompanha o filtro');
+  else bad('o filtro não recortou os dias');
+  // ⚠️ O resumo continua sendo do DIA INTEIRO (a parte de acessório vem da
+  // view, não das linhas) — e o card avisa isso em vez de somar meio dia.
+  if (/o total de cada dia continua sendo o do dia inteiro/.test(soUmDia))
+    ok('e o card avisa que o resumo do dia não é filtrado');
+  else bad('filtro ligado sem aviso — dois números falando de conjuntos diferentes');
 
   run(`setMdLoja('urban');`);
   if (/Nenhuma venda com esse filtro/.test(run(`renderMeuDia()`)))
@@ -170,6 +185,92 @@ comPerfil({papel:'comercial', nome:'David', vo_key:'david', ativo:true}, () => {
   else bad('filtro vazio confuso');
 
   run(`mdFiltroLoja='todas'; mdFiltroDia='todos';`);
+});
+
+// -- 3c. o dinheiro da pessoa, por dia (20/ago/2026) ------------------------
+// A comissão do atendente é 25% do LUCRO de acessório — que não desce por
+// venda de propósito (seria custo por item). Ela fecha no RESUMO DO DIA, com
+// o número vindo da view v_minha_comissao_dia.
+console.log('comissão por dia');
+
+const DIAS_AT = [
+  { dia:'2026-08-15', vendas_vendidas:0, aparelhos_vendidos:0, vendas_atendidas:2,
+    vendas_com_acessorio:2, acess_qtd:3, acess_bruto:'400.00', acess_lucro:'280.00' },
+  { dia:'2026-08-14', vendas_vendidas:0, aparelhos_vendidos:0, vendas_atendidas:1,
+    vendas_com_acessorio:0, acess_qtd:0, acess_bruto:'0.00', acess_lucro:'0.00' },
+];
+const VENDAS_AT = [
+  { id:1, loja:'cart',  data_saida:'2026-08-15T18:00:00+00:00', cliente_nome:'Ana',
+    valor_total:'7395.00', aparelhos:1, acess_bruto:'250.00', fui_vendedor:false, fui_atendente:true },
+  { id:2, loja:'cart',  data_saida:'2026-08-15T20:00:00+00:00', cliente_nome:'Bruno',
+    valor_total:'2100.00', aparelhos:1, acess_bruto:'150.00', fui_vendedor:false, fui_atendente:true },
+  { id:3, loja:'urban', data_saida:'2026-08-14T15:00:00+00:00', cliente_nome:'Carla',
+    valor_total:'3200.00', aparelhos:1, acess_bruto:'0.00',   fui_vendedor:false, fui_atendente:true },
+];
+
+comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
+  run(`mdResumo = null; mdRede = null; mdFolha = []; mdCarregado = true; mdErro='';
+       mdVendas = ${JSON.stringify(VENDAS_AT)}; mdDias = ${JSON.stringify(DIAS_AT)};
+       mdFiltroLoja='todas'; mdFiltroDia='todos';`);
+  const html = run(`renderMeuDia()`);
+
+  // 25% de 280 = 70 no dia 15; o dia 14 não teve acessório -> R$0
+  if (html.includes('R$70')) ok('o total do dia é 25% do lucro de acessório do dia (R$70)');
+  else bad('comissão do dia do atendente errada');
+
+  // O valor da VENDA não pode ocupar o lugar do dinheiro da pessoa: R$7.395 é
+  // o iPhone que ela atendeu, não o que ela ganhou.
+  if (!html.includes('R$7.395')) ok('o valor do aparelho não aparece como número dela');
+  else bad('o valor da venda voltou pro lugar da comissão');
+
+  // Na linha, o atendente vê o que VENDEU de acessório (preço, não custo),
+  // rotulado — senão seria lido como comissão.
+  if (html.includes('R$250') && html.includes('acess.'))
+    ok('a linha mostra o acessório vendido, com rótulo');
+  else bad('a linha do atendente não mostra o acessório');
+
+  // Venda sem acessório não some nem finge valor: é o outro lado do attach.
+  if (/md-venda-zero/.test(html)) ok('venda que não rendeu nada aparece como —');
+  else bad('venda sem acessório sumiu ou inventou valor');
+
+  const cardVendas = run(`mdCardVendas()`);
+  if (!/valor_estoque|custo_total|acess_lucro/.test(cardVendas)) ok('nenhum campo de custo vaza na lista');
+  else bad('campo de custo apareceu na lista de vendas');
+});
+
+// Brinde: acessório com preço 0 e custo > 0. O dia fica NEGATIVO -- e fica
+// mesmo, porque é assim que a folha calcula (169 brindes em ago/2026, R$85 da
+// comissão da Anne). O que a tela deve é escrever direito e dizer o porquê.
+comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
+  run(`mdResumo = null; mdRede = null; mdFolha = []; mdCarregado = true; mdErro='';
+       mdFiltroLoja='todas'; mdFiltroDia='todos';
+       mdVendas = [{ id:9, loja:'cart', data_saida:'2026-08-18T16:00:00+00:00',
+         cliente_nome:'Bruno', valor_total:'3950.00', aparelhos:1, acess_bruto:'0.00',
+         fui_vendedor:false, fui_atendente:true }];
+       mdDias = [{ dia:'2026-08-18', vendas_vendidas:0, aparelhos_vendidos:0, vendas_atendidas:1,
+         vendas_com_acessorio:0, acess_qtd:0, acess_bruto:'0.00', acess_lucro:'-11.63' }];`);
+  const html = run(`mdCardVendas()`);
+  if (html.includes('−R$3')) ok('dia negativo sai como −R$3, não "R$-3"');
+  else bad('formatação do dia negativo errada');
+  if (html.includes('brinde')) ok('e a tela explica o motivo (brinde entra pelo custo)');
+  else bad('dia negativo sem explicação — vira desconfiança');
+});
+
+// A soma das comissões por venda TEM que fechar com a curva de core.js —
+// inclusive cruzando as 80 unidades, onde a taxa vira R$35. É a mesma técnica
+// do .xlsx do fechamento: cada venda vale o que ACRESCENTOU no acumulado.
+comPerfil({papel:'comercial', nome:'Mel', vo_key:'mel', ativo:true}, () => {
+  const vendas = [];
+  for (let i = 0; i < 42; i++)                      // 42 vendas de 2 aparelhos = 84 un
+    vendas.push({ id:100+i, loja:'cart', data_saida:`2026-08-${String((i%28)+1).padStart(2,'0')}T18:00:00+00:00`,
+                  cliente_nome:'C'+i, valor_total:'3000.00', aparelhos:2, acess_bruto:'0.00',
+                  fui_vendedor:true, fui_atendente:false });
+  run(`mdVendas = ${JSON.stringify(vendas)}; mdDias = []; mdResumo = null; mdRede = null;
+       mdFolha = []; mdCarregado = true; mdErro=''; mdFiltroLoja='todas'; mdFiltroDia='todos';`);
+  const soma = Object.values(run(`mdComissaoPorVenda()`)).reduce((a,b) => a+b, 0);
+  const curva = run(`comissaoVendedor(84)`);
+  if (Math.abs(soma - curva) < 0.005) ok('soma das comissões por venda = curva de 84 un (R$'+curva+')');
+  else bad('soma por venda divergiu da curva: ' + soma + ' vs ' + curva);
 });
 
 // Vendedor puro: sem at_key, não existe bloco de acessório nem base da conta.
