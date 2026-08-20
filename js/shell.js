@@ -104,10 +104,13 @@ function navMobile(){
 const MATRIZ_ACESSO = {
   socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento'],
   // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
-  bancada:   ['estoque','bancada'],
+  bancada:   ['estoque','bancada','tabela'],
   // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta
   // aqui -- esta nas chaves vo_key/at_key do perfil. Ver docs/PERFIS-E-ACESSO.md.
-  comercial: ['meudia','vitrine'],
+  // `tabela` entrou em 20/ago a pedido do dono: quem atende precisa do preco
+  // oficial na mao, e ele ja chega mastigado pela view `v_tabela_precos`
+  // (sem custo, sem margem) -- a mesma que a Vitrine usa.
+  comercial: ['meudia','vitrine','tabela'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],
@@ -240,6 +243,27 @@ function moneyServico(valor, mudo){
 // Nao e podeVerMargem() disfarcado: isto e o dinheiro DELE, agregado, e vale
 // justamente pra quem NAO ve margem. Quem tem chave de atendente, ve.
 function podeVerBaseComissao(){ return !!(meuPerfil && meuPerfil.at_key); }
+
+// QUINTO interruptor (20/ago/2026): o PRECO DE TABELA.
+//
+// ⚠️ Nao e o mesmo dinheiro de podeVerValor(). `podeVerValor` fala do valor de
+// UMA VENDA (quanto aquele cliente pagou); este fala do preco de catalogo, que
+// a loja publica no story do Instagram toda semana. Esconder de quem atende no
+// balcao um numero que esta no story nao protege nada -- so faz a pessoa
+// perguntar pro colega.
+//
+// Foi por isso que a aba Tabela nao entrou por VE_VALOR: por ali, o Vitinho
+// ganharia junto o "Exportar WhatsApp" do Estoque, que manda preco item a item
+// e esta fechado de proposito (docs/CONTROLE-MANUTENCAO.md).
+//
+// Quem tem perfil ativo ve. Custo, lucro e margem seguem em VE_MARGEM.
+function podeVerPrecoTabela(){ return papelAtual() !== 'nenhum'; }
+
+// Irmao de money() para preco de catalogo. Nao tem modo mudo: se a tela chegou
+// ate aqui, a pessoa pode ver o preco.
+function moneyPreco(valor){
+  return podeVerPrecoTabela() ? brl(valor) : '—';
+}
 
 // Mantido porque varias telas ja chamam; hoje significa "pode ver custo/lucro"
 function podeVerDinheiro(){ return podeVerMargem(); }

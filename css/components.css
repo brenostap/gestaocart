@@ -744,6 +744,9 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   border-bottom:1px solid var(--border); white-space:nowrap;
 }
 .tpr-tab th.n{ text-align:right; }
+/* "na troca" / "à vista": o rótulo sozinho não diz qual preço é qual pra quem
+   está começando no balcão. */
+.tpr-tab th i{ font-style:normal; font-weight:500; color:var(--text4); font-size:10px; margin-left:4px; }
 
 /* título da seção (Seminovos / Lacrados) — sticky logo abaixo do cabeçalho */
 .tpr-secao td{
@@ -777,8 +780,12 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
 .tpr-cores{ display:inline-flex; gap:3px; margin-left:9px; vertical-align:middle; }
 /* no celular a coluna Upgrade sai da tabela (não cabem 3 colunas de número em
    375px sem cortar o Varejo) e o valor reaparece aqui, embaixo do nome */
-.tpr-up-mob{ display:none; font-family:var(--font-mono); font-size:10.5px; color:var(--text4); }
-.tpr-up-mob b{ color:var(--text3); font-weight:600; }
+/* O segundo preço. No desktop ele tem coluna própria; no celular a coluna
+   sai e ele vira uma segunda linha DENTRO da célula do varejo — antes ficava
+   embaixo do NOME, do outro lado da tela, e ninguém comparava dois preços que
+   não estão um sobre o outro. */
+.tpr-up-mob{ display:none; font-family:var(--font-mono); font-size:11px; color:var(--text3); }
+.tpr-up-mob i{ font-style:normal; font-size:9.5px; color:var(--text4); letter-spacing:.02em; }
 .tpr-dot{ width:11px; height:11px; border-radius:50%;
   border:1px solid rgba(0,0,0,.22); box-shadow:inset 0 1px 1px rgba(255,255,255,.25); }
 :root[data-theme="dark"] .tpr-dot,
@@ -820,9 +827,8 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   /* no celular a linha do modelo é o alvo do toque: não apertar mais que isso */
   .tpr-grupo td{ padding:9px 12px; }
   .tpr-lin td{ padding:7px 12px; }
-  .tpr-col-up{ display:none; }        /* coluna Upgrade vira linha sob o nome */
-  .tpr-up-mob{ display:block; margin:2px 0 0 16px; }
-  .tpr-lin .tpr-up-mob{ margin-left:32px; }
+  .tpr-col-up{ display:none; }        /* coluna Upgrade vira 2a linha do preço */
+  .tpr-up-mob{ display:block; margin-top:1px; text-align:right; font-weight:600; }
   .tpr-tab{ font-size:12.5px; }
   .tpr-cap{ margin-left:7px; }
   .tpr-nota{ padding:10px 12px; }
@@ -1225,4 +1231,60 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 .mr-falta{
   display:block; margin-top:4px;
   font-size:var(--fs-caption); color:var(--yellow);
+}
+
+/* ==========================================================================
+   EQUIPE — a lista de pessoas (20/ago/2026)
+   A tela era HTML escrito na mão: cor literal, gradiente e style inline em
+   cada linha, dois blocos quase iguais pra vendedor e atendente. Virou um
+   componente só; o que muda entre os dois é o NÚMERO que manda na barra.
+   ========================================================================== */
+.eq-card .c-card-body{ padding:0; }
+.eq-linha{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:12px 16px; background:none; border:0; border-bottom:1px solid var(--border);
+  text-align:left; cursor:pointer; font-family:inherit; color:var(--text);
+}
+.eq-linha:last-child{ border-bottom:0; }
+.eq-linha:hover{ background:var(--bg3); }
+
+.eq-av{
+  position:relative; flex:0 0 auto; width:38px; height:38px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; letter-spacing:.02em;
+  background:var(--bg4); color:var(--text2); border:1px solid var(--border);
+}
+.eq-av[data-tom="vo"]   { background:var(--bg4); color:var(--cart);  border-color:var(--cart); }
+.eq-av[data-tom="at"]   { background:var(--bg4); color:var(--green); border-color:var(--green); }
+.eq-av[data-tom="socio"]{ background:var(--bg4);      color:var(--text3); }
+.eq-medalha{ position:absolute; bottom:-5px; right:-5px; font-size:12px; font-style:normal; }
+
+.eq-corpo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.eq-topo{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.eq-nome{ font-size:var(--fs-body); font-weight:650; }
+.eq-num{ font-size:var(--fs-caption); color:var(--text3); font-variant-numeric:tabular-nums; }
+.eq-num b{ color:var(--text); font-weight:600; }
+.eq-corpo .c-barra{ margin-top:3px; height:3px; }
+
+.eq-total{
+  flex:0 0 auto; text-align:right; display:flex; flex-direction:column; gap:1px;
+}
+.eq-total b{ font-size:var(--fs-body); font-weight:700; font-variant-numeric:tabular-nums; }
+.eq-total i{ font-style:normal; font-size:10px; color:var(--text4); }
+.eq-socio{ cursor:pointer; }
+
+/* Fechamento: a tabela do kit, com as cores de significado nas colunas certas */
+.eq-tabela .eq-ok{ color:var(--green); }
+.eq-tabela .eq-ruim{ color:var(--red); }
+.eq-tabela .eq-meta{ color:var(--yellow); }
+.eq-tabela .eq-extra{ color:var(--purple); }
+.eq-tabela .eq-total-cel{ color:var(--cart); font-weight:700; }
+.eq-tabela tfoot .eq-fim td{ border-top:2px solid var(--border2); }
+.eq-tabela tfoot td{ padding-top:10px; }
+.eq-nota{ font-size:10.5px; color:var(--text4); font-weight:400; }
+
+@media (max-width:720px){
+  .eq-linha{ padding:11px 12px; gap:10px; }
+  .eq-av{ width:34px; height:34px; font-size:12px; }
+  .eq-total b{ font-size:13px; }
 }

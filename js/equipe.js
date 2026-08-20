@@ -412,249 +412,189 @@ function renderEquipe(){
   if(equipeOpenId){ return renderFuncCard(equipeOpenId, lAcessTotal); }
 
   const SOCIOS_IDS=['gustavo','marcella'];
-
   const metricas={};
   FUNC.forEach(function(f){ metricas[f.id]=calcComissaoFunc(f,allVendas,allMovs,lAcessTotal); });
 
   // Quem saiu nao vira card: a tela mostra a equipe de HOJE. O cadastro continua
-  // no FUNC (historico das vendas) e o fechamento ja usa o mesmo criterio em
+  // no FUNC (historico das vendas) e o fechamento usa o mesmo criterio em
   // fechamentoPessoas() -- entao tela e folha falam da mesma gente.
   const naEquipe=function(f){ return !SOCIOS_IDS.includes(f.id) && !saiuDaEquipe(f); };
-
   const socios=FUNC.filter(function(f){return SOCIOS_IDS.includes(f.id);});
   const online=FUNC.filter(function(f){return naEquipe(f)&&f.tipo==='online'&&!f.atKey;});
   const presencial=FUNC.filter(function(f){return naEquipe(f)&&(f.tipo==='presencial'||(f.atKey&&!f.voKey));});
   const ambos=FUNC.filter(function(f){return naEquipe(f)&&f.voKey&&f.atKey;});
 
-  online.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].units||0)-(metricas[a.id]&&metricas[a.id].units||0);});
-  presencial.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});
-
-  // O seletor de periodo agora vive na sidebar (contexto persistente, brief §7.2)
-  let html = '';
-
-  // -- Socios ------------------------------------------------
-  const sociosParaMostrar = socios.slice();
-  if(!FUNC.find(function(f){return f.id==='marcella';})){
-    sociosParaMostrar.push({id:'marcella',ap:'Marcella',nome:'Marcella',cargo:'Sócia',tipo:'socio'});
-  }
-  if(sociosParaMostrar.length > 0){
-    html += '<div style="margin-bottom:20px">'
-      + '<div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
-      + '<span style="display:inline-block;width:20px;height:1px;background:var(--gold);opacity:.5"></span>'
-      + 'Sócios'
-      + '<span style="display:inline-block;flex:1;height:1px;background:var(--border)"></span>'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
-
-    sociosParaMostrar.forEach(function(f){
-      const comm=metricas[f.id]||{vendCount:0,units:0,comm:0};
-      const unidades=comm.units||comm.vendCount||0;
-      html += '<div class="func-card socio" onclick="openFunc(\''+f.id+'\')">'
-        + '<div class="func-top">'
-        + '<div class="func-avatar socio-avatar">'+ini(f.nome)+'</div>'
-        + '<div style="flex:1">'
-        + '<div style="display:flex;align-items:center;gap:8px">'
-        + '<span style="font-size:15px;font-weight:700;color:var(--gold)">'+f.ap+'</span>'
-        + '<span class="badge-socio">SÓCIO</span>'
-        + '</div>'
-        + '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+(f.cargo||'Sócio(a)')+'</div>'
-        + '</div>'
-        + '</div>'
-        + (unidades>0 ? '<div style="font-size:12px;color:var(--text3);margin-top:10px;padding-top:8px;border-top:1px solid rgba(245,200,66,.15)"><span style="color:var(--gold);font-weight:600">'+unidades+'</span> produtos no período</div>' : '')
-        + '</div>';
-    });
-    html += '</div></div>';
-  }
-
-  // -- Vendedores Online -------------------------------------
-  const todosVo = online.concat(ambos);
-  if(todosVo.length > 0){
-    html += '<div style="margin-bottom:20px">'
-      + '<div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
-      + '<span style="display:inline-block;width:20px;height:1px;background:var(--cart);opacity:.5"></span>'
-      + 'Vendedores Online'
-      + '<span style="display:inline-block;flex:1;height:1px;background:var(--border)"></span>'
-      + '</div>';
-
-    const maxUnits = Math.max.apply(null, todosVo.map(function(x){return metricas[x.id]&&metricas[x.id].units||0;}).concat([1]));
-    todosVo.forEach(function(f, rank){
-      const cl=COLORS[FUNC.indexOf(f)%COLORS.length];
-      const comm=metricas[f.id]||{vendCount:0,units:0,comm:0};
-      const extra=getEquipeExtra(f.id);
-      const dividas=getDividas(f.id);
-      const saldoDiv=dividas.reduce(function(a,d){const pago=d.parcelas.filter(function(p){return p.paga;}).reduce(function(s,p){return s+p.valor;},0);return a+(d.total-pago);},0);
-      const metaBatida=comm.units>80;
-      const rankMedal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
-      const pctBar=Math.round((comm.units||0)/maxUnits*100);
-
-      html += '<div class="func-card" onclick="openFunc(\''+f.id+'\')">'
-        + '<div class="func-top">'
-        + '<div style="position:relative">'
-        + '<div class="func-avatar" style="background:'+cl+'20;color:'+cl+';border-color:'+cl+'40">'+ini(f.nome)+'</div>'
-        + (rankMedal ? '<span style="position:absolute;bottom:-4px;right:-4px;font-size:12px">'+rankMedal+'</span>' : '')
-        + '</div>'
-        + '<div style="flex:1;min-width:0">'
-        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-        + '<span class="func-nome">'+f.ap+'</span>'
-        + '<span style="font-size:10px;color:var(--text4)">'+f.nome+'</span>'
-        + '<span class="badge-online">online</span>'
-        + (metaBatida ? '<span style="font-size:10px;background:rgba(48,209,88,.1);color:var(--green);padding:1px 6px;border-radius:4px;font-weight:700">🔥 R$35/un</span>' : '')
-        + '</div>'
-        + '<div class="func-cargo">'+f.cargo+'</div>'
-        + '<div style="font-size:12px;margin-top:4px">'
-        + '<span style="color:var(--cart);font-weight:600">'+comm.vendCount+'</span><span style="color:var(--text3)"> pedidos · </span>'
-        + '<span style="color:var(--text);font-weight:600">'+(comm.units||comm.unitsVo||0)+'</span><span style="color:var(--text3)"> produtos · </span>'
-        + '<span style="color:var(--green);font-weight:600">'+brl(comm.comm)+'</span>'
-        + (saldoDiv>0 ? ' · <span style="color:var(--red)">dívida '+brl(saldoDiv)+'</span>' : '')
-        + '</div>'
-        + '<div style="margin-top:6px;height:2px;background:var(--border);border-radius:1px;overflow:hidden">'
-        + '<div style="height:100%;width:'+pctBar+'%;background:linear-gradient(90deg,var(--cart),var(--cart2));border-radius:1px"></div>'
-        + '</div>'
-        + '</div>'
-        + '<div style="font-size:18px;color:var(--border)">›</div>'
-        + '</div>'
-        + '</div>';
-    });
-    html += '</div>';
-  }
-
-  // -- Atendentes Presenciais --------------------------------
-  // Quem e os dois (Maria) entra nos DOIS rankings -- ela concorre a escada do
-  // atendente igual a todo mundo. Ficava so em "Vendedores Online" (todosVo), e
-  // por isso os acessorios dela nao apareciam em lugar nenhum da tela.
-  const todosAt = presencial.concat(ambos);
-  if(todosAt.length > 0){
-    html += '<div>'
-      + '<div style="font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px">'
-      + '<span style="display:inline-block;width:20px;height:1px;background:var(--urban);opacity:.5"></span>'
-      + 'Atendentes Presenciais'
-      + '<span style="display:inline-block;flex:1;height:1px;background:var(--border)"></span>'
-      + '</div>';
-
-    const maxBruto = Math.max.apply(null, todosAt.map(function(x){return metricas[x.id]&&metricas[x.id].brutoAcess||0;}).concat([1]));
-    todosAt.sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});
-    todosAt.forEach(function(f, rank){
-      const cl=COLORS[FUNC.indexOf(f)%COLORS.length];
-      const comm=metricas[f.id]||{qt:0,brutoAcess:0,comm:0};
-      const dividas=getDividas(f.id);
-      const saldoDiv=dividas.reduce(function(a,d){const pago=d.parcelas.filter(function(p){return p.paga;}).reduce(function(s,p){return s+p.valor;},0);return a+(d.total-pago);},0);
-      const rankMedal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
-      const pctBar=Math.round((comm.brutoAcess||0)/maxBruto*100);
-      const mtRank=metaAtendente(comm.brutoAcess); // faixas em core.js
-      const metaNivel=mtRank.nivel;
-      const metaBadge=metaNivel?(mtRank.maxima?'🏆 ':'✅ ')+metaAtRotulo(mtRank):'';
-      const metaColor=metaNivel>=2?'var(--green)':'var(--cart)';
-
-      html += '<div class="func-card" onclick="openFunc(\''+f.id+'\')">'
-        + '<div class="func-top">'
-        + '<div style="position:relative">'
-        + '<div class="func-avatar" style="background:'+cl+'20;color:'+cl+';border-color:'+cl+'40">'+ini(f.nome)+'</div>'
-        + (rankMedal ? '<span style="position:absolute;bottom:-4px;right:-4px;font-size:12px">'+rankMedal+'</span>' : '')
-        + '</div>'
-        + '<div style="flex:1;min-width:0">'
-        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'
-        + '<span class="func-nome">'+f.ap+'</span>'
-        + '<span style="font-size:10px;color:var(--text4)">'+f.nome+'</span>'
-        + '<span class="badge-presencial">presencial</span>'
-        + (metaBadge ? '<span style="font-size:10px;background:rgba(48,209,88,.1);color:'+metaColor+';padding:1px 6px;border-radius:4px;font-weight:700">'+metaBadge+'</span>' : '')
-        + '</div>'
-        + '<div class="func-cargo">'+f.cargo+'</div>'
-        + '<div style="font-size:12px;margin-top:4px">'
-        + '<span style="color:var(--urban);font-weight:600">'+brl(comm.brutoAcess||0)+'</span><span style="color:var(--text3)"> bruto acess. · </span>'
-        + '<span style="color:var(--green);font-weight:600">'+brl(comm.comm)+'</span>'
-        + (saldoDiv>0 ? ' · <span style="color:var(--red)">dívida '+brl(saldoDiv)+'</span>' : '')
-        + '</div>'
-        + '<div style="margin-top:6px;height:2px;background:var(--border);border-radius:1px;overflow:hidden">'
-        + '<div style="height:100%;width:'+pctBar+'%;background:linear-gradient(90deg,var(--urban),var(--cart2));border-radius:1px"></div>'
-        + '</div>'
-        + '</div>'
-        + '<div style="font-size:18px;color:var(--border)">›</div>'
-        + '</div>'
-        + '</div>';
-    });
-    html += '</div>';
-  }
-
-
-
-  // -- Tabela de fechamento do mes -----------------------------------------------
-  // Todos os numeros vem de fechamentoEquipe(): a tela e a exportacao leem o
-  // MESMO objeto. Nao recalcular nada aqui.
+  // Fechamento primeiro: o placar do topo sai DELE, nao de uma segunda conta.
   const fech=fechamentoEquipe();
   const {pessoas,totais,bonusCol:bonusColF}=fech;
-  // A coluna de extras (hora extra, ajuste de meta) so aparece nos meses que
-  // tem extra -- mes normal continua com a tabela enxuta, que e a regra no
-  // celular. O title conta de onde veio cada um.
-  const temExtras=pessoas.some(p=>p.extrasTot!==0);
-  const thNum=(t,cor)=>'<th style="text-align:right;padding:6px 8px;color:'+(cor||'var(--text4)')
-    +';font-weight:'+(cor?'700':'600')+';font-size:10px;text-transform:uppercase;letter-spacing:.05em">'+t+'</th>';
+  const porNome={}; pessoas.forEach(function(p){ porNome[p.id||p.func_id||p.nome]=p; });
 
-  const tabelaFechamento=`
-    <div class="card" style="margin-top:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <div class="card-title" style="margin:0">📋 Fechamento — ${fech.mesLabel}</div>
-        <div style="display:flex;gap:8px">
-          ${UI.btn('📊 Planilha',{onclick:'exportarFechamento(this)',variante:'primario',sm:true,titulo:'Arquivo .xlsx com uma aba por colaborador, venda a venda — pra você conferir'})}
-          ${UI.btn('📄 PDF',{onclick:'fechamentoPDFEscolher()',sm:true,titulo:'Documento com uma folha por colaborador, ou a folha de uma pessoa só'})}
-          ${UI.btn('📋 Gerar resumos',{onclick:'gerarResumoEquipe()',sm:true})}
-        </div>
+  const saldoDividaDe=function(id){
+    return getDividas(id).reduce(function(a,d){
+      const pago=d.parcelas.filter(function(p){return p.paga;}).reduce(function(s,p){return s+p.valor;},0);
+      return a+(d.total-pago);
+    },0);
+  };
+
+  // -- Linha de pessoa: um componente so, dois usos ---------------------------
+  // Antes eram dois blocos de HTML quase iguais escritos na mao, cada um com
+  // suas cores literais e seu gradiente. O que muda entre vendedor e atendente
+  // e o NUMERO que manda na barra -- o resto e o mesmo.
+  const linhaPessoa=function(f, rank, dados){
+    const m=metricas[f.id]||{};
+    const div=saldoDividaDe(f.id);
+    const medalha=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':'';
+    const pct=dados.max>0?Math.round((dados.valor/dados.max)*100):0;
+    const total=(porNome[f.id]||{}).total;
+    return `
+      <button class="eq-linha" onclick="openFunc('${f.id}')">
+        <span class="eq-av" data-tom="${dados.tom}">${ini(f.nome)}${medalha?`<i class="eq-medalha">${medalha}</i>`:''}</span>
+        <span class="eq-corpo">
+          <span class="eq-topo">
+            <b class="eq-nome">${UI.esc(f.ap)}</b>
+            ${dados.selo||''}
+            ${div>0?UI.badge('dívida '+brl(div),'alerta'):''}
+          </span>
+          <span class="eq-num">${dados.linha}</span>
+          ${UI.barra(pct)}
+        </span>
+        <span class="eq-total">
+          ${total!=null?`<b>${brl(total)}</b><i>a receber</i>`:`<b>${brl(m.comm||0)}</b><i>comissão</i>`}
+        </span>
+      </button>`;
+  };
+
+  const secao=function(titulo, sub, corpo){
+    return corpo ? UI.card({titulo, sub, corpo, flush:true, classe:'eq-card'}) : '';
+  };
+
+  // -- Vendedores: o numero que manda e APARELHO ------------------------------
+  const todosVo=online.concat(ambos)
+    .sort(function(a,b){return (metricas[b.id]&&metricas[b.id].units||0)-(metricas[a.id]&&metricas[a.id].units||0);});
+  const maxUn=Math.max.apply(null, todosVo.map(function(x){return metricas[x.id]&&metricas[x.id].units||0;}).concat([1]));
+  const blocoVo=todosVo.map(function(f, rank){
+    const m=metricas[f.id]||{};
+    const un=m.units||m.unitsVo||0;
+    return linhaPessoa(f, rank, {
+      tom:'vo', max:maxUn, valor:un,
+      selo: un>VO_CURVA.corte ? UI.badge('R$'+VO_CURVA.bonus+'/un','ok') : '',
+      linha: `<b>${un}</b> aparelhos · ${m.vendCount||0} venda${m.vendCount===1?'':'s'}`,
+    });
+  }).join('');
+
+  // -- Atendentes: o numero que manda e BRUTO DE ACESSORIO --------------------
+  // Quem e os dois (Maria) entra nos DOIS rankings: ela concorre a escada do
+  // atendente igual a todo mundo.
+  const todosAt=presencial.concat(ambos)
+    .sort(function(a,b){return (metricas[b.id]&&metricas[b.id].brutoAcess||0)-(metricas[a.id]&&metricas[a.id].brutoAcess||0);});
+  const maxBr=Math.max.apply(null, todosAt.map(function(x){return metricas[x.id]&&metricas[x.id].brutoAcess||0;}).concat([1]));
+  const blocoAt=todosAt.map(function(f, rank){
+    const m=metricas[f.id]||{};
+    const mt=metaAtendente(m.brutoAcess||0);
+    return linhaPessoa(f, rank, {
+      tom:'at', max:maxBr, valor:m.brutoAcess||0,
+      selo: mt.nivel ? UI.badge((mt.maxima?'🏆 ':'')+metaAtRotulo(mt), mt.nivel>=2?'ok':'processo') : '',
+      linha: `<b>${brl(m.brutoAcess||0)}</b> em acessórios · ${m.qt||0} iten${m.qt===1?'':'s'}`,
+    });
+  }).join('');
+
+  // -- Sócios: nao entram na folha, entao nao entram no placar ----------------
+  const sociosMostrar=socios.slice();
+  if(!FUNC.find(function(f){return f.id==='marcella';}))
+    sociosMostrar.push({id:'marcella',ap:'Marcella',nome:'Marcella',cargo:'Sócia',tipo:'socio'});
+  const blocoSocios=sociosMostrar.map(function(f){
+    const m=metricas[f.id]||{};
+    const un=m.units||m.vendCount||0;
+    return `<button class="eq-linha eq-socio" onclick="openFunc('${f.id}')">
+      <span class="eq-av" data-tom="socio">${ini(f.nome)}</span>
+      <span class="eq-corpo">
+        <span class="eq-topo"><b class="eq-nome">${UI.esc(f.ap)}</b>${UI.badge('sócio','marca')}</span>
+        <span class="eq-num">${un>0?`<b>${un}</b> produtos no período`:'sem venda no período'}</span>
+      </span>
+    </button>`;
+  }).join('');
+
+  // -- O placar do mes -------------------------------------------------------
+  // Sai todo de fechamentoEquipe(). Vem ANTES dos cards porque e a pergunta que
+  // se faz ao abrir a tela: quanto sai de folha este mes, e o que sobra.
+  const kpis=[
+    { rotulo:'Folha do mês', valor: money(totais.folha), sub: pessoas.length+' pessoas' },
+    { rotulo:'Comissões', valor: money(totais.comm), sub:'vendedor + atendente' },
+    { rotulo:'Bônus', valor: money((totais.bonus5||0)+(totais.bonusMeta||0)+(totais.bonusCol||0)),
+      sub: bonusColF>0 ? 'coletivo '+brl(bonusColF)+'/pessoa' : 'sem bônus coletivo ainda' },
+    { rotulo:'Sobra depois da folha', valor: money(totais.liquido),
+      tom: totais.liquido>0?'ok':'critico', sub:'lucro − folha − custos' },
+  ];
+
+  // -- Fechamento: o mesmo objeto que a exportacao le -------------------------
+  const temExtras=pessoas.some(function(p){return p.extrasTot!==0;});
+  const colunas=[{t:'Pessoa'},{t:'Salário',num:true}]
+    .concat(temExtras?[{t:'Extras',num:true}]:[])
+    .concat([{t:'Comissão',num:true},{t:'5% acess.',num:true},{t:'Bônus meta',num:true},{t:'Total',num:true}]);
+
+  const linhasFech=pessoas.map(function(p){
+    const cel=[`<td class="forte">${UI.esc(p.nome)}</td>`,
+               `<td class="num">${p.sal>0?money(p.sal):'—'}</td>`];
+    if(temExtras) cel.push(`<td class="num eq-extra" title="${escAttr(p.extras.map(function(e){return e.desc+' '+brl(e.valor);}).join(' · '))}">${p.extrasTot?'+'+money(p.extrasTot):'—'}</td>`);
+    cel.push(`<td class="num">${p.comm>0?money(p.comm):'—'}</td>`);
+    cel.push(`<td class="num eq-ok">${p.bonus5>0?money(p.bonus5):'—'}</td>`);
+    cel.push(`<td class="num eq-meta">${p.bonusMeta>0?'+'+money(p.bonusMeta):'—'}</td>`);
+    cel.push(`<td class="num eq-total-cel">${money(p.total)}</td>`);
+    return '<tr>'+cel.join('')+'</tr>';
+  }).join('');
+
+  const foraDoRateio=pessoas.filter(function(p){return p.bonusCol===0;}).map(function(p){return p.nome;});
+  const rodape=`
+    <tr class="eq-fim">
+      <td class="forte">Total da folha</td>
+      <td class="num" colspan="${temExtras?5:4}">${bonusColF>0
+        ? `<span class="eq-nota">cada total inclui o bônus coletivo de ${brl(bonusColF)}${foraDoRateio.length?' · fora do rateio: '+UI.esc(foraDoRateio.join(', ')):''}</span>`
+        : ''}</td>
+      <td class="num eq-total-cel">${money(totais.folha)}</td>
+    </tr>
+    <tr>
+      <td colspan="${temExtras?6:5}"><span class="eq-nota">Lucro líquido depois da folha completa e dos demais custos</span></td>
+      <td class="num ${totais.liquido>0?'eq-ok':'eq-ruim'}">${money(totais.liquido)}</td>
+    </tr>`;
+
+  const tabelaFech=UI.card({
+    titulo:'Fechamento — '+fech.mesLabel,
+    sub:'a tela e a exportação leem o mesmo cálculo',
+    flush:true,
+    corpo:`<div class="c-tabela-wrap"><table class="c-tabela eq-tabela">
+      <thead><tr>${colunas.map(function(c){return `<th${c.num?' class="num"':''}>${c.t}</th>`;}).join('')}</tr></thead>
+      <tbody>${linhasFech}</tbody>
+      <tfoot>${rodape}</tfoot>
+    </table></div>`,
+  });
+
+  // Aviso de conciliacao vem ANTES de tudo: quem abre esta tela esta fechando a
+  // folha, e o aviso e justamente "nao feche ainda".
+  const avisos=fech.avisos.length ? UI.card({
+    titulo:'⚠️ Confira antes de fechar a folha',
+    corpo: fech.avisos.map(function(a){return `<div class="c-alerta-linha">${UI.esc(a)}</div>`;}).join(''),
+    classe:'c-card-alerta',
+  }) : '';
+
+  const cabecalho=`
+    <div class="pg-head">
+      <div>
+        <div class="pg-kicker">Pessoas</div>
+        <h1 class="pg-title">Equipe</h1>
+        <div class="pg-desc">Quem vendeu o quê no período — e quanto sai de folha. Toque numa pessoa para abrir a ficha.</div>
       </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;font-size:12px">
-          <thead>
-            <tr style="border-bottom:1px solid var(--border2)">
-              <th style="text-align:left;padding:6px 8px;color:var(--text4);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.05em">Pessoa</th>
-              ${thNum('Salário')}
-              ${temExtras?thNum('Extras'):''}
-              ${thNum('Comissão')}
-              ${thNum('5% Acess')}
-              ${thNum('Bônus meta')}
-              ${thNum('Total','var(--cart)')}
-            </tr>
-          </thead>
-          <tbody>
-            ${pessoas.map(p=>`
-              <tr style="border-bottom:1px solid var(--border)">
-                <td style="padding:8px 8px;font-weight:600;color:var(--text)">${p.nome}</td>
-                <td style="padding:8px 8px;text-align:right;color:var(--text3)">${p.sal>0?brl(p.sal):'—'}</td>
-                ${temExtras?`<td style="padding:8px 8px;text-align:right;color:var(--purple)" title="${escAttr(p.extras.map(e=>e.desc+' '+brl(e.valor)).join(' · '))}">${p.extrasTot?'+'+brl(p.extrasTot):'—'}</td>`:''}
-                <td style="padding:8px 8px;text-align:right;color:var(--text2)">${p.comm>0?brl(p.comm):'—'}</td>
-                <td style="padding:8px 8px;text-align:right;color:var(--green)">${p.bonus5>0?brl(p.bonus5):'—'}</td>
-                <td style="padding:8px 8px;text-align:right;color:var(--yellow)">${p.bonusMeta>0?'+'+brl(p.bonusMeta):'—'}</td>
-                <td style="padding:8px 8px;text-align:right;font-weight:700;color:var(--cart)">${brl(p.total)}</td>
-              </tr>`).join('')}
-          </tbody>
-          <tfoot>
-            <tr style="border-top:2px solid var(--border2)">
-              <td style="padding:8px 8px;font-weight:700;color:var(--text)">Total folha</td>
-              <td colspan="${temExtras?5:4}" style="padding:8px 8px;text-align:right;font-size:10px;color:var(--text4)">
-                ${bonusColF>0?`cada total inclui bônus coletivo ${brl(bonusColF)} (devices+acess)`
-                  +(pessoas.some(p=>p.bonusCol===0)?` · fora do rateio: ${pessoas.filter(p=>p.bonusCol===0).map(p=>p.nome).join(', ')}`:''):''}
-              </td>
-              <td style="padding:8px 8px;text-align:right;font-weight:700;font-size:14px;color:var(--cart)">${brl(totais.folha)}</td>
-            </tr>
-            <tr>
-              <td colspan="${temExtras?6:5}" style="padding:6px 8px;font-size:11px;color:var(--text3)">Lucro líquido após folha completa e demais custos</td>
-              <td style="padding:6px 8px;text-align:right;font-weight:700;font-size:13px;color:${totais.liquido>0?'var(--green)':'var(--red)'}">${brl(totais.liquido)}</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div class="pg-acoes">
+        ${UI.btn('📊 Planilha',{onclick:'exportarFechamento(this)',variante:'primario',titulo:'Arquivo .xlsx com uma aba por colaborador, venda a venda'})}
+        ${UI.btn('📄 PDF',{onclick:'fechamentoPDFEscolher()',titulo:'Uma folha por colaborador, ou a folha de uma pessoa só'})}
+        ${UI.btn('📋 Resumos',{onclick:'gerarResumoEquipe()',titulo:'Texto pronto pra mandar pra cada pessoa'})}
       </div>
     </div>`;
 
-  html += tabelaFechamento;
-
-  // Aviso de conciliação: até ago/2026 isso só aparecia no arquivo exportado.
-  // É o lugar certo pra ver — quem fecha a folha está olhando esta tela.
-  if(fech.avisos.length){
-    html += UI.card({
-      titulo:'⚠️ Confira antes de fechar a folha',
-      corpo: fech.avisos.map(a => `<div class="c-alerta-linha">${UI.esc(a)}</div>`).join(''),
-      classe:'c-card-alerta',
-    });
-  }
-
-    return html;
+  return cabecalho + UI.kpis(kpis) + avisos
+       + secao('Vendedores', todosVo.length+' pessoas · ordenado por aparelho', blocoVo)
+       + secao('Atendentes', todosAt.length+' pessoas · ordenado por acessório', blocoAt)
+       + secao('Sócios', 'não entram na folha', blocoSocios)
+       + tabelaFech;
 }
 
 function gerarResumoEquipe(){

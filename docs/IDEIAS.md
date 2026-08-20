@@ -366,7 +366,21 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
   de lá — o "Ver como" continua por cima, só pro dono.
 
 ## Atendimento / Chatwoot
-Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `scripts/chatwoot.js` · agente `analista-conversas`.
+Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026.md` · `scripts/chatwoot.js` · `scripts/maju/` · agente `analista-conversas`.
+- 🔨 ⭐⭐ **Ela não pergunta o dia** (24,6% das conversas qualificadas). Quando pergunta, o cliente
+  dá data em 43% contra 8%; com data a conversão é 14,9% contra 3,4%. **34 conversas da janela de
+  ago terminam com convite pra loja sem pedir dia e 0 (zero) foram transferidas.** Detalhe e
+  contrafactual em `docs/ANALISE-MAJU-AGO-2026.md`.
+- 🔨 ⭐ **Micro-pergunta de último milímetro**: o cliente já disse que quer comprar e ela segura o
+  handoff pra saber a cor (*"pode me responder só com 'laranja' ou 'branco'"*). 15 conversas, 6,7%
+  de escalada. A cor o vendedor resolve em dez segundos.
+- ⚠️ **Follow-up não é o caminho**: 312 leads com 4+ toques produziram 3 vendas (0,96%).
+- ⚠️ **1.688 sessões são backfill carimbado em 10/jun 20h**, 1.542 com todas as mensagens no mesmo
+  instante. "Coorte de junho" não é quem chegou em junho, e análise por hora do dia ali é lixo.
+- ⚠️ **Tempo de resposta da Maju não é mensurável** em `n8n_chat_histories_maju_v2`: cliente e
+  resposta gravam com o mesmo timestamp (mediana 0,0s em 5.246 respostas).
+- 💡 **Meta Ads é 56% do volume qualificado e converte 2,46%** contra 9,42% do orgânico — mesmo na
+  melhor célula (transferida + com data) é 13,3% contra 31,2%. Falta o gasto de mídia pra fechar.
 - 🔨 ⭐⭐ **Preço dado e ninguém avisado**: a IA cotou preço e **não passou pra humano nenhum** em
   457 conversas da Cart (71% das que viram preço) e 367 da Urban (75%). Lead que já passou pela
   parte difícil e evaporou por falta de passagem de bastão. Maior buraco conhecido do funil.

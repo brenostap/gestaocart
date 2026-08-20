@@ -67,12 +67,21 @@ eq('perfilSoBancada() só é true no papel bancada',
 
 console.log('\nmenu do papel bancada\n');
 
-eq('vê Estoque e Bancada',
-   ['estoque','bancada'].map(s => comoPapel('bancada', `podeVer('${s}')`)), [true, true]);
-eq('NÃO vê dash, vendas, compras, movs, equipe, tabela, contas, custos, fechamento',
-   ['dash','vendas','compras','movs','equipe','tabela','contas','custos','fechamento']
+eq('vê Estoque, Assistência e Tabela de preços',
+   ['estoque','bancada','tabela'].map(s => comoPapel('bancada', `podeVer('${s}')`)), [true, true, true]);
+eq('NÃO vê dash, vendas, compras, movs, equipe, contas, custos, fechamento',
+   ['dash','vendas','compras','movs','equipe','contas','custos','fechamento']
      .map(s => comoPapel('bancada', `podeVer('${s}')`)),
-   [false,false,false,false,false,false,false,false,false]);
+   [false,false,false,false,false,false,false,false]);
+
+// ⚠️ A Tabela entrou pelo QUINTO interruptor (20/ago), não por VE_VALOR — e a
+// diferença é o que impede um vazamento. Preço de catálogo é o que a loja
+// publica no story; valor de venda é quanto AQUELE cliente pagou. Se a aba
+// tivesse entrado por VE_VALOR, o Vitinho ganharia junto o "Exportar WhatsApp"
+// do Estoque, que manda preço item a item e está fechado de propósito.
+eq('bancada vê preço de catálogo', comoPapel('bancada','podeVerPrecoTabela()'), true);
+eq('e moneyPreco() mostra o número', comoPapel('bancada','moneyPreco(2782)'), 'R$2.782');
+eq('mas money() (valor da venda) segue mudo', comoPapel('bancada','money(2782)'), '—');
 eq('sócio continua vendo tudo',
    R('(function(){ meuPerfil={papel:"socio"}; return MATRIZ_ACESSO.socio.every(s => podeVer(s)); })()'), true);
 
@@ -108,8 +117,8 @@ ok('sócio continua vendo o capital parado', /Capital parado/.test(bncSocio));
 
 console.log('\nbarra de baixo do celular (o bug de 13/ago)\n');
 
-eq('papel bancada vê as DUAS telas na barra do celular',
-   comoPapel('bancada','navMobile().fixas'), ['estoque','bancada']);
+eq('papel bancada vê as TRÊS telas na barra do celular',
+   comoPapel('bancada','navMobile().fixas'), ['estoque','bancada','tabela']);
 eq('papel que cabe na barra não precisa de "Mais"',
    comoPapel('bancada','navMobile().mais'), []);
 // O socio tem 11 telas: 4 ficam fixas e as outras 7 vao pro "Mais". Antes de

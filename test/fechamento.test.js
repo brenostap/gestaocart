@@ -238,6 +238,15 @@ ok(R('fechamentoEquipeRef("semana")') === null, 'período que não é mês devol
 // -- 9. A REGRA: tela e exportacao mostram o MESMO numero -------------------
 sec('tela e exportação saem da mesma folha');
 const tela = html('renderEquipe()');
+// A tela foi reescrita no kit em 20/ago (era HTML na mão, com style inline em
+// cada linha). Estas travam o que a reescrita não pode perder.
+ok(!/undefined|NaN/.test(tela), 'a tela não imprime undefined/NaN');
+// `style="width:x%"` do UI.barra() é legítimo (valor dinâmico não vira classe).
+// O que o design system proíbe é cor/tamanho literal na mão — era disso que a
+// tela antiga era feita, linha por linha.
+ok(!/style="[^"]*(color|background|font-size|padding|margin|border)/.test(tela),
+   'nenhuma cor/medida literal na tela de Equipe — quem desenha é o kit (docs/DESIGN-SYSTEM.md)');
+ok(tela.includes('c-kpi'), 'o placar do mês aparece no topo');
 ok(tela.includes('exportarFechamento(this)'), 'botão "Exportar fechamento" na aba Equipe');
 ok(tela.includes('Julho de 2026'), 'título usa o período selecionado, não o mês de hoje');
 ok(tela.includes(brl(fech.totais.folha)), `total da folha ${brl(fech.totais.folha)} na tela`);

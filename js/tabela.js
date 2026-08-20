@@ -35,9 +35,9 @@ function _faixaPreco(vals){
   const v = vals.filter(x => x != null).map(Number).filter(n => !isNaN(n));
   if(!v.length) return '—';
   const mn = Math.min(...v), mx = Math.max(...v);
-  if(mn === mx) return money(mn);
-  return podeVerValor()
-    ? `${money(mn)}<span class="tpr-ate">–</span>${Math.round(mx).toLocaleString('pt-BR')}`
+  if(mn === mx) return moneyPreco(mn);
+  return podeVerPrecoTabela()
+    ? `${moneyPreco(mn)}<span class="tpr-ate">–</span>${Math.round(mx).toLocaleString('pt-BR')}`
     : '—';
 }
 
@@ -147,10 +147,10 @@ function renderTabela(){
             <span class="tpr-cap">${itens.length} opç${itens.length>1?'ões':'ão'}</span>
             ${g.variaCor ? '<span class="tpr-varia">preço varia por cor</span>' : ''}
           </div>
-          ${temUpgrade && fxUp!=='—' ? `<span class="tpr-up-mob">upgrade <b>${fxUp}</b></span>` : ''}
         </td>
         ${temUpgrade ? `<td class="tpr-preco tpr-up tpr-col-up">${fxUp}</td>` : ''}
-        <td class="tpr-preco tpr-var">${_faixaPreco(itens.map(p=>p.preco_varejo))}</td>
+        <td class="tpr-preco tpr-var">${_faixaPreco(itens.map(p=>p.preco_varejo))}
+          ${temUpgrade && fxUp!=='—' ? `<span class="tpr-up-mob">${fxUp} <i>upgrade</i></span>` : ''}</td>
         <td class="tpr-warn">${itens.some(p=>p.sujeito_disponibilidade)?'<span title="Sujeito a disponibilidade">⚠</span>':''}</td>
       </tr>`;
       if(!aberto) return faixa;
@@ -161,9 +161,10 @@ function renderTabela(){
         if(p.cor) partes.push(`${_precoDot(p.cor,'tpr-dot-lin')}${escapeHtml(p.cor)}`);
         const label = partes.join(' ') || '<span class="tpr-gb">Único</span>';
         return `<tr class="tpr-lin" onclick="openPrecoPanel('${escapeKey(tabelaCat)}','${escapeKey(g.modelo)}','${escapeKey(s.cond)}')">
-          <td>${label}${temUpgrade && p.preco_upgrade!=null ? `<span class="tpr-up-mob">upgrade <b>${money(p.preco_upgrade)}</b></span>` : ''}</td>
-          ${temUpgrade ? `<td class="tpr-preco tpr-up tpr-col-up">${p.preco_upgrade==null?'—':money(p.preco_upgrade)}</td>` : ''}
-          <td class="tpr-preco tpr-var">${p.preco_varejo==null?'—':money(p.preco_varejo)}</td>
+          <td>${label}</td>
+          ${temUpgrade ? `<td class="tpr-preco tpr-up tpr-col-up">${p.preco_upgrade==null?'—':moneyPreco(p.preco_upgrade)}</td>` : ''}
+          <td class="tpr-preco tpr-var">${p.preco_varejo==null?'—':moneyPreco(p.preco_varejo)}
+            ${temUpgrade && p.preco_upgrade!=null ? `<span class="tpr-up-mob">${moneyPreco(p.preco_upgrade)} <i>upgrade</i></span>` : ''}</td>
           <td class="tpr-warn">${p.sujeito_disponibilidade?'<span title="Sujeito a disponibilidade">⚠</span>':''}</td>
         </tr>`;
       }).join('');
@@ -176,8 +177,8 @@ function renderTabela(){
   const tabela = `<div class="tpr-wrap"><table class="tpr-tab">
     <thead><tr>
       <th>Modelo</th>
-      ${temUpgrade ? '<th class="n tpr-col-up">Upgrade</th>' : ''}
-      <th class="n">Varejo</th>
+      ${temUpgrade ? '<th class="n tpr-col-up">Upgrade <i>na troca</i></th>' : ''}
+      <th class="n">Varejo <i>à vista</i></th>
       <th style="width:36px"></th>
     </tr></thead>
     <tbody>${corpo || `<tr><td colspan="${ncols}"><div class="c-vazio"><div class="c-vazio-titulo">Nada nesta combinação</div></div></td></tr>`}</tbody>
@@ -185,9 +186,15 @@ function renderTabela(){
 
   // A data da ultima sync saiu do cabecalho: no celular ela empurrava o titulo
   // pra 3 linhas. Continua visivel, junto da nota que fala da planilha.
-  const acao = UI.btn('↻ Atualizar da planilha', {onclick:'sincronizarPrecos()', sm:true, id:'btn-sync-precos'});
+  // ⚠️ Só sócio: a Edge Function `sync-precos` exige o papel desde 14/ago, então
+  // pro colaborador este botão só produziria um 403 e a sensação de tela quebrada.
+  const acao = podeVerMargem()
+    ? UI.btn('↻ Atualizar da planilha', {onclick:'sincronizarPrecos()', sm:true, id:'btn-sync-precos'})
+    : '';
 
-  const nota = `<div class="tpr-nota">💡 Preços vêm da planilha oficial no Google Sheets — edite lá e clique em “Atualizar da planilha” (<span style="color:${_ultimaSyncPrecos?.status==='erro'?'var(--red)':'var(--text4)'}">${textoUltimaSync()}</span>) · toque no modelo para abrir as capacidades, e numa capacidade para ver o detalhe · <span style="color:var(--warning)">⚠</span> = sujeito a disponibilidade · bolinhas = cores disponíveis</div>`;
+  const nota = podeVerMargem()
+    ? `<div class="tpr-nota">💡 Preços vêm da planilha oficial no Google Sheets — edite lá e clique em “Atualizar da planilha” (<span style="color:${_ultimaSyncPrecos?.status==='erro'?'var(--red)':'var(--text4)'}">${textoUltimaSync()}</span>) · toque no modelo para abrir as capacidades, e numa capacidade para ver o detalhe · <span style="color:var(--warning)">⚠</span> = sujeito a disponibilidade · bolinhas = cores disponíveis</div>`
+    : `<div class="tpr-nota">💡 <b>Varejo</b> é o preço à vista; <b>Upgrade</b> é o preço quando o cliente dá um aparelho na troca · toque no modelo para abrir as capacidades · <span style="color:var(--warning)">⚠</span> = sujeito a disponibilidade · bolinhas = cores disponíveis · ${textoUltimaSync()}</div>`;
 
   return UI.card({
     titulo: '📋 Tabela de preços',
@@ -227,8 +234,8 @@ function openPrecoPanel(cat, modelo, cond){
     if(p.capacidade) partes.push(escapeHtml(p.capacidade));
     if(p.cor) partes.push(escapeHtml(p.cor));
     const cel = [(partes.join(' · ') || 'Único') + (p.sujeito_disponibilidade ? ' <span style="color:var(--warning)" title="Sujeito a disponibilidade">⚠</span>' : '')];
-    if(temUp) cel.push({v: p.preco_upgrade==null?'—':money(p.preco_upgrade), num:true});
-    cel.push({v: p.preco_varejo==null?'—':`<span style="color:var(--cart);font-weight:700">${money(p.preco_varejo)}</span>`, num:true});
+    if(temUp) cel.push({v: p.preco_upgrade==null?'—':moneyPreco(p.preco_upgrade), num:true});
+    cel.push({v: p.preco_varejo==null?'—':`<span style="color:var(--cart);font-weight:700">${moneyPreco(p.preco_varejo)}</span>`, num:true});
     return cel;
   });
 
