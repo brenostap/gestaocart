@@ -1064,6 +1064,13 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   text-transform:uppercase; color:var(--text4); margin-bottom:3px;
 }
 .md-conta-linha{ font-size:var(--fs-caption); line-height:1.6; color:var(--text3); }
+/* Aviso de "isto não vale pra você" — âmbar, porque é atenção, não erro. Fica
+   no topo do card da meta: o motivo tem que ser lido antes dos números. */
+.md-aviso{
+  margin-bottom:12px; padding:9px 11px; border-radius:var(--radius-sm);
+  background:var(--yellow-bg); color:var(--yellow);
+  font-size:var(--fs-caption); line-height:var(--lh-body);
+}
 .md-conta-linha b{ color:var(--text); font-variant-numeric:tabular-nums; }
 
 .md-rodape{

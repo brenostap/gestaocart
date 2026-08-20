@@ -234,6 +234,47 @@ comPerfil({papel:'comercial', nome:'Davi', at_key:'davi', ativo:true}, () => {
   } else bad('rateio não respeitado: ' + JSON.stringify(rede));
 });
 
+// ⚠️ O caso REAL de 20/ago/2026, e o que o teste acima não pegava: no começo
+// do mês NENHUMA faixa caiu ainda (268 de 400 aparelhos, R$24k de R$30k), então
+// `bonusSeEntrasse` é 0 — e o aviso, que dependia dele, sumia. Quem está de
+// férias lia "faltam 132 aparelhos pro time liberar R$600 pra cada um" como se
+// fosse com ela.
+const REDE_SEM_FAIXA = { mes:'2026-08', aparelhos:268, acess_bruto:'24020.00' };
+
+comPerfil({papel:'comercial', nome:'Davi', at_key:'davi', ativo:true}, () => {
+  run(`mdResumo = null; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = ${JSON.stringify(REDE_SEM_FAIXA)};
+       SEM_BONUS_COLETIVO['2026-08'] = ['davi'];`);
+  if (run(`mdMesCorrente()`) !== '2026-08') {
+    ok('(fora de ago/2026 — caso do rateio não se aplica neste mês)');
+  } else {
+    const rede = run(`mdMetaRede()`);
+    if (rede.bonus === 0 && rede.bonusSeEntrasse === 0)
+      ok('nenhuma faixa batida ainda: não há bônus a somar');
+    else bad('faixa batida onde não devia: ' + JSON.stringify(rede));
+
+    const html = run(`renderMeuDia()`);
+    if (html.includes('fora do rateio'))
+      ok('mesmo sem faixa batida, a tela avisa que a meta do time não é dela');
+    else bad('sem faixa batida o aviso sumia — a pessoa lia a meta como promessa');
+    if (!/liberar R\$600 pra cada um\./.test(html))
+      ok('e não promete "pra cada um" pra quem está fora');
+    else bad('a tela promete o bônus pra quem não vai receber');
+  }
+});
+
+// Quem ESTÁ no rateio continua lendo a promessa cheia — o aviso não pode
+// aparecer pra quem não é o caso.
+comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
+  run(`mdResumo = null; mdVendas = []; mdCarregado = true; mdErro='';
+       mdRede = ${JSON.stringify(REDE_SEM_FAIXA)};`);
+  const html = run(`renderMeuDia()`);
+  if (!html.includes('fora do rateio')) ok('quem está no rateio não vê o aviso');
+  else bad('aviso de férias apareceu pra quem trabalhou o mês');
+  if (/pra cada um\./.test(html)) ok('e continua lendo "pra cada um"');
+  else bad('a promessa sumiu de quem tem direito a ela');
+});
+
 // A Anne tem 5% do lucro de acessórios DA REDE — lucro de terceiros, que não
 // pode ir pro navegador. A tela precisa dizer isso, não fingir que o total fecha.
 comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {

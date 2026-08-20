@@ -340,15 +340,26 @@ function mdCardMetaRede(rede){
   if(!rede) return '';
   const pct = (v, alvo) => alvo ? Math.min(100, v / alvo * 100) : 100;
 
+  // "pra cada um" é promessa. Pra quem está fora do rateio no mês, quem recebe
+  // é o time — não ela.
+  const cada = rede.entra ? 'pra cada um' : 'pra cada um do rateio';
   const linhaDev = rede.devProx
-    ? `Faltam <b>${rede.devProx.qt - rede.un}</b> aparelhos pro time liberar ${brl(rede.devProx.bonus)} pra cada um.`
-    : `Faixa máxima batida — ${brl(rede.devBatida ? rede.devBatida.bonus : 0)} pra cada um.`;
+    ? `Faltam <b>${rede.devProx.qt - rede.un}</b> aparelhos pro time liberar ${brl(rede.devProx.bonus)} ${cada}.`
+    : `Faixa máxima batida — ${brl(rede.devBatida ? rede.devBatida.bonus : 0)} ${cada}.`;
   const linhaAc = rede.acProx
     ? `Faltam <b>${brl(rede.acProx.val - rede.ac)}</b> em acessório pro time liberar ${brl(rede.acProx.bonus)}.`
-    : `Faixa máxima batida — ${brl(rede.acBatida ? rede.acBatida.bonus : 0)} pra cada um.`;
+    : `Faixa máxima batida — ${brl(rede.acBatida ? rede.acBatida.bonus : 0)} ${cada}.`;
 
-  const aviso = !rede.entra && rede.bonusSeEntrasse
-    ? `<div class="md-conta-linha" style="margin-top:8px">Você está fora do rateio deste mês (férias/afastamento), então ${brl(rede.bonusSeEntrasse)} não entram na sua conta.</div>`
+  // ⚠️ O aviso NÃO pode depender de já haver faixa batida. Até 20/ago/2026 ele
+  // só aparecia com `bonusSeEntrasse > 0` — e no começo do mês, quando nenhuma
+  // faixa caiu ainda, quem está de férias lia "faltam 132 aparelhos pro time
+  // liberar R$600 pra cada um" como se fosse com ela. Promessa que a folha não
+  // vai cumprir é pior que número nenhum. Vem no TOPO do card: o motivo tem que
+  // ser lido antes dos números, não depois.
+  const aviso = !rede.entra
+    ? `<div class="md-aviso">Você está fora do rateio deste mês (férias/afastamento)${
+         rede.bonusSeEntrasse ? `, então ${brl(rede.bonusSeEntrasse)} não entram na sua conta` : ''
+       }. A meta do time abaixo é do time — ela não entra na sua conta neste mês.</div>`
     : '';
 
   // 5% do lucro de acessórios da REDE: e lucro de terceiros, nao da pra mandar
@@ -363,6 +374,7 @@ function mdCardMetaRede(rede){
     titulo:'Meta do time',
     sub: mdRotuloMes(mdMesCorrente()),
     corpo: `
+      ${aviso}
       <div class="md-meta">
         <span class="md-meta-txt"><b>${rede.un}</b> aparelhos vendidos pela rede</span>
         ${UI.barra(pct(rede.un, rede.devProx ? rede.devProx.qt : rede.un), rede.devProx ? 'marca' : 'ok')}
@@ -377,7 +389,7 @@ function mdCardMetaRede(rede){
         <span class="md-conta-rot">Já garantido pra você</span>
         <span class="md-conta-linha">Meta do time até agora: <b>${brl(rede.bonus)}</b></span>
       </div>` : ''}
-      ${aviso}${extra}`
+      ${extra}`
   });
 }
 

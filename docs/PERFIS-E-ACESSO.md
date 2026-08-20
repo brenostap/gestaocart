@@ -185,6 +185,82 @@ marca `perfilLidoSemLinha` e `papelReal()` decide com isso. Protegido por `test/
 
 ⚠️ **Usuário criado sem linha em `perfis` não lê nada.** É de propósito: o padrão é negar.
 
+## Os 4 atendentes de loja — preparado em 20/ago/2026
+
+Anne, Davi, Leo e Gabi. **Papel `comercial`, só `at_key`** (não vendem aparelho; quando vendem, a
+comissão é R$25/un flat, e `mdComissaoVendedor()` já trata isso pela chave).
+
+O que eles alcançam: **Meu dia** + **Vitrine**. Nada de dashboard, vendas, custos ou estoque cru —
+é a mesma matriz do David, e a informação da Vitrine chega mastigada pelas views.
+
+**Não há tela nova a construir.** O caminho do atendente já roda desde 13/ago com o Vitinho
+(`at_key` sozinho) e desde 17/ago com a Maria (as duas chaves). O que faltava era cadastro.
+
+### Passo a passo
+
+1. **Auth → Add user** para cada um, com *Auto Confirm* (§ *Criar um usuário novo*).
+2. Rodar o insert dos quatro de uma vez — casa por e-mail, não inventa `user_id`:
+
+```sql
+insert into public.perfis (user_id, email, nome, papel, at_key)
+select u.id, u.email, x.nome, 'comercial', x.at_key
+  from (values
+    ('<email-anne>', 'Anne', 'anne'),
+    ('<email-davi>', 'Davi', 'davi'),
+    ('<email-leo>',  'Leo',  'leo'),
+    ('<email-gabi>', 'Gabi', 'gabi')
+  ) as x(email, nome, at_key)
+  join auth.users u on u.email = x.email
+on conflict (user_id) do update
+   set papel = excluded.papel, at_key = excluded.at_key, nome = excluded.nome, ativo = true;
+```
+
+⚠️ **Confira o número de linhas.** O `join` com `auth.users` significa que e-mail digitado
+diferente do que está no Auth **não dá erro — dá zero linha**, e a pessoa entra vendo
+*"Acesso não liberado"*. Esperado: **4**.
+
+### O que eles vão ver (medido em 20/ago/2026, dados reais de agosto)
+
+| | vendas atendidas | levaram acessório | vendido em acessório | comissão (25%) |
+|---|---:|---:|---:|---:|
+| Anne | 64 | 89% | R$ 5.870 | R$ 1.014 |
+| Leo | 62 | 71% | R$ 8.265 | R$ 1.559 |
+| Gabi | 60 | 90% | R$ 4.955 | R$ 984 |
+| Davi | 0 | — | R$ 0 | R$ 0 |
+
+**O Davi está de férias o mês inteiro** (`SEM_BONUS_COLETIVO['2026-08']`) — a tela dele vem vazia
+**e diz por quê**. Não é bug; é o mês dele.
+
+### Duas coisas que a preparação achou, e que valiam mais que o cadastro
+
+1. **A promessa da meta do time aparecia pra quem está fora do rateio.** O aviso de férias
+   dependia de já haver faixa batida (`bonusSeEntrasse > 0`). No começo do mês nenhuma caiu ainda
+   — em 20/ago a rede tinha 268 de 400 aparelhos —, então o Davi leria *"faltam 132 aparelhos pro
+   time liberar R$600 pra cada um"* como se fosse com ele. Agora o aviso vem **no topo do card**,
+   sempre que a pessoa está fora, e a frase vira *"pra cada um do rateio"*. Teste novo em
+   `test/meudia.test.js` com os números reais de agosto.
+2. **`fui_vendedor` dizia "Vendi" em venda sem vendedor.** `is not distinct from` trata `NULL`
+   como valor: atendente puro (`vo_key` nulo) + venda sem dono (~5%) dava `true`. Hoje só a Maria
+   vê o rótulo (ele só aparece pra quem tem as duas chaves) e ela não tem nenhuma venda assim em
+   agosto — mas era erro esperando o primeiro caso. Corrigido em
+   `supabase/migrations/20260820_minhas_vendas_papel_sem_null.sql`.
+
+### ⚠️ Antes de todo mundo entrar: congelar os meses fechados
+
+`folha_mensal` está **vazia** (medido em 20/ago). O snapshot existe, o script existe, e nunca
+rodou com `--gravar`:
+
+```
+node scripts/folha-snapshot.js 2026-07            # confere, não grava
+node scripts/folha-snapshot.js 2026-07 --gravar   # congela
+```
+
+Sem isso o card *"Meses fechados"* não aparece pra ninguém — inclusive pros quatro que já entraram.
+E **recalcular julho hoje dá número diferente do que foi pago**: medido, o bruto de acessórios do
+Leo em julho é R$ 11.755 contra os R$ 11.695 da folha (uma capa de R$60 de 25/jul, +R$15 de
+comissão); Anne, Davi e Gabi batem exato. Rodar o dry-run e olhar a diferença **antes** de gravar é
+o passo que impede a tela de discordar do extrato da pessoa.
+
 ## O que ainda está aberto (e não resolvi hoje)
 
 Honestidade sobre o tamanho da trava:

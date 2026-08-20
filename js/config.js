@@ -67,7 +67,7 @@ const FUNC=[
   {id:'pietra', ap:'Pietra',  nome:'Pietra Castro',               cargo:'Atendente / Gerente (saiu)',pix:'pietracassttro@gmail.com', tipo:'presencial',email:'pietraurban@gmail.com',              atKey:'pietra', voKey:'pietra' },
   {id:'denilson',ap:'Denilson',nome:'Denilson Henrique Campos',   cargo:'Atendente (saiu)',   pix:'47362104863',              tipo:'presencial',email:'denilson.h.c2708@gmail.com',         atKey:'denilson', saiuEm:'2026-08'},
   {id:'leo',    ap:'Leo',     nome:'Leo',                         cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'leo'    },
-  {id:'maria',  ap:'Maria',   nome:'Maria',                       cargo:'SAC / Vendedora',    pix:'',                         tipo:'online',    email:'',                                   atKey:'maria', voKey:'maria' },
+  {id:'maria',  ap:'Maria',   nome:'Maria',                       cargo:'SAC / Vendedora',    pix:'',                         tipo:'online',    email:'mariaaveloso28@gmail.com',            atKey:'maria', voKey:'maria' },
   {id:'luana',  ap:'Luana',   nome:'Luana',                       cargo:'Atendente (saiu)',   pix:'',                         tipo:'presencial',email:'',                                   atKey:'luana'  },
   {id:'gabi',   ap:'Gabi',    nome:'Gabi',                        cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'gabi'   },
   {id:'gustavo',   ap:'Gustavo',   nome:'Gustavo',   cargo:'Vendedor / Sócio',  pix:'', tipo:'online', email:'', voKey:'gustavo'},
