@@ -291,9 +291,22 @@ Agosto/2026 até o dia 20 — **169 brindes**:
 | Gabi | 37 | R$ 212 | R$ 53 |
 | Leo | 23 | R$ 137 | R$ 34 |
 
-A tela escreve `−R$3` (não `R$-3`) e explica no toque/hover: *"acessório entregue como brinde entra
-pelo custo"*. **Se a regra devia ser essa é decisão do dono** — quem dá o brinde fecha a venda e
-paga por ele. Não mudei a conta: mudei o que dá pra enxergar.
+**Decisão do dono, no mesmo dia: o brinde NÃO desconta mais.** Quem dá o brinde é quem fecha a
+venda. O custo continua inteiro no resultado da loja; ele sai só da conta de quem recebe.
+
+- JS: `ehBrinde()` / `lucroAcessComissao()` em `core.js` — **a única** definição do lado do navegador.
+- SQL: `eh_brinde()` / `lucro_acess_comissao()` — espelho, provado por `test/regra-acessorio.test.js`.
+- A **classificação não muda**: brinde continua sendo acessório, continua contando no attach rate e
+  em `acess_qtd`. Só o dinheiro muda.
+
+⚠️ **E tem vigência: `BRINDE_ISENTO_DESDE = '2026-08'`.** Regra de comissão sem data reescreve mês
+já pago — é a mesma lição das faixas de meta. Aplicar pra trás daria **+R$336 em jul/2026** e
+**+R$537 em jun/2026** (maiores: Denilson R$134 e R$123, Anne R$106 e R$92, Vitinho R$16 e R$147).
+Se você quiser pagar essa diferença, é uma decisão sua — e o caminho é lançar como *extra nominal*
+em Custos, não mexer na data.
+
+Dia negativo ainda pode aparecer, agora só por **acessório vendido abaixo do custo** — que é venda
+de verdade e continua descontando. A tela escreve `−R$3` (não `R$-3`) e diz o motivo no toque.
 
 ### ⚠️ Antes de todo mundo entrar: congelar os meses fechados
 

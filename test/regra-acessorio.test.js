@@ -31,7 +31,7 @@ const ctx = {
 ctx.globalThis = ctx; vm.createContext(ctx);
 for (const f of ['config.js','equipe.js','core.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'), ctx, {filename:f});
-const js = vm.runInContext('({isPrincipal, isAcess, isCancelado})', ctx);
+const js = vm.runInContext('({isPrincipal, isAcess, isCancelado, ehBrinde, lucroAcessComissao})', ctx);
 
 // As 9 combinações reais, com o veredito do SQL. `itens` é quantos itens do
 // banco caem em cada uma — serve pra provar que a cobertura é 100%.
@@ -72,6 +72,64 @@ else bad(`cobertura: ${cobertos} de ${TOTAL_ITENS} itens — o contrato ficou ve
 const cancelado = { apple_id: 999, imei_1: '350000000000000', valor_estoque: 0 };
 if (!js.isPrincipal(cancelado)) ok('item cancelado nao conta como aparelho');
 else bad('item cancelado contou como aparelho');
+
+// ===========================================================================
+// SEGUNDO ESPELHO: o BRINDE (20/ago/2026)
+//
+// Acessório entregue com preço 0 e custo > 0 vinha DESCONTANDO da comissão de
+// quem entregou — a comissão é 25% do lucro, e o brinde só tem custo. O dono
+// decidiu que não desconta: quem dá o brinde é quem fecha a venda. O custo
+// continua da loja; sai só da conta de quem recebe.
+//
+//   JS  — ehBrinde() / lucroAcessComissao()      em js/core.js
+//   SQL — eh_brinde() / lucro_acess_comissao()   no Postgres
+//         (supabase/migrations/20260820_brinde_nao_desconta_comissao.sql)
+//
+// A coluna `sql` abaixo foi MEDIDA no banco em 20/ago/2026, não deduzida.
+// ===========================================================================
+console.log('\nespelho do brinde — SQL x JS');
+
+const BRINDES = [
+  { preco: 0,    custo: 11.63, brinde: true,  lucro: 0,      nota: 'o FONE AIRDOTS real de 18/ago' },
+  { preco: null, custo: 11.63, brinde: true,  lucro: 0,      nota: 'preço nulo conta como brinde' },
+  { preco: 0,    custo: 0,     brinde: false, lucro: 0,      nota: 'preço 0 e custo 0 não é brinde' },
+  { preco: 0,    custo: null,  brinde: false, lucro: 0,      nota: 'sem custo não é brinde' },
+  { preco: 60,   custo: 4.89,  brinde: false, lucro: 55.11,  nota: 'capa vendida' },
+  { preco: 20,   custo: 2.98,  brinde: false, lucro: 17.02,  nota: 'película vendida' },
+  // Vendido ABAIXO do custo continua descontando: foi uma venda, não um brinde.
+  { preco: 10,   custo: 25.00, brinde: false, lucro: -15.00, nota: 'vendido no prejuízo ainda desconta' },
+];
+
+for (const c of BRINDES) {
+  const item = { preco: c.preco, valor_estoque: c.custo };
+  const b = js.ehBrinde(item);
+  const l = js.lucroAcessComissao(item, '2026-08');
+  const rotulo = `preço=${c.preco} custo=${c.custo} — ${c.nota}`;
+  if (b === c.brinde && Math.abs(l - c.lucro) < 0.005) ok(rotulo);
+  else bad(`${rotulo} — JS {brinde:${b}, lucro:${l}} != SQL {brinde:${c.brinde}, lucro:${c.lucro}}`);
+}
+
+// ⚠️ A ISENÇÃO TEM DATA — vale de ago/2026 em diante. Sem isso, o fechamento
+// de um mês já pago subiria sozinho: +R$336 em jul/2026 e +R$537 em jun/2026,
+// medidos em 20/ago. É a mesma trava das faixas de meta (metaAtFaixas).
+// Verdicts medidos no SQL: lucro_acess_comissao(0, 11.63, mes).
+const VIGENCIA = [
+  { mes:'2026-06', lucro:-11.63 },
+  { mes:'2026-07', lucro:-11.63 },
+  { mes:'2026-08', lucro:0 },
+  { mes:'2026-09', lucro:0 },
+];
+for (const v of VIGENCIA) {
+  const l = js.lucroAcessComissao({ preco:0, valor_estoque:11.63 }, v.mes);
+  if (Math.abs(l - v.lucro) < 0.005) ok(`brinde em ${v.mes} vale ${v.lucro} (igual ao SQL)`);
+  else bad(`vigência divergiu em ${v.mes}: JS ${l} != SQL ${v.lucro}`);
+}
+
+// A classificação NÃO muda: brinde continua sendo acessório (segue contando no
+// attach rate e em acess_qtd). Só o dinheiro muda.
+const brinde = { apple_id:null, imei_1:null, valor_estoque:11.63, preco:0 };
+if (js.isAcess(brinde)) ok('brinde continua classificado como acessório');
+else bad('brinde deixou de ser acessório — isso mexeria no attach rate, que ninguém pediu');
 
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);

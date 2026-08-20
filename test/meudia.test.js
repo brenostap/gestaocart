@@ -238,9 +238,9 @@ comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
   else bad('campo de custo apareceu na lista de vendas');
 });
 
-// Brinde: acessório com preço 0 e custo > 0. O dia fica NEGATIVO -- e fica
-// mesmo, porque é assim que a folha calcula (169 brindes em ago/2026, R$85 da
-// comissão da Anne). O que a tela deve é escrever direito e dizer o porquê.
+// Dia negativo ainda existe — não mais por brinde (que desde 20/ago não
+// desconta), e sim por acessório vendido ABAIXO do custo, que é venda de
+// verdade. A tela escreve direito e diz o porquê.
 comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
   run(`mdResumo = null; mdRede = null; mdFolha = []; mdCarregado = true; mdErro='';
        mdFiltroLoja='todas'; mdFiltroDia='todos';
@@ -252,7 +252,7 @@ comPerfil({papel:'comercial', nome:'Anne', at_key:'anne', ativo:true}, () => {
   const html = run(`mdCardVendas()`);
   if (html.includes('−R$3')) ok('dia negativo sai como −R$3, não "R$-3"');
   else bad('formatação do dia negativo errada');
-  if (html.includes('brinde')) ok('e a tela explica o motivo (brinde entra pelo custo)');
+  if (html.includes('abaixo do custo')) ok('e a tela explica o motivo (venda abaixo do custo)');
   else bad('dia negativo sem explicação — vira desconfiança');
 });
 

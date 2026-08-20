@@ -39,6 +39,11 @@ function calc(){
   const vendaAcess=ac.reduce((a,m)=>a+parseFloat(m.preco||0),0);
   const custoAcess=ac.reduce((a,m)=>a+parseFloat(m.valor_estoque||0),0);
   const lAcess=vendaAcess-custoAcess;
+  // Dois lucros de acessorio, de proposito:
+  //   lAcess     -> o da LOJA. O brinde custa, e o resultado do mes conta ele.
+  //   lAcessCom  -> o que forma COMISSAO. Brinde nao desconta de quem entregou
+  //                 (decisao do dono, 20/ago/2026; ver ehBrinde em core.js).
+  const lAcessCom=ac.reduce((a,m)=>a+lucroAcessComissao(m),0);
 
   // Socios/Loja -- vendas da casa (gustavo, marcella, breno, ou sem vendedor identificado)
   const SOCIOS_KEYS=['gustavo','marcella','breno'];
@@ -95,7 +100,7 @@ function calc(){
   const atLinha={};
   ac.forEach(m=>{
     const a=vAtend[m.parent_id];if(!a)return;
-    const l=parseFloat(m.preco||0)-parseFloat(m.valor_estoque||0);
+    const l=lucroAcessComissao(m);
     atMap[a].la+=l;
     atMap[a].brutoAcess+=parseFloat(m.preco||0);
     atMap[a].qt++;
@@ -135,9 +140,11 @@ function calc(){
   const voTot=VO.reduce((a,k)=>a+comissaoVendedor(voMap[k].units),0);
   const lojaTot=0; // loja nao tem comissao
   const atTot=AT.reduce((a,k)=>a+atMap[k].la*0.25,0); // 25% lucro acess. por atendente
-  const anneBonus=lAcess*0.05; // bonus Anne (5% geral) -- separado das comissoes de vendas
+  // 5% da Anne incide sobre o lucro de acessorio DA REDE -- e tambem e comissao,
+  // entao tambem ignora brinde.
+  const anneBonus=lAcessCom*0.05;
 
-  return{bruto,lucro,units,unPrincipal,unAcess,vendaAcess,lAcess,voMap,atMap,voTot,atTot,anneBonus,liq:lucro-voTot-atTot,cnt:v.length,acCnt:ac.length,lojaVendas,lojaUnits};
+  return{bruto,lucro,units,unPrincipal,unAcess,vendaAcess,lAcess,lAcessCom,voMap,atMap,voTot,atTot,anneBonus,liq:lucro-voTot-atTot,cnt:v.length,acCnt:ac.length,lojaVendas,lojaUnits};
 }
 
 // RENDER

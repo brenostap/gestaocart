@@ -150,7 +150,9 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
     v.forEach(x=>{ const {atendente}=getVendaInfo(x); if(matchNome(atendente,[f.atKey]))vAtend[x.id]=true; });
     v.filter(x=>vAtend[x.id]).forEach(x=>{
       getAcess(x).forEach(p=>{
-        la += parseFloat(p.preco||0)-parseFloat(p.valor_estoque||0);
+        // Brinde nao desconta da comissao (core.js > lucroAcessComissao). Ele
+        // continua contado em `qt`: saiu da loja, e o attach rate nao muda.
+        la += lucroAcessComissao(p);
         bruto += parseFloat(p.preco||0); qt++;
       });
     });
@@ -356,7 +358,11 @@ function fechamentoEquipe(){
     m, ref:_refAnoMes(), loja:currentStore, geradoEm:new Date(),
     mesLabel: fechamentoMesLabel(),
     base: {
-      aparelhos:m.unPrincipal, acessBruto:m.vendaAcess, acessLucro:m.lAcess,
+      // acessLucro aqui e a BASE DA COMISSAO (o 5% da Anne sai dele, e o
+      // documento da folha imprime este numero). O lucro da loja, com brinde,
+      // e m.lAcess -- ele fica no resultado, nao na folha.
+      aparelhos:m.unPrincipal, acessBruto:m.vendaAcess, acessLucro:m.lAcessCom,
+      acessLucroLoja:m.lAcess,
       vendas:m.cnt, lucro:m.lucro,
     },
     metaDev, metaDevProx, metaAc, metaAcProx, bonusCol,
@@ -400,7 +406,8 @@ function renderEquipe(){
   const v=filterByPeriod(allVendas);
   const ids=new Set(v.map(function(x){return x.id;}));
   const acAll=allMovs.filter(function(m){return ids.has(m.parent_id)&&isAcess(m);});
-  const lAcessTotal=acAll.reduce(function(a,m){return a+parseFloat(m.preco||0)-parseFloat(m.valor_estoque||0);},0);
+  // Base do 5% da Anne: e comissao, entao brinde nao desconta.
+  const lAcessTotal=acAll.reduce(function(a,m){return a+lucroAcessComissao(m);},0);
 
   if(equipeOpenId){ return renderFuncCard(equipeOpenId, lAcessTotal); }
 

@@ -264,10 +264,10 @@ function mdComissaoPorVenda(){
   return map;
 }
 
-// brl() escreve "R$-3" quando o numero e negativo. E acontece: acessorio dado
-// como BRINDE entra com preco 0 e custo > 0, entao o dia fica negativo (foram
-// 169 brindes em ago/2026 -- R$85 da comissao da Anne, R$73 do Vitinho). O
-// numero e verdade e fica, mas escrito como gente escreve.
+// brl() escreve "R$-3" quando o numero e negativo. Desde 20/ago o BRINDE nao
+// desconta mais (ehBrinde em core.js), mas negativo ainda acontece: acessorio
+// vendido ABAIXO do custo e uma venda de verdade e continua descontando. O
+// numero e verdade e fica -- so escrito como gente escreve.
 function mdBrlSinal(v){
   return v < 0 ? '−' + brl(-v) : brl(v);
 }
@@ -331,7 +331,7 @@ function mdCardVendas(){
         <span class="md-dia-nome">${mdRotuloDia(g.dia)}</span>
         <span class="md-dia-meta">${contexto}</span>
         <span class="md-dia-total${comDia < 0 ? ' neg' : ''}" title="${comDia < 0
-          ? 'Acessório entregue como brinde entra pelo custo — foi isso que deixou o dia negativo.'
+          ? 'Acessório vendido abaixo do custo — brinde não desconta, venda no prejuízo sim.'
           : 'A sua comissão deste dia'}">${mdBrlSinal(comDia)}</span>
       </div>
       ${g.itens.map(v => `<div class="md-venda">

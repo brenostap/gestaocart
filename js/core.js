@@ -108,8 +108,43 @@ function _periodoNovoRegime(ref){
   if(/^\d{4}-\d{2}$/.test(p)) return p >= '2026-06';
   return true;
 }
+// BRINDE: acessorio entregue com preco 0 e custo > 0 (o "FONE AIRDOTS" de
+// R$11,63 que vai junto pra fechar a venda).
+//
+// ⚠️ Ele CUSTA pra loja e continua inteiro no resultado dela -- mas NAO desconta
+// da comissao de quem entregou (decisao do dono, 20/ago/2026): quem da o brinde
+// e quem fecha a venda. Antes descontava calado: 169 brindes em ago/2026 tiravam
+// R$85 da Anne, R$73 do Vitinho, R$53 da Gabi e R$34 do Leo.
+//
+// ⚠️ Espelho no Postgres: `eh_brinde()` / `lucro_acess_comissao()`. Os dois tem
+// que dizer o mesmo -- test/regra-acessorio.test.js prova.
+function ehBrinde(p){
+  return parseFloat((p && p.preco) || 0) === 0 && parseFloat((p && p.valor_estoque) || 0) > 0;
+}
+
+// ⚠️ VIGENCIA, e ela NAO e enfeite. Mudanca de regra de comissao nunca e
+// retroativa aqui -- e a mesma licao das faixas de meta (metaAtFaixas): sem
+// data, o fechamento de um mes JA PAGO sobe sozinho e a tela passa a discordar
+// do extrato da pessoa. Medido em 20/ago: aplicar isto pra tras daria +R$336
+// em jul/2026 e +R$537 em jun/2026, meses fechados e pagos.
+const BRINDE_ISENTO_DESDE = '2026-08';
+
+function brindeIsento(ref){
+  const r = _refAnoMes(ref);
+  return !r || r >= BRINDE_ISENTO_DESDE;   // periodo que nao e mes = regra de hoje
+}
+
+// O lucro de acessorio QUE FORMA COMISSAO. Unico lugar onde o brinde e zerado:
+// a classificacao do item (isAcess) nao muda -- ele continua sendo um acessorio
+// que saiu da loja, so nao entra na conta de quem recebe.
+function lucroAcessComissao(p, ref){
+  if(brindeIsento(ref) && ehBrinde(p)) return 0;
+  return parseFloat((p && p.preco) || 0) - parseFloat((p && p.valor_estoque) || 0);
+}
+
 // Acessorio para fins de COMISSAO: isAcess estrito (jun+), legado !isPrincipal&&!isCancelado (antes)
 function acessParaComissao(p, ref){
+  if(brindeIsento(ref) && ehBrinde(p)) return false;
   return _periodoNovoRegime(ref) ? isAcess(p) : (!isPrincipal(p) && !isCancelado(p));
 }
 
