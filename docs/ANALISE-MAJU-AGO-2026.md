@@ -45,6 +45,24 @@ o humano marca a visita pelo WhatsApp pessoal, nunca é registrado. A linha plan
 medição, não fato de negócio. **Não decida em cima dela sem confirmar com o Dudu quem grava esse
 campo.**
 
+### ⭐ E a série mostra por que a alavanca ainda está intacta
+
+Rodando `scripts/maju/agendamento-semanal.sql` nas 11 semanas desde 08/jun:
+
+| semana | sessões | **ela pergunta o dia** | cliente dá data | transferiu | vazou |
+|---|---|---|---|---|---|
+| 08/jun | 209 | 21,1% | 20,6% | 46,9% | 37 |
+| 06/jul | 455 | 19,3% | 17,6% | 36,9% | 115 |
+| 20/jul | 384 | **16,4%** | 18,0% | 33,3% | 93 |
+| 27/jul | 363 | 23,1% | 19,6% | 46,6% | 55 |
+| 03/ago | 336 | 21,4% | 19,6% | 55,1% | 53 |
+| 10/ago | 259 | 25,5% | 19,7% | **59,1%** | 36 |
+
+**A escalada subiu de 33% pra 59% e o vazamento caiu de 115 pra 36 — o prompt de 27/jul funcionou.**
+Mas `pergunta o dia` ficou **entre 16% e 25% por onze semanas seguidas**, e `cliente dá data` entre
+15% e 20%. Nenhuma mudança de prompt até hoje encostou nessa alavanca. É por isso que ela ainda
+está inteira.
+
 ## Datando as mudanças de prompt pelo próprio dado
 
 Não precisamos depender de memória pra saber o que comparar com o quê. As chamadas de ferramenta
@@ -106,6 +124,11 @@ ela trava num detalhe trivial:
 
 A cor do aparelho é uma pergunta que o **vendedor** resolve em dez segundos. Segurar o handoff por
 ela custa o lead inteiro.
+
+**E o hábito está crescendo.** A construção *"pode me responder/mandar só…"* aparecia em ~5% das
+sessões em junho e está em **~18% em agosto** — e passou a ser uma forma comum de a conversa
+*terminar* (17 e 13 sessões nas duas semanas de agosto, contra 1 a 6 em todas as semanas anteriores).
+É a única métrica de comportamento que **piorou** no período.
 
 ### O balde C é o mais caro
 

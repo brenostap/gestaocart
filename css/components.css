@@ -1288,3 +1288,6 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .eq-av{ width:34px; height:34px; font-size:12px; }
   .eq-total b{ font-size:13px; }
 }
+
+/* Lucro na linha de venda: era style="color:var(--success)" inline. */
+.est-venda.ok{ color:var(--success); }

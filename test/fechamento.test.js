@@ -473,7 +473,7 @@ ok(modalHtml.includes(brl(fech.pessoas[0].total)), 'mostra o total de cada um no
 
 // -- 10. o resto do painel continua de pe -----------------------------------
 sec('dashboards continuam renderizando depois da mudança no calc()');
-ok(html('renderDash()').length > 1000, 'renderDash()');
+// O dashboard legado foi aposentado em 20/ago: só existe o V2.
 ok(html('renderDashV2()').length > 1000, 'renderDashV2()');
 
 console.log('\n' + (falhas ? `### ${falhas} FALHA(S)` : '### tudo verde'));

@@ -94,7 +94,7 @@ const ok  = (cond, msg) => { console.log((cond ? '  ok    ' : '  FALHA ') + msg)
 const sec = t => console.log('\n' + t);
 const brl = R('brl');
 
-const dash = R('renderDash()');
+const dash = R('renderDashV2()');
 
 // -- 1. a secao existe e traz os canais -------------------------------------
 sec('a seção aparece quando há venda avaliada no período');
@@ -121,7 +121,7 @@ ok(/1 ainda não avaliada/.test(dash),            'não avaliada conta separado'
 // -- 4. sem dado, sem tabela de zeros ---------------------------------------
 sec('sem venda avaliada a seção some');
 R('allVendas = __fx.vendas.map(v => ({ ...v, _origem: null }));');
-const semOrigem = R('renderDash()');
+const semOrigem = R('renderDashV2()');
 ok(!semOrigem.includes('De onde vieram as vendas'),
    'nenhuma venda avaliada → seção não aparece');
 ok(semOrigem.length > 1000, 'e o resto do dashboard continua de pé');
@@ -130,10 +130,14 @@ ok(semOrigem.length > 1000, 'e o resto do dashboard continua de pé');
 sec('papel sem margem não vê lucro do canal');
 R('allVendas = __fx.vendas;');
 R('function podeVerMargem(){ return false; }');
-const semMargem = R('renderDash()');
+const semMargem = R('renderDashV2()');
 ok(semMargem.includes('De onde vieram as vendas'), 'a seção continua aparecendo');
-ok(!semMargem.includes('>Lucro</th>') && !semMargem.includes('>Margem</th>'),
-   'colunas de lucro e margem somem');
+// ⚠️ Escopado ao CARD da origem, não à tela: o dashboard tem outras tabelas
+// com coluna "Lucro" (Vendas recentes mostra '—' pra quem não vê margem). Sem
+// o escopo, este teste passaria a medir a tela errada.
+const cardSemMargem = R('d2CardOrigem(_d2VendasDoPeriodo())');
+ok(!/>Lucro</.test(cardSemMargem) && !/>Margem</.test(cardSemMargem),
+   'no card da origem, as colunas de lucro e margem somem');
 
 console.log('\n' + (falhas ? `### ${falhas} FALHA(S)` : '### tudo verde'));
 process.exit(falhas ? 1 : 0);

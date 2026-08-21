@@ -1,10 +1,10 @@
 // ============================================================================
 // dash-v2 — dashboard reconstruído (PREVIEW gated por localStorage pc_dash_v2)
 //
-// Não substitui renderDash. renderContent decide qual mostrar. Assim dá pra
+// Desde 20/ago/2026 é O dashboard: o legado (renderDash) foi aposentado e as
 // validar com dados reais e ao vivo sem lançar; virar padrão depois é 1 linha.
 //
-// Reusa o kit UI.* e as MESMAS expressões financeiras de renderDash (calc()),
+// três seções que só existiam nele vieram pra cá. Reusa o kit UI.* e as MESMAS
 // pra os números baterem. Componentes que o kit não tem (gráfico, donut, gauge)
 // nascem aqui; quando promovido, o que for genérico migra para ui.js.
 // Cor sempre var(--…). R$ passa por money()/gates de permissão do brief.
@@ -12,12 +12,11 @@
 
 // v2 agora e o padrao (inclusive no celular). So volta ao antigo se o usuario
 // pediu explicitamente ('0' via botao "↩ Antigo"). Reverter e trocar '!==0' por '===1'.
-function dashV2Ativo(){ try{ return localStorage.getItem('pc_dash_v2')!=='0'; }catch(e){ return true; } }
-function toggleDashV2(){
-  try{ localStorage.setItem('pc_dash_v2', dashV2Ativo()?'0':'1'); }catch(e){}
-  if(typeof renderContent==='function') renderContent();
-  document.querySelector('.main')?.scrollTo({top:0});
-}
+// O toggle "dashboard antigo" morreu junto com o legado (20/ago/2026): nao ha
+// mais duas telas pra alternar. `dashV2Ativo` ficou como `true` fixo porque o
+// localStorage de quem clicou uma vez em 'antigo' nao pode deixar a pessoa com
+// uma tela que nao existe mais.
+function dashV2Ativo(){ return true; }
 function d2ToggleNotif(){ document.getElementById('d2-notif')?.classList.toggle('open'); }
 function d2Abrir(fn){ document.getElementById('d2-notif')?.classList.remove('open'); if(typeof window[fn]==='function') window[fn](); }
 
@@ -197,7 +196,7 @@ function _d2ModelosBody(){
   // Só o lacrado leva selo; sem selo = seminovo (regra do dono).
   const rows=top.map((x,i)=>{
     const tag = x.cond==='lacrado' ? '<span class="d2-mod-tag">Lacrado</span>' : '';
-    const val = verM ? `<span style="color:var(--green)">${brl(x.lucro)}</span>` : (verV?money(x.bruto):'');
+    const val = verM ? `<span class="d2-ok">${brl(x.lucro)}</span>` : (verV?money(x.bruto):'');
     return `<div class="d2-mod-row">
       <div class="d2-mod-pos">${i+1}</div>
       <div class="d2-mod-name">${UI.esc(x.nome)}${tag}</div>
@@ -267,7 +266,7 @@ function renderDashV2(){
     <div><div class="pg-kicker">Visão geral</div><h1 class="pg-title">Dashboard</h1></div>
     <div class="d2-actions">
       <button class="d2-bell" onclick="d2ToggleNotif()" aria-label="Alertas">🔔${nTotal>0?`<span class="d2-bell-dot">${nTotal>9?'9+':nTotal}</span>`:''}</button>
-      ${UI.btn('↩ Antigo',{onclick:'toggleDashV2()',variante:'sutil',sm:true,titulo:'Voltar ao dashboard atual'})}
+
       ${UI.btn('↻ Atualizar',{onclick:'reloadData()'})}
       <div class="d2-notif" id="d2-notif">
         <div class="d2-notif-h"><b>Vendas faltando info</b><span>${nTotal} no período</span></div>
@@ -306,7 +305,7 @@ function renderDashV2(){
     <div class="d2-donut-wrap">
       ${_d2Donut([{val:liqAcess,color:'var(--green)',label:'Líquido'},{val:comAcess,color:'var(--text3)',label:'Comissões'},{val:custoAcess,color:'var(--border3)',label:'Custo'}], brl(m.vendaAcess), 'bruto')}
       <div class="d2-leg">
-        <div class="d2-leg-item"><span class="d2-pin" style="background:var(--green)"></span><div class="d2-leg-tx"><div class="n">Líquido</div><div class="s">o que sobra pra loja</div></div><div class="d2-leg-v" style="color:var(--green)">${brl(liqAcess)}</div></div>
+        <div class="d2-leg-item"><span class="d2-pin" style="background:var(--green)"></span><div class="d2-leg-tx"><div class="n">Líquido</div><div class="s">o que sobra pra loja</div></div><div class="d2-leg-v d2-ok">${brl(liqAcess)}</div></div>
         <div class="d2-leg-item"><span class="d2-pin" style="background:var(--text3)"></span><div class="d2-leg-tx"><div class="n">Comissões</div><div class="s">atendentes + Anne</div></div><div class="d2-leg-v">${brl(comAcess)}</div></div>
         <div class="d2-leg-item"><span class="d2-pin" style="background:var(--border3)"></span><div class="d2-leg-tx"><div class="n">Custo</div><div class="s">mercadoria</div></div><div class="d2-leg-v">${brl(custoAcess)}</div></div>
       </div>
@@ -376,11 +375,177 @@ function renderDashV2(){
     {v:UI.badge('#'+v.id,null,true)},
     UI.esc(_d2ModeloVenda(v)),
     {v:money(parseFloat(v.valor_total||0)), num:true},
-    {v: verM?`<span style="color:var(--green);font-weight:600">${brl(parseFloat(v.lucro||0))}</span>`:'—', num:true}
+    {v: verM?`<span class="d2-ok">${brl(parseFloat(v.lucro||0))}</span>`:'—', num:true}
   ]);
   const salesCard=UI.card({titulo:'Vendas recentes', sub:'<span class="d2-live">● ao vivo</span>', corpo:
     UI.tabela({colunas:[{titulo:'Data'},{titulo:'Cód'},{titulo:'Aparelho'},{titulo:'Valor total',num:true},{titulo:'Lucro',num:true}], linhas,
       vazio:UI.vazio({titulo:'Sem vendas no período', texto:'As vendas do FoneNinja aparecem aqui assim que entram.'})})});
 
-  return header+kpis+chartCard+rowDonut+rankRow+modelosCard+resultado+salesCard;
+  // As tres secoes que estavam presas no dashboard legado (ver o fim do arquivo).
+  const vPeriodo = _d2VendasDoPeriodo();
+  const origem  = d2CardOrigem(vPeriodo);
+  const lojas   = (currentStore === 'ambas') ? d2CardLojas(vPeriodo) : '';
+  const margem  = d2CardMargem(vPeriodo);
+
+  return header+kpis+chartCard+rowDonut+rankRow+modelosCard+resultado
+       + lojas + origem + margem + salesCard;
+}
+
+// ===========================================================================
+// AS TRES SECOES QUE SO EXISTIAM NO DASHBOARD LEGADO (20/ago/2026)
+//
+// O `renderDash` de render.js era o dashboard "antigo": ficava atras de um
+// toggle que ninguem liga (o V2 e o padrao desde que nasceu). Com isso, TRES
+// secoes estavam invisiveis pro dono na pratica -- inclusive "De onde vieram
+// as vendas", que tem doc, script de atribuicao manual e teste proprio.
+//
+// Migradas pra ca no kit (UI.*, tokens), o legado foi aposentado, e com ele
+// foram 92 estilos literais escritos na mao.
+// ===========================================================================
+
+// As vendas do periodo JA filtradas por loja -- mesma regra que o legado usava.
+function _d2VendasDoPeriodo(){
+  let v = filterByPeriod(allVendas);
+  if(currentStore !== 'ambas')
+    v = v.filter(x => { const {loja} = getVendaInfo(x); return loja === currentStore || (!loja && currentStore === 'cart'); });
+  return v;
+}
+
+// -- De onde vieram as vendas ----------------------------------------------
+// Le `_origem` (tabela venda_origem, populada por scripts/atribuicao/). Tres
+// decisoes que a tela materializa:
+//   1. So `confirmado` entra na conta de dinheiro. O nivel 5 erra 1 em cada 5
+//      (medido); somar junto inflaria o Instagram e ninguem veria.
+//   2. A cobertura aparece SEMPRE, porque isso aqui e piso e nao total -- a
+//      falta pesa mais no Instagram, entao comparar canais e legitimo mas
+//      afirmar "o Meta Ads deu X" nao e.
+//   3. Venda nao avaliada e venda sem lead sao contadas separado.
+// Sem nenhuma venda avaliada no periodo a secao nao aparece.
+function d2CardOrigem(v){
+  const vOrig = v.filter(x => x._origem);
+  if(!vOrig.length) return '';
+
+  const oConf = vOrig.filter(x => x._origem.confianca === 'confirmado');
+  const oProv = vOrig.filter(x => x._origem.confianca === 'provavel').length;
+  const oSem  = vOrig.filter(x => x._origem.confianca === 'sem_origem').length;
+
+  const porOrigem = {};
+  oConf.forEach(x => {
+    const k = x._origem.origem || 'Sem origem gravada no lead';
+    const o = porOrigem[k] || (porOrigem[k] = {vendas:0, bruto:0, lucro:0});
+    o.vendas++; o.bruto += parseFloat(x.valor_total||0); o.lucro += parseFloat(x.lucro||0);
+  });
+
+  const comMargem = podeVerMargem();
+  const colunas = [{titulo:'Origem'},{titulo:'Vendas',num:true},{titulo:'Receita',num:true}];
+  if(comMargem) colunas.push({titulo:'Lucro',num:true},{titulo:'Margem',num:true});
+  const linhas = Object.entries(porOrigem).sort((a,b) => b[1].bruto - a[1].bruto).map(([nome,o]) => {
+    const mg = o.bruto > 0 ? Math.round(o.lucro/o.bruto*100) : 0;
+    const cel = [UI.esc(nome), {v:o.vendas, num:true}, {v:money(o.bruto), num:true}];
+    if(comMargem) cel.push({v:brl(o.lucro), num:true, classe:'ok'}, {v:mg+'%', num:true});
+    return cel;
+  });
+
+  const naoAval = v.length - vOrig.length;
+  const pctCob = v.length > 0 ? Math.round((oConf.length + oProv)/v.length*100) : 0;
+  const notas = [
+    `${oConf.length + oProv} de ${v.length} vendas do período com origem identificada (${pctCob}%)`,
+    oProv > 0 ? `${oProv} provável${oProv>1?'is':''} fora da tabela — o nível 5 aponta a pessoa errada 1 vez em 5` : '',
+    oSem > 0 ? `${oSem} avaliada${oSem>1?'s':''} sem lead encontrado` : '',
+    naoAval > 0 ? `${naoAval} ainda não avaliada${naoAval>1?'s':''}` : '',
+  ].filter(Boolean);
+
+  return UI.card({
+    titulo:'De onde vieram as vendas',
+    sub:'só o que foi confirmado',
+    corpo: UI.tabela({colunas, linhas, vazio: UI.vazio({ico:'🔗',
+        titulo:'Nenhuma venda confirmada no período',
+        texto:'As vendas do período foram avaliadas, mas nenhuma teve lead confirmado.'})})
+      + `<div class="d2-rodape">${notas.join(' · ')}</div>`
+  });
+}
+
+// -- Cart vs Urban -----------------------------------------------------------
+// Duas lojas, dois donos, dois resultados (ver [[societario-cart-urban]]): o
+// consolidado nao e o resultado de ninguem.
+function d2CardLojas(v){
+  const verM = podeVerMargem();
+  const resumo = (arr, nome, tom) => {
+    const bruto = arr.reduce((a,x) => a + parseFloat(x.valor_total||0), 0);
+    const lucro = arr.reduce((a,x) => a + parseFloat(x.lucro||0), 0);
+    const un = arr.reduce((a,x) => a + (x._produtos ? x._produtos.filter(p => isPrincipal(p)).length : 0), 0);
+    return { nome, tom, vendas:arr.length, un, bruto, lucro,
+             margem: bruto > 0 ? Math.round(lucro/bruto*100) : 0,
+             ticket: arr.length > 0 ? Math.round(bruto/arr.length) : 0 };
+  };
+  const lojas = [
+    resumo(v.filter(x => getVendaInfo(x).loja === 'cart'),  'Phone Cart', 'cart'),
+    resumo(v.filter(x => getVendaInfo(x).loja === 'urban'), 'Urban',      'urban'),
+  ];
+  const semLoja = v.filter(x => !getVendaInfo(x).loja).length;
+
+  const bloco = l => `
+    <div class="d2-loja" data-tom="${l.tom}">
+      <div class="d2-loja-nome">${l.nome}</div>
+      <div class="d2-loja-grid">
+        <span><i>pedidos</i><b>${l.vendas}</b></span>
+        <span><i>produtos</i><b>${l.un}</b></span>
+        <span><i>bruto</i><b>${money(l.bruto)}</b></span>
+        ${verM ? `<span><i>lucro</i><b class="ok">${brl(l.lucro)}</b></span>
+        <span><i>margem</i><b class="${l.margem < 15 ? 'alerta' : 'ok'}">${l.margem}%</b></span>` : ''}
+        <span><i>ticket</i><b>${money(l.ticket)}</b></span>
+      </div>
+    </div>`;
+
+  return UI.card({
+    titulo:'Cart vs Urban',
+    sub:'o consolidado não é o resultado de ninguém',
+    corpo: `<div class="d2-lojas">${lojas.map(bloco).join('')}</div>`
+      + (semLoja ? `<div class="d2-rodape">⚠ ${semLoja} venda${semLoja>1?'s':''} sem loja identificada na observação</div>` : '')
+  });
+}
+
+// -- Margem: a distribuicao e as piores do periodo ---------------------------
+// So pra quem ve margem, e so quando ha o que mostrar.
+function d2CardMargem(v){
+  if(!podeVerMargem()) return '';
+  const linhas = v.map(x => {
+    const tot = parseFloat(x.valor_total||0), luc = parseFloat(x.lucro||0);
+    const prods = x._produtos ? x._produtos.filter(p => isPrincipal(p)) : [];
+    const {vendedor, loja} = getVendaInfo(x);
+    return { id:x.id, tot, luc, mg: tot > 0 ? Math.round(luc/tot*1000)/10 : 0,
+             vendedor, loja, data:x.data_saida,
+             modelo: prods.length ? (prods[0].titulo||'').replace(/^iPhone\s+/i,'').replace(/\s*Seminovo\s*$/i,' SN').trim() : '' };
+  }).filter(x => x.tot > 500);
+
+  const faixas = [
+    { l:'negativa', tom:'critico', n: linhas.filter(x => x.mg < 0).length },
+    { l:'até 10%',  tom:'alerta',  n: linhas.filter(x => x.mg >= 0  && x.mg < 10).length },
+    { l:'10–15%',   tom:'alerta',  n: linhas.filter(x => x.mg >= 10 && x.mg < 15).length },
+    { l:'15–20%',   tom:'',        n: linhas.filter(x => x.mg >= 15 && x.mg < 20).length },
+    { l:'acima de 20%', tom:'ok',  n: linhas.filter(x => x.mg >= 20).length },
+  ];
+  const ruins = linhas.filter(x => x.mg < 10).sort((a,b) => a.mg - b.mg);
+  if(!ruins.length && !linhas.length) return '';
+
+  const piores = ruins.slice(0,5).map(x => {
+    const dia = x.data ? x.data.slice(5,10).split('-').reverse().join('/') : '—';
+    return [
+      {v: UI.badge(x.mg+'%', x.mg < 0 ? 'critico' : 'alerta')},
+      UI.esc(x.modelo || '—'),
+      `<span class="d2-sub">${dia} · ${UI.esc(x.vendedor||'—')} · ${UI.esc(x.loja||'—')}</span>`,
+      {v: money(x.tot), num:true},
+      {v: `<span class="${x.luc < 0 ? 'ruim' : ''}">${brl(x.luc)}</span>`, num:true},
+    ];
+  });
+
+  return UI.card({
+    titulo: ruins.length ? 'Margem — e as piores do período' : 'Distribuição de margem',
+    sub: ruins.length ? ruins.length + ' venda' + (ruins.length>1?'s':'') + ' abaixo de 10%' : 'nenhuma abaixo de 10%',
+    corpo: `<div class="d2-faixas">${faixas.map(f =>
+        `<span class="d2-faixa" data-tom="${f.tom}"><b>${f.n}</b><i>${f.l}</i></span>`).join('')}</div>`
+      + (piores.length ? UI.tabela({
+          colunas:[{titulo:'Margem'},{titulo:'Aparelho'},{titulo:'Quando'},{titulo:'Valor',num:true},{titulo:'Lucro',num:true}],
+          linhas: piores }) : '')
+  });
 }

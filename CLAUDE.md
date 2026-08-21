@@ -70,7 +70,11 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `index.html` — carrega os scripts (ordem importa) e monta o shell.
 - `js/config.js` — tokens de estado, constantes globais (ex.: `CORES_HEX`, `corHex`), permissões.
 - `js/core.js` `js/data.js` — carga de dados (Supabase via REST; ver `loadFromSupabase`).
-- `js/render.js` — dashboard + **tela de Vendas** (`renderVendas`).
+- `js/render.js` — **tela de Vendas** (`renderVendas`) + `calc()`, a conta que a folha inteira lê.
+  - ⚠️ O **dashboard saiu daqui em 20/ago/2026**: `renderDash()` (o legado, 466 linhas com 92
+    estilos na mão) foi aposentado e o **`js/dash-v2.js` é o dashboard**. Três seções só existiam
+    no legado — *De onde vieram as vendas*, *Cart vs Urban* e os alertas de margem — e como o V2
+    era o padrão, estavam **invisíveis na prática**. Foram migradas no kit.
 - `js/estoque.js` `js/tabela.js` `js/custos.js` `js/equipe.js` `js/movimentacoes.js` — as outras telas.
 - `js/bancada.js` — tela **Assistência** (⚠️ chamava-se *Bancada* até 15/ago/2026; **só o rótulo
   mudou** — arquivo, tabela `bancada`, aba `currentTab='bancada'` e funções `bnc*` seguem iguais,

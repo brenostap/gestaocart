@@ -126,3 +126,53 @@
 .d2-mod-val{font-size:13px;font-weight:700;text-align:right;white-space:nowrap;min-width:74px;font-variant-numeric:tabular-nums}
 
 .d2-live{color:var(--green);font-size:10px;font-weight:600}
+
+/* ==========================================================================
+   As três seções que vieram do dashboard legado (20/ago/2026).
+   Lá eram 92 estilos escritos na mão; aqui são tokens.
+   ========================================================================== */
+.d2-rodape{
+  margin-top:10px; font-size:11px; color:var(--text4); line-height:1.7;
+}
+
+/* -- Cart vs Urban: duas lojas, dois resultados -------------------------- */
+.d2-lojas{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.d2-loja{
+  background:var(--bg3); border:1px solid var(--border);
+  border-top:2px solid var(--border2); border-radius:var(--radius-sm); padding:14px 16px;
+}
+.d2-loja[data-tom="cart"] { border-top-color:var(--cart); }
+.d2-loja[data-tom="urban"]{ border-top-color:var(--urban); }
+.d2-loja-nome{ font-size:13px; font-weight:700; margin-bottom:10px; }
+.d2-loja[data-tom="cart"]  .d2-loja-nome{ color:var(--cart); }
+.d2-loja[data-tom="urban"] .d2-loja-nome{ color:var(--urban); }
+.d2-loja-grid{ display:grid; grid-template-columns:1fr 1fr; gap:9px 8px; }
+.d2-loja-grid span{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.d2-loja-grid i{
+  font-style:normal; font-size:9.5px; font-weight:600; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--text4);
+}
+.d2-loja-grid b{ font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+.d2-loja-grid b.ok{ color:var(--green); }
+.d2-loja-grid b.alerta{ color:var(--yellow); }
+
+/* -- Faixas de margem ---------------------------------------------------- */
+.d2-faixas{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.d2-faixa{
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  background:var(--bg3); border:1px solid var(--border);
+  border-radius:var(--radius-sm); padding:7px 14px; min-width:64px;
+}
+.d2-faixa b{ font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text2); }
+.d2-faixa i{ font-style:normal; font-size:10px; color:var(--text4); }
+.d2-faixa[data-tom="critico"] b{ color:var(--red); }
+.d2-faixa[data-tom="alerta"]  b{ color:var(--yellow); }
+.d2-faixa[data-tom="ok"]      b{ color:var(--green); }
+.d2-sub{ font-size:11px; color:var(--text4); }
+.d2-faixas + .c-tabela-wrap .ruim, .c-tabela .ruim{ color:var(--red); }
+
+@media (max-width:720px){
+  .d2-lojas{ grid-template-columns:1fr; }
+  .d2-faixa{ flex:1 1 auto; min-width:56px; padding:6px 10px; }
+}
+.d2-ok{ color:var(--green); font-weight:600; }
