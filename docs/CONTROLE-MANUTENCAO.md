@@ -924,3 +924,51 @@ são o achado**: saíram da loja e ninguém registrou.
   é um "14 Pro Preto Espacial". Recusar é o certo.
 
 Resolver: `node scripts/reparos.js revisar` lista, e o UPDATE manual está no rodapé da saída.
+
+### O lançamento em `custos` — 26/ago/2026
+
+Carregar `reparos` **não** lança nada no P&L: são camadas diferentes de propósito (`custos` é o
+resultado, `reparos` é a mesma despesa aberta por aparelho — **somar as duas conta o dinheiro duas
+vezes**). Agosto estava com **zero lançamentos de assistência** enquanto a nota já somava R$ 40 mil.
+
+Lançadas as **8 notas** que faltavam, seguindo exatamente a convenção de jul/2026: uma linha por
+nota, pelo **líquido** (o que foi pago), `area='assistencia'`, `loja='ambas'`, e o período na `obs`.
+
+| data | descrição | valor | nota |
+|---|---|---:|---|
+| 03/08 | Access | 1.700,00 | `access_2026-07-27` (R$1.880 − R$180 Thiago) |
+| 08/08 | Access | 3.300,00 | `access_2026-08-03` (R$3.565 − R$265) |
+| 08/08 | Assistencia RR | 7.630,00 | `fechamento_Cart_03-08-2026` · 74 aparelhos |
+| 08/08 | Assistencia RR | 9.505,00 | `fechamento_Cart_03-08-2026-b` · 36 aparelhos |
+| 15/08 | Access | 4.700,00 | `access_2026-08-10` (R$4.985 − R$285) |
+| 15/08 | Assistencia RR | 4.525,00 | `fechamento_Cart_10-08-2026` · 56 aparelhos |
+| 20/08 | Access | 550,00 | `access_2026-08-17` · 1 serviço |
+| 22/08 | Assistencia RR | 5.690,00 | `fechamento_Cart_17-08-2026` · 31 aparelhos |
+| | **total** | **37.600,00** | |
+
+**Agosto: R$ 33.950 → R$ 71.550** em custos. (Ainda faltam os outros ~R$ 117 mil/mês de custo que
+não são assistência — jun e jul tiveram 65 e 77 lançamentos; agosto tem 19.)
+
+#### Trava 2: o mês fecha, com dois ajustes explicáveis
+
+```
+reparos de agosto (por data_servico)      R$ 40.098
+ − fechamento_Cart_27-07 (serviço em 01/08,
+   mas lançado em custos em 29/07)        − R$  3.945
+ + access_2026-07-27 (serviço em julho,
+   mas nota fecha em 03/08 e vai inteira)  + R$  1.447
+                                          ─────────────
+                                          R$ 37.600  = custos de agosto ✅
+```
+
+⚠️ **A diferença de R$ 2.498 é só a virada do mês**, não dinheiro perdido. A RR não data serviço por
+linha, então a nota que atravessa o mês cai inteira no mês do fechamento — é o mesmo aviso que o
+`conciliar` do script imprime. **A conferência é por NOTA, nunca por total do mês.**
+
+#### Uma decisão herdada que vale rever
+
+Todas as notas se chamam `fechamento_**Cart**_...` — são da Cart. Mas o histórico inteiro de
+`custos` lança assistência como **`loja='ambas'`**, o que rateia o custo entre as duas lojas.
+Segui a convenção pra não mudar o resultado de ninguém por conta própria, **mas isso desloca
+margem da Urban pra Cart** (ver `docs/`, societário 55/30/15 vs 50/40/10). Se a assistência é só
+da Cart, o certo é `loja='cart'` — e aí os meses anteriores também estão errados.
