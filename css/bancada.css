@@ -216,3 +216,37 @@
 }
 .bnc-sug .bnc-cand{ background:var(--bg2); }
 .bnc-sug .bnc-dica-inline{ margin-top:8px; }
+
+/* -- Histórico de assistência dentro do aparelho (tela Estoque) ----------- */
+/* Mora aqui e não em estoque.css porque quem monta é o bancada.js — a tela de
+   Estoque só pede o bloco, igual ao selo. */
+.est-rep{
+  margin-top:12px; padding:10px 12px; border-radius:var(--radius-sm);
+  background:var(--bg3); border:1px solid var(--border);
+}
+.est-rep-tit{
+  font-size:var(--fs-caption); color:var(--text2);
+  margin-bottom:8px; line-height:var(--lh-body);
+}
+.est-rep-linha{
+  display:grid; grid-template-columns:auto auto 1fr auto; gap:10px;
+  align-items:baseline; padding:4px 0; font-size:var(--fs-caption);
+  border-top:1px solid var(--border);
+}
+.est-rep-data{ font-family:var(--font-mono); color:var(--text3); white-space:nowrap; }
+.est-rep-onde{ color:var(--text3); white-space:nowrap; }
+.est-rep-serv{ color:var(--text2); }
+.est-rep-val{ font-family:var(--font-mono); text-align:right; white-space:nowrap; }
+.est-rep-vazio{ font-style:normal; color:var(--text4); }
+.est-rep-nota{
+  margin-top:8px; color:var(--text4); font-size:var(--fs-caption);
+  line-height:var(--lh-body);
+}
+/* "Investido" = compra + reparo. A conta fica embaixo do total, menor. */
+.est-inv-conta{ display:block; color:var(--text4); font-size:var(--fs-caption); }
+
+@media (max-width:640px){
+  .est-rep-linha{ grid-template-columns:auto 1fr auto; }
+  .est-rep-onde{ grid-column:1; }
+  .est-rep-data{ grid-column:1 / -1; }
+}

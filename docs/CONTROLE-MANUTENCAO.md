@@ -785,3 +785,71 @@ A mais velha de todas: linha 5, `E1382` · 12 64 Branco · Face ID · **84 dias*
   sozinho no bloco *Entregar ao dono*).
 - **Nenhuma linha aberta com `imei4 = '0000'`** — as 5 que existem já foram fechadas.
 - Os 3 retornos históricos batem com a ida anterior por aparelho, fornecedor e serviço.
+
+## O histórico de serviço na peça — 26/ago/2026
+
+Pedido do dono: *"no custo do estoque conseguir ver esse adicional com o serviço que teve, se
+teve"*. Até aqui o Estoque mostrava o reparo como **uma linha só** — `reparo −R$ 300`, dentro da
+margem real. O total, sem dizer o que foi feito, quando nem onde. Pra saber se valia consertar de
+novo um aparelho que já tinha voltado duas vezes era preciso **sair do Estoque**, abrir a
+Assistência e buscar pelo IMEI.
+
+Agora, abrindo o aparelho na tela de Estoque:
+
+```
+Investido        R$ 1.490
+                 R$ 1.010 de compra + R$ 480 de reparo
+
+Assistência · R$ 480 em nota · 4 idas registradas
+  10/jul→15/jul  RR       Troca de tela           R$ 300
+  08/ago         RR       Conector de Carga       R$ 180
+  20/ago→21/ago  RR       Subida de bateria       nota não carregada
+  22/ago→23/ago  RR       Subida de bateria       ↩ grátis
+  25/ago         Access   Face ID                 ainda fora
+```
+
+### As duas fontes são costuradas por contenção, nunca por chute
+
+`reparos` é o **dinheiro** (vem da nota, depois do fato); `bancada` é o **paradeiro** (vem da
+pessoa, durante). ⚠️ **Somar os totais conta o mesmo conserto duas vezes.**
+
+A nota cai **dentro** de uma ida quando é do **mesmo fornecedor** e a data está **entre `saiu_em` e
+`voltou_em`** — uma relação de contenção real, não uma aproximação. O que não encaixa vira linha
+própria. Na prática isso é comum: o livro da bancada só começou em 13/ago e as notas vão de 06/jul
+a 08/ago, então a maior parte do dinheiro **não tem ida registrada** — e aparece como linha da nota.
+
+O rodapé do bloco diz isso na tela: *"A nota diz o dinheiro; a ida diz o paradeiro. São fontes
+diferentes — o total é o da nota, e as idas não se somam a ele."*
+
+### "Sem valor" tem três motivos, e confundi-los é o erro
+
+| na tela | o que é |
+|---|---|
+| `↩ grátis` | retorno na garantia da assistência — não é cobrado, e está certo |
+| `nota não carregada` | a ida é posterior à última nota carregada (`bncUltimaNota()`) |
+| `ainda fora` | não voltou; não há o que faturar |
+| `sem cobrança` | voltou dentro da janela da nota e não apareceu nela — **esse** é o que merece olhar |
+
+Sem essa separação, os três primeiros virariam "está faltando cobrança" e o dono iria atrás de um
+problema que não existe. É a mesma disciplina da Conferência.
+
+### Duas decisões de consistência
+
+1. **O total em nota usa só `apple_id`**, igual à view `v_estoque_margem`. Casar por 4 dígitos aqui
+   faria a soma divergir do `reparo −R$X` que a margem real mostra **na mesma tela** — dois números
+   diferentes pro mesmo aparelho, e nenhum jeito de saber qual está certo.
+2. **`valor_estoque` continua intocado.** O sync reescreve as linhas de hora em hora; o total
+   investido (compra + reparo) só existe **somado na tela**, nunca gravado.
+
+### Onde o código mora
+
+O bloco é montado em **`js/bancada.js`** (`bncHistoricoDoApple` / `bncHistoricoHtml`) e a tela de
+Estoque só pede — mesmo caminho de `bancadaDoApple()`. É bancada.js que é dona das duas fontes.
+
+⚠️ A carga de `reparos` no Estoque usa **`recarregarUmaVez()`**, obrigatoriamente:
+`carregarReparosBancada()` devolve **promise já resolvida** quando já está carregando, que é
+exatamente o laço de microtask que congelou o celular do dono em 18/ago.
+
+**Quem vê:** o bloco está atrás de `podeVerCustoServico()` (sócio e bancada). O Vitinho vê as idas
+que ele mesmo registrou; o dinheiro da nota é de sócio (`reparos` tem policy `reparos_socio`), e o
+campo *Investido* fica atrás de `podeVerMargem()`.

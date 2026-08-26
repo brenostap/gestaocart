@@ -181,6 +181,17 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     aparelho da prateleira: em 26/ago o `SP829` (15 Azul, R$ 2.400, `available`) estava na RR e
     **fora da lista de "não vender"**. A tela **sugere e a pessoa confirma olhando** — casar por 4
     dígitos sozinho já colou aparelho de cliente num apple do estoque, e há **dois 8849** hoje.
+  - **O histórico de serviço aparece dentro do aparelho, na tela de Estoque** (26/ago/2026):
+    campo **Investido** (compra + reparo) e o bloco *Assistência*, com data, fornecedor, serviço e
+    R$ por ida. Montado por `bncHistoricoHtml()` em `js/bancada.js` — a tela de Estoque só pede,
+    mesmo caminho de `bancadaDoApple()`.
+    - ⚠️ **`reparos` e `bancada` não se somam.** A nota cai **dentro** de uma ida por contenção
+      (mesmo fornecedor, data entre `saiu_em` e `voltou_em`); o que não encaixa vira linha própria.
+      O total exibido é **só o da nota**, e por `apple_id` apenas — casar por 4 dígitos ali faria
+      divergir do `reparo −R$X` da margem real, na mesma tela.
+    - ⚠️ **"Sem valor" tem quatro motivos e só um é problema**: `↩ grátis` (retorno), `nota não
+      carregada`, `ainda fora` e `sem cobrança`. Confundi-los manda o dono atrás de cobrança que
+      não existe.
   - **Teste**: `node test/bancada.test.js`. Monta a tela de Assistência **e a de Estoque** — o selo
     mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
 - **`estoque_correcoes`** — ⚠️ **`estoque` não é editável**: o sync reescreve as 237 linhas de hora

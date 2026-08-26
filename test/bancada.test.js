@@ -445,5 +445,76 @@ const sugFora = (function(){
 })();
 eq('aparelho que já está fora não é sugerido', sugFora, 0);
 
+console.log('\nhistórico de assistência dentro do aparelho (tela Estoque)\n');
+
+// Até 26/ago/2026 o Estoque mostrava só `reparo −R$300`: o total, sem dizer o
+// que foi feito, quando nem onde. Saber se valia consertar de novo exigia sair
+// da tela, abrir a Assistência e buscar pelo IMEI.
+const hist = (function(){
+  const antesB = R('_bancadaCache'), antesR = R('_reparosCache');
+  R("_bancadaCache = [" +
+    // ida COM nota dentro dela (mesmo fornecedor, data entre saiu e voltou)
+    "{id:90,apple_id:101,imei4:'8580',fornecedor:'RR',origem:'estoque'," +
+    " servico:'Troca de tela',saiu_em:'2026-07-10',voltou_em:'2026-07-15'}," +
+    // ida DEPOIS da última nota carregada (08/ago): nota ainda não existe
+    "{id:91,apple_id:101,imei4:'8580',fornecedor:'RR',origem:'estoque'," +
+    " servico:'Subida de bateria',saiu_em:'2026-08-20',voltou_em:'2026-08-21'}," +
+    // retorno na garantia: é grátis, não é cobrança faltando
+    "{id:92,apple_id:101,imei4:'8580',fornecedor:'RR',origem:'estoque'," +
+    " servico:'Subida de bateria',saiu_em:'2026-08-22',voltou_em:'2026-08-23',retorno_de:91}," +
+    // ainda fora
+    "{id:93,apple_id:101,imei4:'8580',fornecedor:'ACCESS',origem:'estoque'," +
+    " servico:'Face ID',saiu_em:'2026-08-25',voltou_em:null}]");
+  R("_reparosCache = [" +
+    "{id:70,apple_id:101,fornecedor:'RR',servico:'Troca de Tela',valor_liquido:300,data_servico:'2026-07-12',status:'ok'}," +
+    // nota SEM ida registrada: o livro da bancada só começou depois
+    "{id:71,apple_id:101,fornecedor:'RR',servico:'Conector de Carga',valor_liquido:180,data_servico:'2026-08-08',status:'ok'}," +
+    // outro aparelho: não pode vazar pra este
+    "{id:72,apple_id:202,fornecedor:'RR',servico:'Face ID',valor_liquido:900,data_servico:'2026-08-01',status:'ok'}]");
+  const d = R('bncHistoricoDoApple(101, "350000000008580")');
+  const h = R('bncHistoricoHtml(101, "350000000008580")');
+  const vazio = R('bncHistoricoHtml(303, "350000000003324")');
+  // `reparo` na margem real vem da view v_estoque_margem, não do cache local --
+  // e é ela que alimenta o campo "Investido".
+  const antesM = R('_margemExtra');
+  R("setMargemExtra([{apple_id:101, dias_parado:30, reparo:480, entrou_em:'2026-07-01'}]);");
+  R('estoqueAbertos.add(101); _origem[101] = null;');
+  const tela = R('(function(){ currentTab="estoque"; return renderEstoque(); })()');
+  R('estoqueAbertos.delete(101); _margemExtra = ' + JSON.stringify(antesM) + ';');
+  R('_bancadaCache = ' + JSON.stringify(antesB));
+  R('_reparosCache = ' + JSON.stringify(antesR));
+  return { d, h, vazio, tela };
+})();
+
+eq('o total em nota é só deste aparelho', hist.d.total, 480);
+eq('4 idas + 1 nota que não coube em nenhuma = 5 linhas', hist.d.linhas.length, 5);
+// ⚠️ A nota cai DENTRO da ida por contenção (mesmo fornecedor, data entre saiu
+// e voltou). Nunca por chute: o que não encaixa vira linha própria.
+eq('a nota de 12/jul entra na ida de 10→15/jul', hist.d.linhas[0].valor, 300);
+eq('e a ida some a nota certa', hist.d.linhas[0].ida.id, 90);
+ok('a nota de 08/ago, sem ida, vira linha própria',
+   hist.d.linhas.some(x => x.tipo === 'nota' && x.nota.id === 71));
+ok('nota de outro aparelho não vaza', !JSON.stringify(hist.d).includes('"id":72'));
+
+// ⚠️ As duas fontes NÃO se somam: a nota é o dinheiro, a ida é o paradeiro.
+// Somar contaria o mesmo conserto duas vezes.
+ok('o total é o da nota, não nota + idas', hist.h.includes('em nota'));
+ok('a tela avisa que não se somam', /não se somam/.test(hist.h));
+
+// Sem valor tem TRÊS motivos diferentes. Confundi-los faz o dono achar que
+// tem cobrança faltando quando não tem.
+ok('retorno aparece como grátis', /grátis/.test(hist.h));
+ok('ida depois da última nota diz que a nota não chegou',
+   /nota não carregada/.test(hist.h));
+ok('ida em aberto diz "ainda fora"', /ainda fora/.test(hist.h));
+
+ok('diz o serviço que foi feito', hist.h.includes('Troca de tela'));
+ok('aparelho sem histórico não gera bloco vazio', hist.vazio === '');
+
+// O bloco tem que aparecer DE VERDADE na tela de Estoque, com o aparelho
+// aberto -- é lá que a pergunta "vale consertar de novo?" acontece.
+ok('a tela de Estoque monta com o bloco dentro', /est-rep-linha/.test(hist.tela));
+ok('e mostra o total investido (compra + reparo)', /Investido/.test(hist.tela));
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

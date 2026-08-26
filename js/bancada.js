@@ -351,6 +351,99 @@ function bncPrecoRef(fornecedor, servico){
   return { valor: vals.length % 2 ? vals[m] : (vals[m-1]+vals[m])/2, n: vals.length };
 }
 
+// ---------------------------------------------------------------------------
+// HISTÓRICO DE ASSISTÊNCIA DE UM APARELHO — pra tela de Estoque
+//
+// Até 26/ago/2026 o Estoque mostrava o reparo como UMA linha: `reparo −R$300`,
+// dentro da margem real. O total, sem dizer o que foi feito, quando, nem onde.
+// Pra saber se valia consertar de novo um aparelho que já tinha voltado duas
+// vezes era preciso sair do Estoque, abrir a Assistência e buscar pelo IMEI.
+//
+// ⚠️ AS DUAS FONTES NÃO SE SOMAM. `reparos` é o DINHEIRO (vem da nota, depois
+// do fato); `bancada` é o PARADEIRO (vem da pessoa, durante). Juntar os totais
+// conta o mesmo conserto duas vezes. Aqui elas são costuradas por CONTENÇÃO --
+// a nota cai dentro da ida quando é do mesmo fornecedor e a data está entre
+// saiu e voltou. O que não encaixa aparece como linha própria, nunca chutado.
+//
+// ⚠️ O total em nota usa SÓ `apple_id`, igual à view `v_estoque_margem`. Casar
+// nota por 4 dígitos aqui faria a soma divergir do `reparo −R$X` que a margem
+// real já mostra na mesma tela -- dois números diferentes pro mesmo aparelho.
+// ---------------------------------------------------------------------------
+function bncHistoricoDoApple(appleId, imei){
+  const f4 = String(imei || '').replace(/\D/g,'').slice(-4);
+  const alvo = { apple_id: appleId, imei4: f4 };
+
+  const idas = (_bancadaCache || [])
+    .filter(l => bncMesmoAparelho(l, alvo))
+    .sort((a, b) => String(a.saiu_em).localeCompare(String(b.saiu_em)));
+
+  const notas = (_reparosCache || [])
+    .filter(r => appleId != null && String(r.apple_id) === String(appleId))
+    .sort((a, b) => String(a.data_servico).localeCompare(String(b.data_servico)));
+
+  const usadas = new Set();
+  const linhas = idas.map(l => {
+    const dentro = notas.filter(r => !usadas.has(r.id)
+      && r.fornecedor === l.fornecedor
+      && r.data_servico >= l.saiu_em
+      && (!l.voltou_em || r.data_servico <= l.voltou_em));
+    dentro.forEach(r => usadas.add(r.id));
+    return { tipo:'ida', data:l.saiu_em, ida:l, notas:dentro,
+             valor: dentro.reduce((a, r) => a + parseFloat(r.valor_liquido || 0), 0) };
+  });
+  notas.filter(r => !usadas.has(r.id))
+       .forEach(r => linhas.push({ tipo:'nota', data:r.data_servico, nota:r,
+                                   valor: parseFloat(r.valor_liquido || 0) }));
+  linhas.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+
+  return { linhas, idas, notas,
+           total: notas.reduce((a, r) => a + parseFloat(r.valor_liquido || 0), 0) };
+}
+
+function bncHistoricoHtml(appleId, imei){
+  if(typeof podeVerCustoServico !== 'function' || !podeVerCustoServico()) return '';
+  const h = bncHistoricoDoApple(appleId, imei);
+  if(!h.linhas.length) return '';
+
+  const ate = bncUltimaNota();
+  const onde = f => f === 'RR' ? 'RR' : f === 'ACCESS' ? 'Access' : (f || '—');
+
+  const valorHtml = (x) => {
+    if(x.valor > 0) return `<b>${moneyServico(x.valor)}</b>`;
+    if(x.tipo !== 'ida') return '—';
+    // Sem valor tem TRÊS motivos diferentes, e confundi-los é o que faz o dono
+    // achar que tem cobrança faltando quando não tem.
+    if(x.ida.retorno_de) return UI.badge('↩ grátis', 'alerta');
+    if(!x.ida.voltou_em) return '<i class="est-rep-vazio">ainda fora</i>';
+    if(ate && x.ida.saiu_em > ate) return '<i class="est-rep-vazio">nota não carregada</i>';
+    return '<i class="est-rep-vazio">sem cobrança</i>';
+  };
+
+  const corpo = h.linhas.map(x => {
+    const serv = x.tipo === 'ida' ? (x.ida.servico || '—') : (x.nota.servico || '—');
+    const forn = x.tipo === 'ida' ? x.ida.fornecedor : x.nota.fornecedor;
+    const quando = x.tipo === 'ida' && x.ida.voltou_em
+      ? bncFmtData(x.data) + '→' + bncFmtData(x.ida.voltou_em)
+      : bncFmtData(x.data);
+    return `<div class="est-rep-linha">
+      <span class="est-rep-data">${UI.esc(quando)}</span>
+      <span class="est-rep-onde">${UI.esc(onde(forn))}</span>
+      <span class="est-rep-serv">${UI.esc(serv)}</span>
+      <span class="est-rep-val">${valorHtml(x)}</span>
+    </div>`;
+  }).join('');
+
+  const idasTxt = h.idas.length === 1 ? '1 ida registrada' : h.idas.length + ' idas registradas';
+  return `
+    <div class="est-rep">
+      <div class="est-rep-tit">Assistência · <b>${moneyServico(h.total)}</b> em nota${
+        h.idas.length ? ' · ' + idasTxt : ''}</div>
+      ${corpo}
+      <div class="est-rep-nota">A nota diz o dinheiro; a ida diz o paradeiro. São fontes
+        diferentes — o total é o da nota, e as idas não se somam a ele.</div>
+    </div>`;
+}
+
 // Usado pela tela de Estoque pra marcar o aparelho que esta fora.
 // Chave por apple_id; o imei4 e a rede de seguranca pro aparelho que trocou de
 // id (ou que veio do estoque "fresco" da FoneNinja com outra forma).

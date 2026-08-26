@@ -268,6 +268,13 @@ function renderEstoque(){
     recarregarUmaVez('bancada', carregarBancada);
   if(typeof _correcoesCache !== 'undefined' && _correcoesCache === null)
     recarregarUmaVez('correcoes', carregarCorrecoes);
+  // O histórico de serviço do aparelho mora em `reparos` (o dinheiro), que só
+  // era carregado ao abrir a Assistência.
+  // ⚠️ recarregarUmaVez, sempre: carregarReparosBancada() devolve promise JÁ
+  // RESOLVIDA quando já está carregando -- é o laço de microtask de 18/ago.
+  if(typeof _reparosCache !== 'undefined' && _reparosCache === null
+     && typeof carregarReparosBancada === 'function')
+    recarregarUmaVez('reparos', carregarReparosBancada);
 
   // Zero item e ambiguo de proposito nao: "a loja nao tem aparelho" e "eu nao
   // consegui ler o estoque" davam a MESMA tela. Com 218 aparelhos na prateleira
@@ -556,6 +563,13 @@ function renderEstoqueTabela(dados){
       // fornecedor e margem sao informacao de socio (brief §2)
       if(podeVerMargem()){
         campos.splice(1, 0, ['Fornecedor', escapeHtml(getFornNome(l.d.item) || '—')]);
+        // Custo de aquisição + o que já se gastou consertando. `valor_estoque`
+        // não pode mudar (o sync reescreve de hora em hora), então o total
+        // investido só existe somado aqui, à vista.
+        if(l.d.custo != null && l.d.reparo > 0)
+          campos.push(['Investido', `${money(l.d.custo + l.d.reparo)}
+            <span class="est-inv-conta">${money(l.d.custo)} de compra
+            + ${moneyServico(l.d.reparo)} de reparo</span>`]);
         campos.push(['Margem bruta', l.d.margem == null ? '—' : money(l.d.margem)]);
         campos.push(['Margem real', margemRealHtml(l.d)]);
       }
@@ -563,10 +577,15 @@ function renderEstoqueTabela(dados){
       const editor = (typeof podeCorrigirEstoque === 'function' && podeCorrigirEstoque()
                       && typeof corBlocoHtml === 'function') ? corBlocoHtml(l.d) : '';
 
+      // O histórico de idas vem da Assistência (bancada.js), que é dona das
+      // duas fontes -- mesmo caminho de `bancadaDoApple()`.
+      const hist = typeof bncHistoricoHtml === 'function'
+        ? bncHistoricoHtml(l.d.item.id, l.d.imei) : '';
+
       return `<tr class="est-detalhe"><td colspan="${COLUNAS_ESTOQUE}">
         <div class="est-det-campos">
           ${campos.map(([r,v]) => `<div><i class="det-rot">${r}</i>${v}</div>`).join('')}
-        </div>${editor}</td></tr>`;
+        </div>${hist}${editor}</td></tr>`;
     }
     const d = l.d;
     // Aparelho na assistencia continua na lista (ele e nosso e volta), mas nao
