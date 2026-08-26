@@ -106,10 +106,36 @@ Atributos conhecidos **antes de a IA fazer qualquer coisa**:
 **1.884 leads em três meses entram por anúncio que fala do aparelho que a pessoa já tem, e a IA
 transfere quase metade do resto.** Dentro do Instagram, mesmo canal e mesma IA: **14,6% × 25,5%**.
 
-⚠️ **Medido, não explicado.** A hipótese óbvia é que esse anúncio atrai quem quer **vender**, não
-comprar — e a IA está certa em não mandar pro vendedor. Se for isso, não é defeito da IA: é lead
-de **compra de estoque** no funil errado, e compra de estoque é o melhor canal de margem que a loja
-tem (`docs/ANALISE-JUN-JUL-2026.md`). **Ler 30 dessas conversas antes de decidir qualquer coisa.**
+### ⚠️ Li as conversas. Minha hipótese estava ERRADA — e o que tem embaixo é melhor
+
+Eu supus que esses anúncios atraíam quem quer **vender** o aparelho, e que a IA estava certa em não
+transferir. **Não é isso.** Lidas 30 conversas de agosto:
+
+O texto que chega como "primeira mensagem do cliente" é o **template pré-preenchido do anúncio** —
+*"Quero trocar o meu iPhone 11 usado por um mais atual…"*. Ninguém digitou aquilo. E a mensagem
+seguinte, essa sim escrita pela pessoa, é sempre **qual aparelho ela quer comprar**:
+
+> *"Quero o 13 verde de 256gb"* · *"17 Pro Max"* · *"iPhone 14 Pro com 256GB"* · *"15 pro max"*
+
+São **compradores com aparelho de troca** — que é o **melhor canal de margem da loja**
+(`docs/ANALISE-JUN-JUL-2026.md`: troca dá ~1,5× a margem de um aparelho comprado de fornecedor).
+
+**E também não é qualidade de lead.** Controlando por engajamento (entrou na avaliação de troca):
+
+| | leads | msgs do cliente | cotou preço | **pediu o dia** | **transferiu** |
+|---|---|---|---|---|---|
+| A. aparelho do cliente | 715 | 8,9 | 84,6% | **25,3%** | **17,9%** |
+| B. preço/produto | 550 | 9,3 | 90,7% | **40,2%** | **34,5%** |
+
+**Mesmo engajamento, mesmo preço cotado — e ela pede o dia 15 pontos menos e transfere 17 pontos
+menos.** O problema é o **fechamento**, não o lead.
+
+O mecanismo aparece na leitura: quando há troca, **a avaliação vira o fim da conversa**. Ela entrega
+o laudo e emenda numa pergunta lateral em vez de marcar o dia —
+*"Avaliação do seu 11 em R$ 150, tudo certo por aí? E qual cor do 14 Pro Max você mais gostou?"*
+
+⚠️ Registro o erro porque ele quase virou decisão de mídia: eu ia recomendar tirar esses criativos
+do funil de venda. Seria jogar fora o melhor canal de margem da loja.
 
 ### Como virar score
 
@@ -123,6 +149,55 @@ valor_esperado_do_lead = P(transferência | segmento)
 
 Recalcular **mensal**. Usos: (a) variável de controle; (b) priorizar quem recebe re-alerta e
 follow-up; (c) decidir verba por criativo.
+
+---
+
+## 3-bis. ⭐⭐ O que a leitura achou de verdade: ela promete um humano e não chama
+
+Procurando o mecanismo do §3 eu tropecei num padrão **maior e que não é dos anúncios de troca** —
+é da IA inteira, nos dois canais. Ela **assume um compromisso em nome da loja e não aciona ninguém**.
+
+**Cart, jul+ago/2026, conversas que chegaram a preço:**
+
+| | Instagram | WhatsApp | **total** |
+|---|---|---|---|
+| leads com preço cotado | 4.102 | 3.516 | 7.618 |
+| assumiu compromisso | 1.335 | 1.219 | 2.554 |
+| **compromisso assumido e NINGUÉM avisado** | **714** | **487** | **1.201** |
+| ↳ disse *"um especialista vai confirmar"* | 447 | 287 | **734** |
+| ↳ **marcou dia e hora** | 211 | 227 | **438** |
+| ↳ disse que **separou/reservou o aparelho** | 138 | 28 | **166** |
+
+**~600 por mês.** Casos reais lidos, todos sem transferência:
+
+- *"Fiquei com o **17 Pro 256 Titânio Azul separado** aqui **pra sexta às 16h**. Me passa o nome
+  completo que eu finalizo."* — aparelho reservado, visita marcada, ninguém sabe.
+- *"Pra **segunda-feira**, que horário você prefere? Assim já deixo separado pra você."*
+- *"Esse modelo está sujeito à disponibilidade. **Um de nossos especialistas vai confirmar.**"* —
+  ela promete o especialista e não chama nenhum.
+
+### Por que este é o melhor primeiro alarme automático
+
+1. **Não precisa de juiz LLM nem de julgamento.** É regex na fala **dela**. Não há ambiguidade: ou
+   disse "sexta às 16h", ou não disse.
+2. **Não depende de conversão.** É defeito, não métrica — cabe no alarme diário de exceção (§8).
+3. **É a promessa quebrada mais cara que existe**: o cliente marcou, e ninguém apareceu.
+4. Já dá pra rodar **hoje**, sem o Dudu ligar nada.
+
+**Regra de escalada proposta, em uma frase:** *transferir automaticamente sempre que ela disser um
+dia e hora, disser que separou/reservou, ou prometer que um especialista vai confirmar.*
+
+### Quanto vale — com a ressalva na frente
+
+⚠️ **Contrafactual, não medido.** Usando os números da coorte madura de `ANALISE-MAJU-AGO-2026.md`
+para o recorte *"cliente deu data"*: transferido converte **15,24%**, não transferido **5,13%**.
+Aplicado só às **438 conversas com dia e hora** (o balde menos ambíguo): ~44 vendas em 2 meses,
+**~22/mês**.
+
+Três motivos para tratar isso como **teto**: (a) o contrafactual assume que as não transferidas se
+comportariam como as transferidas; (b) aqueles 15,24% são de WhatsApp/Cart e o Instagram converte
+pior; (c) parte das 438 pode ter sido atendida por fora sem o campo ser gravado. **Um terço disso já
+seria a maior alavanca isolada medida até hoje neste projeto.**
 
 ---
 
@@ -252,8 +327,10 @@ Três peças, e **nenhuma precisa de infra nova**:
 
 1. **Pedir pro Dudu ligar `conversa_estado`** nas duas lojas e dois canais. Destrava tudo e não é
    trabalho nosso. *(camada 0)*
-2. **Ler 30 conversas dos anúncios "POSSUI / PROCURA-SE"** e decidir se é funil errado. Se for, é a
-   maior alavanca isolada da lista — 1.884 leads em 3 meses. *(camada 1)*
+2. ~~Ler 30 conversas dos anúncios "POSSUI / PROCURA-SE"~~ **feito (§3)** — não é funil errado, são
+   compradores com troca. Virou o item abaixo.
+2b. ⭐⭐ **Ligar o alarme de "compromisso assumido sem ninguém avisado"** (§3-bis). ~600/mês, regex
+   na fala dela, roda hoje sem depender de ninguém. *(camada 2)*
 3. **Estender `metricas-semanais.sql` pro Instagram e pra Urban** e ligar a taxa padronizada do §6.
    *(camada 2 + métrica de topo)*
 4. **Score do lead por segmento**, mensal, na coorte madura. *(camada 1)*
