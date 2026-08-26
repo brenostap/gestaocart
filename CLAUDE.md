@@ -287,6 +287,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     6x pra cima (~R$6,2 mil/mês no mix de julho). Detalhe em `docs/REGISTRO-VENDA-2026-08.md`.
 
 ## Caderno de ideias
+- `docs/IAS-E-ESPECIALISTAS.md` — **quem é IA e quem é gente no atendimento** (Maju=Cart, Duda=Urban;
+  David/Mel/Isa/Maria são os especialistas), a chave que liga conversa→lead→venda, e o mapa de
+  **todos** os relatórios das IAs — inclusive as views do Dudu (`dash_transfers`, `dash_vendas_ia`)
+  que respondem o funil sem bater na produção. Ler antes de qualquer análise de atendimento.
 - `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.
 
 ## Como trabalhar aqui (evita a bagunça de jul/2026)

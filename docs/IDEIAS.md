@@ -366,7 +366,23 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
   de lá — o "Ver como" continua por cima, só pro dono.
 
 ## Atendimento / Chatwoot
+Mapa de quem é quem e como conversa vira venda: **`docs/IAS-E-ESPECIALISTAS.md`** (ler primeiro).
 Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026.md` · `scripts/chatwoot.js` · `scripts/maju/` · agente `analista-conversas`.
+- 🔨 ⭐⭐ **O Instagram da Urban perde o lead antes de tudo**: 1.003 conversas em 14 dias e só
+  **12,4%** chegam a um especialista, contra 33,8% do WhatsApp dela e **32,5% do Instagram da
+  Cart**. É 77% do volume da Urban. Mesma arquitetura das duas lojas → é configuração. Comparar o
+  fluxo de handoff da Duda/IG com o da Maju/IG é a coisa mais barata da lista.
+- 🔨 ⭐ **Levar o `transfer_retentativas` pro Instagram** — em ago/Cart foram 351 eventos no
+  WhatsApp e **1 alerta efetivo no Instagram** no mês inteiro. O mecanismo é a resposta ao balde
+  "preço dado e ninguém avisado", e nasceu só no canal que já era o melhor.
+- ❓ **Divergência Urban/IG**: `dash_transfers` diz rodízio 50/50 Mel/David; o `meta.assignee` do
+  Chatwoot diz David com 98%. Na Cart os dois concordam. **Perguntar pro Dudu** — `vendedorAtribuido`
+  é a trava do N5, que sustenta 13 das 21 vendas casadas da Urban.
+- 🔨 **Conectar o WhatsApp pessoal dos especialistas ao Chatwoot** (plano do dono, sem data). É o
+  que abre a segunda metade do funil — hoje o Chatwoot fica cego no handoff.
+- ⚠️ **Instagram converte 3–4× pior que WhatsApp nas duas lojas** (coorte jun: Cart 2,4% × 10,2%,
+  Urban 4,4% × 11,9%) — **mas parte disso é medição**: lead de IG não tem telefone. Não dá pra
+  separar conversão pior de detecção pior com o dado de hoje.
 - 🔨 ⭐⭐ **Ela não pergunta o dia** (24,6% das conversas qualificadas). Quando pergunta, o cliente
   dá data em 43% contra 8%; com data a conversão é 14,9% contra 3,4%. **34 conversas da janela de
   ago terminam com convite pra loja sem pedir dia e 0 (zero) foram transferidas.** Detalhe e

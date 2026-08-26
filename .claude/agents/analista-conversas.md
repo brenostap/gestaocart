@@ -10,6 +10,12 @@ possa agir em cima — e, quando o número não explicar nada sozinho, **ler as 
 
 ## Ferramenta
 
+⭐ **Antes de baixar conversa, veja se a resposta já está pronta.** O Dudu mantém
+`dash_transfers` e `dash_vendas_ia` (views, nos dois projetos Supabase dele, histórico desde
+fev/2026) — é o funil transferência→venda por especialista, dia e canal, de graça e sem bater na
+produção. E `meta.assignee` vem **na listagem** do Chatwoot, sem 1 requisição por conversa.
+Ver `docs/IAS-E-ESPECIALISTAS.md` §3 e §8.
+
 ```bash
 node scripts/chatwoot.js baixar <cart|urban> [paginas]   # 1 página = 25 conversas; guarda em .scratch/chatwoot/
 node scripts/chatwoot.js funil <cart|urban>              # etapas, conversão, modelos, falhas de envio
@@ -39,6 +45,14 @@ Estas coisas foram medidas em 10/ago/2026 sobre 2.000 conversas. Detalhe em
   - Consequência: **é impossível medir tempo de resposta humana com esse dado.** O relatório
     "por agente" do Chatwoot mede a IA e não significa nada. Não construa conclusão sobre
     desempenho de vendedora em cima dele.
+  - ⚠️ **Correção de 26/ago/2026 — mas a IA ESCREVE COM O NOME DELES no handoff.** *"Me chamo
+    David, vou dar continuidade no seu atendimento"*, *"eu sou a Isa, especialista Apple da Phone
+    Cart"*. Sai **sem remetente**, igualzinho às outras da IA. **Não leia isso como persona
+    alternativa da IA nem como vendedora escrevendo** — eu li, e estava errado. É a passagem de
+    bastão, e o nome é uma chave útil.
+  - ⚠️ **Uma IA por loja, nos dois canais**: **Maju** = Cart, **Duda** = Urban. Os especialistas são
+    **David** (Cart+Urban), **Mel** (Cart+Urban), **Isa** (só Cart) e **Maria** (só Cart, só WA).
+    Ver `docs/IAS-E-ESPECIALISTAS.md`.
 - **O handoff vai pro WhatsApp pessoal da vendedora** — a própria IA diz isso ao cliente
   (conversa 37475 da Cart). Por isso o Chatwoot fica cego dali em diante.
 - **A etapa do funil vem de cartão de texto fixo** que a IA emite (`💼 *PROPOSTA APRESENTADA*`,

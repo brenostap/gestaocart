@@ -1,5 +1,11 @@
 # Atendimento no Chatwoot — o que o dado diz (10/ago/2026)
 
+> ⚠️ **Leia `docs/IAS-E-ESPECIALISTAS.md` antes deste.** Em 26/ago/2026 o dono corrigiu a leitura de
+> quem é quem: **Maju é a IA da Cart e Duda a da Urban, as duas nos dois canais**, e as mensagens
+> assinadas *"me chamo David / sou a Isa"* são a **IA fazendo o handoff em nome do especialista** —
+> não persona da IA, não vendedora escrevendo. O resto deste documento continua válido; a seção
+> "Nenhuma vendedora escreve no Chatwoot" continua verdadeira, só estava incompleta.
+
 Primeira análise das conversas de atendimento, feita no dia em que o acesso à API foi liberado.
 Amostra: **1.200 conversas da Cart + 800 da Urban**, com todas as mensagens (≈32 mil), janela de
 **05 a 10/ago/2026**. Ferramenta: `scripts/chatwoot.js`. Agente: `.claude/agents/analista-conversas.md`.
