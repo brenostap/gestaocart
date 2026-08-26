@@ -1,8 +1,7 @@
 # As IAs, os especialistas, e como conversa vira venda (26/ago/2026)
 
-Mapa único do atendimento: quem é robô, quem é gente, qual chave liga uma coisa na outra, e o que
-cada relatório que já existe mede. Escrito no dia em que o dono corrigiu uma leitura errada minha —
-e a correção destravou a ligação que faltava.
+Mapa único do atendimento: quem é robô, quem é gente, qual chave liga uma coisa na outra, o
+**inventário completo** de tudo que existe de dado, e o que já dá pra conectar ponta a ponta.
 
 Junta e substitui a parte de "quem é quem" de `docs/CHATWOOT-ANALISE.md`,
 `docs/ANALISE-MAJU-AGO-2026.md` e `docs/ATRIBUICAO-LEADS-VENDAS.md`, que continuam valendo para o
@@ -19,248 +18,337 @@ resto.
 | **Cart** | **Maju** | WhatsApp + Instagram |
 | **Urban** | **Duda** | WhatsApp + Instagram |
 
-A IA atende do começo ao fim e **transfere pro especialista** (vendedor online). Os especialistas:
+A IA atende do começo ao fim e **transfere pro especialista** (vendedor online):
 
-| especialista | Cart | Urban | onde recebe (medido 12–26/ago) |
-|---|---|---|---|
-| **David** | sim | sim | IG e WA na Cart · **quase só IG** na Urban |
-| **Mel** | sim | sim | quase só IG na Cart · **quase só WA** na Urban |
-| **Isa** | **só Cart** | — | IG e WA |
-| **Maria** | só Cart | — | **só WA** |
+| especialista | Cart | Urban |
+|---|---|---|
+| **David** | sim | sim |
+| **Mel** | sim | sim |
+| **Isa** | **só Cart** | — |
+| **Maria** | só Cart (só WhatsApp) | — |
 
-Pietra aparece na Cart como *Suporte*, não como vendas (17 conversas em 14 dias).
+Pietra aparece na Cart como *Suporte*, não vendas.
 
 ### ⚠️ A correção que gerou este documento
 
-A IA **se apresenta com o nome do especialista** no momento do handoff:
+A IA **se apresenta com o nome do especialista** no handoff:
 
 > *"Me chamo David, vou dar continuidade no seu atendimento✨🩵"*
-> *"Prazer, eu sou a Isa, especialista Apple da Phone Cart e a partir de agora, vou cuidar do seu
-> atendimento hoje!"*
 
-Isso **não é** persona alternativa da IA nem vendedora escrevendo no Chatwoot. É a passagem de
-bastão. Eu li como "a IA usa 4 nomes diferentes" e estava errado — fica registrado porque o erro é
-fácil de repetir: as mensagens saem **sem remetente**, exatamente como as da própria IA.
+Isso **não é** persona alternativa da IA nem vendedora escrevendo. É a passagem de bastão. Eu li
+como "a IA usa 4 nomes diferentes" e estava errado — as mensagens saem **sem remetente**,
+exatamente como as da própria IA, e é fácil repetir o erro.
 
-O que continua verdade de `CHATWOOT-ANALISE.md`: **nenhum humano escreve no Chatwoot**. Depois do
-handoff o especialista conversa pelo **WhatsApp pessoal dele** e o Chatwoot fica cego. Todo
-relatório "por agente" do Chatwoot mede a IA, não a pessoa.
+O que continua verdade: **nenhum humano escreve no Chatwoot**. Depois do handoff o especialista
+conversa pelo **WhatsApp pessoal dele** e o Chatwoot fica cego. Todo relatório "por agente" do
+Chatwoot mede a IA.
 
-📌 **Plano do dono:** conectar os números pessoais dos especialistas ao Chatwoot, pra ter também
-essa metade. Sem data. É a mudança que mais aumentaria o que dá pra medir aqui.
+📌 **Plano do dono:** conectar os números pessoais dos especialistas ao Chatwoot. É a mudança que
+mais aumentaria o que dá pra medir aqui.
 
 ---
 
-## 2. A chave que liga tudo: o nome do especialista
+## 2. A chave que liga tudo
 
-O mesmo nome (`david`, `mel`, `isa`, `maria`) aparece em **três sistemas independentes**, e é isso
-que costura conversa → lead → venda:
+O nome do especialista aparece em **três sistemas independentes**:
 
-| onde | campo | o que significa |
-|---|---|---|
-| **Painel** (Supabase `pfsfsibgmtbifypuyyqf`) | `vendas.vendedor_obs` | quem fechou a venda |
-| **n8n / Dudu** (`supabase-cart`, `supabase-urban`) | `contatos*.vendedorAtribuido` + `dataTransferencia` | pra quem a IA transferiu, e quando |
-| **Chatwoot** (as duas instâncias) | `conversations.meta.assignee` | quem ficou como responsável da conversa |
+| onde | campo |
+|---|---|
+| **Painel** (`pfsfsibgmtbifypuyyqf`) | `vendas.vendedor_obs` |
+| **n8n / Dudu** (`supabase-cart`, `supabase-urban`) | `contatos*.vendedorAtribuido` + `dataTransferencia` |
+| **Chatwoot** (2 instâncias) | `conversations.meta.assignee` |
 
-⚠️ **`vendedor_obs` continua vindo da observação da venda** — ver `CLAUDE.md`. E ⚠️ **ter o nome não
-é receber comissão**: `maju` e `duda` também aparecem como vendedor (7 e 0 vendas em ago), e não
-entram em `VO_KEYS`.
+⚠️ **Ter o nome não é receber comissão**: `maju` e `duda` também aparecem como vendedor no painel
+(7 e 0 vendas em ago) e não entram em `VO_KEYS`.
 
-### O Chatwoot dá isso de graça
-
-`meta.assignee` vem **na listagem** de conversas — 1 requisição por 25 conversas, sem precisar
-buscar mensagem. É a forma barata de medir handoff por especialista e por canal, e **funciona na
-Urban**, que é onde o dado do n8n é mais fraco.
+⚠️ **O `meta.assignee` do Chatwoot não é confiável na Urban** — ver §6.3. Para taxa de
+transferência, a fonte boa é `contatos*.vendedorAtribuido`.
 
 ---
 
-## 3. Os relatórios que já existem
+## 3. Inventário completo do que existe (26/ago/2026)
 
-### Nossos (neste repo)
+### 3.1 Supabase do Dudu — `supabase-cart` (`cmzptavlhdfklpfdcynf`)
 
-| o quê | onde | mede |
-|---|---|---|
-| Funil do Chatwoot | `scripts/chatwoot.js funil` + `docs/CHATWOOT-ANALISE.md` | etapas, preço, demanda por modelo |
-| Preço sem handoff | `scripts/preco-sem-handoff.js` | o balde dos 71% |
-| Comportamento da Maju | `scripts/maju/*.sql` + `docs/ANALISE-MAJU-AGO-2026.md` | pergunta o dia, baldes de morte, coorte madura |
-| Atribuição lead→venda | `scripts/atribuicao/` + `docs/ATRIBUICAO-LEADS-VENDAS.md` | cascata N0–N5 |
-| Agente de análise | `.claude/agents/analista-conversas.md` | — |
-
-### ⭐ Os do Dudu, que nós não sabíamos que existiam
-
-Views e tabelas nos dois projetos do Dudu, **mesmo schema nos dois**, com histórico desde
-**27/fev/2026**. Nenhuma estava documentada aqui:
-
-| objeto | tipo | o que é |
-|---|---|---|
-| **`dash_transfers`** | view | `dia · vendedor · canal · transfers` — transferências por especialista/dia/canal |
-| **`dash_vendas_ia`** | view | `dia · canal · id_venda · telefone · vendedor · dia_transf` — venda atribuída ao lead |
-| `transfer_retentativas` | tabela | re-alerta do especialista quando o lead volta a falar |
-| `relatorioVendas` | tabela | espelho da venda com comissão calculada |
-| `v_comissao_por_vendedor`, `v_resumo_mensal`, `v_resumo_diario` | views | agregados |
-| `agenda_envios` | tabela | envio da agenda pros vendedores |
-
-⚠️ **`dash_vendas_ia` é a marcação do fluxo (o **N0** do doc de atribuição)** — `contatos*.comprou`
-+ `data_compra`. É o **melhor sinal que temos**: medido contra verdade conhecida deu **97,7% de
-precisão e 91,7% de recall**, muito acima de qualquer match por nome. **Use ela, não reimplemente
-matcher.**
-
-⚠️ **Uma linha por lead, não por venda.** Em ago/Cart são 245 linhas para **172 vendas distintas**,
-e **57 vendas são reivindicadas pelos dois canais ao mesmo tempo**. Sempre `count(distinct
-id_venda)`; somar linha por canal conta a mesma venda duas vezes.
-
----
-
-## 4. O que o dado diz — o funil inteiro, por canal
-
-### Etapa 1: a IA transfere? (Chatwoot, 12–26/ago, conversas com atividade)
-
-| | conversas | **com handoff** |
-|---|---|---|
-| Cart · WhatsApp | 963 | **39,9%** |
-| Cart · Instagram | 1.519 | **32,5%** |
-| Urban · WhatsApp | 302 | **33,8%** |
-| **Urban · Instagram** | **1.003** | **12,4%** |
-
-### Etapa 2: o transferido compra? (n8n, coorte por dia da transferência)
-
-| loja · canal | jun (madura) | jul | ago (imatura) |
+| objeto | linhas | o que é | usado? |
 |---|---|---|---|
-| **Cart · WhatsApp** | **10,2%** | 10,9% | 7,8% |
-| Cart · Instagram | 2,4% | 2,5% | 3,3% |
-| **Urban · WhatsApp** | **11,9%** | 5,6% | 7,2% |
-| Urban · Instagram | 4,4% | 3,3% | 3,1% |
+| `n8n_chat_histories_instagram` | 220.769 | conversa da Maju no IG | sim |
+| `n8n_chat_histories_maju_v2` | 158.951 | conversa da Maju no WhatsApp | sim |
+| `n8n_chat_histories` | 61.615 | histórico antigo | — |
+| **`site_eventos`** | **45.203** | **eventos do site** com `utm_*`, `fbclid`, `gclid`, `produto_id`, `valor` | ❌ **nunca usado** |
+| `contatosInstagram` | 22.707 | lead de IG | sim |
+| `contatosBreno` | 15.779 | lead de WhatsApp | sim |
+| `atribuicao_clique` | 10.859 | anúncio de origem (`source_id`, `headline`, `ctwa_clid`) | pouco |
+| `relatorioVendas` | 2.786 | espelho da venda com comissão | ❌ |
+| `contatosFormulario` | 1.726 | lead de formulário, com dados de trade-in | ❌ |
+| `match_resultado` | 1.389 | o matcher do Dudu | sim |
+| `transfer_retentativas` | 392 | re-alerta do vendedor | ❌ novo |
+| **`meta_spend_diario`** | **155** | **gasto Meta por dia e conta** (cart + urban) | ❌ **nunca usado** |
+| **`google_spend_diario`** | **78** | **gasto Google por dia** | ❌ **nunca usado** |
+| `agendamentos` | 133 | ⚠️ **morta desde 11/mai/2026** | — |
+| **`transfer_falhas`** | **14** | **falha técnica na transferência** (`node_falho`, `motivo`) | ❌ |
+| `n8n_chat_histories_cartinho` | 110 | outro bot | — |
+| views | — | `dash_transfers`, `dash_vendas_ia`, `dash_leads_dia/hora`, `dash_modelos`, `leads_por_origem`, `v_google_ads_*` (4), `v_resumo_*`, `v_comissao_*`, `v_ranking_*` | ❌ quase nenhuma |
 
-⚠️ Agosto está **imaturo** — a mediana de atraso lead→compra é 8 dias, p75 de 84. Compare junho com
-junho.
+### 3.2 Supabase do Dudu — `supabase-urban` (`exhlzstyukhcnrravmoc`)
 
-✅ **Os 10,2% do WhatsApp/Cart batem com os 12,55% medidos por caminho totalmente independente** em
-`ANALISE-MAJU-AGO-2026.md` (`n8n_chat_histories_maju_v2`, coorte orgânica). Duas medições
-concordando — esse número é sólido.
+**Muito menos construído.** Não tem `site_eventos`, `meta_spend_diario`, `google_spend_diario`,
+`contatosFormulario`, `relatorioVendas`, `agendamentos`, nem as views `v_*`.
+
+| objeto | linhas | observação |
+|---|---|---|
+| `n8n_chat_histories_instagram` | 133.924 | |
+| **`uso_tokens`** | **92.902** | **custo da IA por execução** (`modelo`, `prompt_tokens`, `output_tokens`, `agente`, `canal`). ❌ nunca usado, e **não existe na Cart** |
+| `n8n_chat_histories_whats_v2` | 50.891 | |
+| `contatosInstagram` | 10.320 | |
+| `contatosWhatsApp` | 2.695 | ⚠️ nome diferente da Cart (`contatosBreno`) |
+| `precos_referencia` · `custos_pecas` · `produtos_estoque` · `produtos_unidades` | 128/145/91/— | catálogo próprio da Duda |
+| **`conversa_estado`** | **1** | ver abaixo ⭐ |
+| `transfer_falhas` | **0** | nunca gravou nada |
+
+### ⭐ 3.3 `conversa_estado` — o instrumento certo, construído e vazio
+
+Existe **só na Urban**, com **1 linha**, e o schema é exatamente o que responderia a pergunta que
+você quer responder:
+
+```
+fase_atual · proposta_apresentada_em · agendamento_solicitado/data/confirmado
+transferido_em · motivo_transferencia · lead_quente
+objecoes_levantadas · mencionou_desconto · mencionou_concorrencia · urgencia
+restricao_orcamento · finalidade_uso · desistiu_em
+tentativas_reengajamento · ultimo_reengajamento_em · observacao_vendedor
++ o aparelho desejado e o de troca, campo a campo
+```
+
+**`motivo_transferencia`, `objecoes_levantadas` e `desistiu_em` são literalmente "por que não
+transferiu".** A tabela foi desenhada, criada, e nunca ligada. **Ligar ela é o caminho mais curto
+pro seu objetivo** — e é pedido pro Dudu, não trabalho nosso.
+
+### 3.4 Chatwoot — é osso
+
+| | Cart | Urban |
+|---|---|---|
+| labels | 2 (`lead-qualificado`, `suporte`) | **0** |
+| times | 0 | 0 |
+| regras de automação | 0 | 0 |
+| respostas prontas | 0 | 0 |
+| campanhas | 0 | 0 |
+| agentes | 7 | 5 |
+
+**Fora conversa + `assignee` + as 2 labels da Cart, não há nada no Chatwoot.** Não vale construir
+análise em cima dele; o valor dele é ser a única fonte que vê **a conversa como o cliente viu**.
+
+### 3.5 Nosso lado
+
+- **Painel** (`pfsfsibgmtbifypuyyqf`): `vendas`, `venda_produtos`, `venda_trocas`, `pagamentos`,
+  `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`, `bancada`, `venda_origem`.
+- **FoneNinja**: chega no painel pelo sync horário (`brenostap/phonecar-sync`).
 
 ---
 
-## 5. Os três achados
+## 4. ⚠️ Correção: o achado "o Instagram da Urban está quebrado" NÃO se sustenta
 
-### ⭐ 5.1 — A Urban perde o Instagram antes de qualquer coisa acontecer
+Ontem eu escrevi que a Urban transferia só **12,4%** das conversas de Instagram contra **32,5%** da
+Cart, e que isso era problema de configuração da Urban. **Medi de novo pela fonte certa e está
+errado.**
 
-**1.003 conversas de Instagram em 14 dias e 88% nunca chegam a um especialista.** Instagram é
-**77% de todo o volume da Urban** e tem **um terço** da taxa de handoff do WhatsApp dela (12,4%
-contra 33,8%).
+O 12,4% veio do `meta.assignee` do **Chatwoot**, contando *conversas com atividade em 14 dias* —
+denominador que enche de conversa velha reativada, e que na Urban ainda sofre do bug do §6.3.
+Contando **lead criado no mês** com `vendedorAtribuido`, que é a fonte que o próprio fluxo grava:
 
-Não é o problema da Cart: lá o Instagram entrega 32,5%, quase o mesmo que o WhatsApp. **Mesma
-arquitetura, mesma empresa, mesmo mês** — é diferença de configuração, não de público.
+**Agosto/2026, leads criados no mês:**
 
-Ordem de grandeza, com a taxa de conversão do próprio IG da Urban (4,4% na coorte madura): levar o
-IG da Urban de 12,4% para os 32,5% da Cart seriam ~200 handoffs a mais por 14 dias ≈ **~9 vendas/mês**.
-⚠️ Contrafactual, não medido — assume que o lead não transferido se comportaria como o transferido,
-e ele é justamente o menos qualificado.
+| loja · canal | leads | transferidos | **%** |
+|---|---|---|---|
+| Cart · WhatsApp | 1.685 | 655 | **38,9%** |
+| Urban · WhatsApp | 472 | 165 | **35,0%** |
+| Cart · Instagram | 2.424 | 592 | **24,4%** |
+| Urban · Instagram | 1.587 | 336 | **21,2%** |
 
-### 5.2 — O Instagram converte 3–4× pior que o WhatsApp, nas duas lojas
+**A Urban não é o problema.** As duas lojas transferem ~35–39% no WhatsApp e ~21–24% no Instagram.
+O problema é **o Instagram, nas duas**, e ele é consistente demais para ser configuração de uma
+loja — é do canal.
 
-Na coorte madura de junho: Cart 10,2% × 2,4%; Urban 11,9% × 4,4%. **Replicou nas duas lojas de
-forma independente**, o que torna difícil ser artefato de uma configuração só.
+Fica registrado porque o erro foi meu e teria mandado trabalho pro lugar errado.
 
-E o Instagram **não é minoria**: recebe ~50% das transferências da Cart e 77% do volume da Urban.
+---
 
-⚠️ **A ressalva é grande e tem que andar junto do número.** `docs/ATRIBUICAO-LEADS-VENDAS.md` mostra
-que o lead de Instagram **não tem telefone** (3 em 1.678 na Cart; 1 em 9.749 na Urban) e o
-`clientes.instagram` do painel tem 3 preenchidos em 4.233. Ou seja: **venda de origem Instagram é
-sistematicamente mais difícil de detectar.** Parte do buraco é conversão pior, parte é medição pior,
-e **com o dado de hoje não dá pra separar as duas.**
+## 5. O funil inteiro, e onde o lead se perde
 
-Dois argumentos de que não é *só* medição: (a) a marcação do fluxo (N0) não depende de telefone — é
-o vendedor/n8n marcando, e alcança IG; (b) a duplicação entre canais, quando existe, joga **a
-favor** do Instagram (57 vendas de agosto são reivindicadas pelos dois), então o gap medido é se
-alguma coisa *subestimado*.
+### 5.1 Cart, agosto/2026, por origem × canal
 
-### 5.3 — Na Urban, o Chatwoot e o n8n discordam sobre quem recebeu o lead do Instagram
+| origem | canal | leads | **transferidos** | **compraram** |
+|---|---|---|---|---|
+| Orgânico | WhatsApp | 190 | **54,7%** | **8,42%** |
+| Instagram Orgânico | WhatsApp | 377 | **47,2%** | **5,57%** |
+| Meta Ads | WhatsApp | 888 | 35,8% | 1,46% |
+| Orgânico | Instagram | 1.282 | 27,3% | 0,86% |
+| Google Ads | WhatsApp | 226 | 24,3% | 1,33% |
+| **Meta Ads** | **Instagram** | **1.139** | **21,2%** | **0,44%** |
 
-Mesma janela (12–26/ago), mesmo canal:
+**Não é "Instagram converte mal" — é que o Instagram é onde o Meta Ads entrega.** As duas variáveis
+andam juntas e a origem manda mais que o canal: *Instagram Orgânico* que chega no WhatsApp
+converte **5,57%**, doze vezes o *Meta Ads* que chega no Instagram.
 
-| Urban · Instagram | n8n (`dash_transfers`) | Chatwoot (`meta.assignee`) |
+E a diferença **já aparece na transferência**, antes de qualquer humano tocar: a IA transfere 55%
+do lead orgânico e 21% do lead de Meta Ads/IG. Ou ela está qualificando certo (o lead é pior
+mesmo), ou o fluxo de IG trata pior — **é essa a pergunta a responder**, e §3.3 é o instrumento.
+
+### 5.2 Depois de transferido — coorte madura de junho
+
+| loja · canal | conversão de quem foi transferido |
+|---|---|
+| Cart · WhatsApp | **10,2%** |
+| Urban · WhatsApp | **11,9%** |
+| Urban · Instagram | 4,4% |
+| Cart · Instagram | 2,4% |
+
+✅ Os 10,2% batem com os **12,55%** medidos por caminho independente em `ANALISE-MAJU-AGO-2026.md`.
+
+⚠️ **Parte do gap do Instagram é medição, não conversão.** Lead de IG **não tem telefone** (3 em
+1.678 na Cart; 1 em 9.749 na Urban), então venda de origem IG é sistematicamente mais difícil de
+detectar. Com o dado de hoje **não dá pra separar** as duas coisas.
+
+### 5.3 O efeito composto
+
+Ponta a ponta na Cart em agosto: **Orgânico/WhatsApp entrega uma venda a cada 12 leads. Meta
+Ads/Instagram, uma a cada 228.**
+
+---
+
+## 6. ⭐ O que dá pra conectar HOJE, de agosto — e o resultado
+
+**Dá, e a cadeia fecha inteira.** Testado em 26/ago:
+
+```
+meta_spend_diario ─┐
+                   ├→ atribuicao_clique → contatos*(lead) → n8n_chat_histories(conversa)
+google_spend_diario┘                            │
+                                                ├→ vendedorAtribuido → especialista
+                                                │
+                                                └→ id_venda ──→ PAINEL: vendas
+                                                                 ├ valor_total, lucro
+                                                                 ├ venda_produtos (modelo)
+                                                                 ├ venda_trocas (trade-in)
+                                                                 └ pagamentos (conta, taxa)
+```
+
+**Os 67 `id_venda` de agosto do banco do Dudu resolvem 100% em `vendas.id` do painel.** Não há elo
+faltando — é a mesma chave da FoneNinja.
+
+### 6.1 O número que nunca tinha sido possível calcular
+
+`meta_spend_diario` e `google_spend_diario` existem desde 09/jun e **nunca foram usados**. "Gasto de
+mídia por canal" estava listado como *o que falta* em `ANALISE-MAJU-AGO-2026.md`. Não falta.
+
+**Meta Ads · Cart · julho/2026** (coorte madura, 57 dias, vendas da Cart apenas):
+
+| | |
+|---|---|
+| gasto | **R$ 21.672** |
+| leads | 3.915 |
+| custo por lead | R$ 5,54 |
+| vendas atribuídas | 33 |
+| CAC | R$ 657 |
+| faturamento | R$ 96.920 |
+| ROAS | 4,47× |
+| **lucro bruto** | **R$ 19.822** |
+| **lucro − gasto** | **− R$ 1.850** |
+
+**Agosto** (imaturo): R$ 16.730 gastos, 2.027 leads, 16 vendas, R$ 60.190 de faturamento,
+R$ 11.021 de lucro bruto. Urban: R$ 8.668 em ago, R$ 9.637 em jul. Google/Cart: R$ 1.611 e R$ 1.962.
+
+### 6.2 ⚠️ Como NÃO ler esse número
+
+Três correções obrigatórias, e elas puxam para lados opostos:
+
+1. **A atribuição cobre ~70%, não 100%.** Vendas atribuídas ÷ vendas do painel: jun 70,4%
+   (228/324), jul 68,6% (179/261), ago 70,8% (172/243). Descontando os ~7,5% de venda da Urban que
+   vazam pra base da Cart, a cobertura real é **~65%**. Corrigindo, julho teria ~50 vendas de Meta
+   Ads e ~R$ 30 mil de lucro bruto → **positivo**.
+2. **`lucro` é margem bruta.** Falta **carrego**, **reparo** e **taxa de cartão** — R$ 250–600 por
+   aparelho (`CONTEXT.md`). Em 50 aparelhos são R$ 12–30 mil → **volta pro vermelho**.
+3. **Uma venda é reivindicada por vários leads.** Em ago/Cart são 245 linhas para **172 vendas
+   distintas**, e **57 vendas são reivindicadas pelos dois canais**. Sempre
+   `count(distinct id_venda)`.
+
+**Conclusão honesta: o Meta Ads da Cart está em torno do empate, e não dá pra afirmar de que lado.**
+O que mudou é que agora **existe a pergunta com dado dos dois lados** — antes não existia.
+
+### 6.3 A divergência da Urban, que continua de pé
+
+Mesma janela (12–26/ago), Urban · Instagram:
+
+| | n8n (`dash_transfers`) | Chatwoot (`meta.assignee`) |
 |---|---|---|
 | Mel | 94 | **2** |
 | David | 93 | **118** |
 
-O n8n diz rodízio 50/50; o Chatwoot diz que o David ficou com **98%**. **Na Cart os dois
-concordam** (IG: David 103 / Mel 103 / Isa 102 no n8n, 171 / 157 / 161 no Chatwoot — mesmas
-proporções), então não é diferença de método, é coisa da Urban.
+Na **Cart os dois concordam** (IG: 103/103/102 no n8n; 171/161/157 no Chatwoot — mesmas
+proporções). É coisa da Urban.
 
-⚠️ **Isso não é detalhe cosmético.** `vendedorAtribuido` é a **trava de vendedor do N5** da cascata
-de atribuição — e o N5 sustenta **13 das 21 vendas casadas da Urban**. Se o campo está apontando
-pra pessoa errada no IG da Urban, esses matches estão errados. **Pergunta pro Dudu antes de usar
-atribuição da Urban pra decidir dinheiro.**
+⚠️ Importa porque `vendedorAtribuido` é a **trava do N5** da cascata de atribuição, que sustenta
+**13 das 21 vendas casadas da Urban**. **Perguntar pro Dudu antes de usar atribuição da Urban pra
+decidir dinheiro.**
 
-### Bônus — a máquina de re-alerta não roda no Instagram
+### 6.4 O que ainda NÃO conecta
 
-`transfer_retentativas`, agosto/Cart: **351 eventos no WhatsApp e 29 no Instagram** (1 alerta
-efetivo no IG no mês inteiro). E dos eventos, **67% são suprimidos** (168 cooldown, 36 sem motivo,
-30 cap) contra 117 alertados.
-
-O mecanismo é novo (não existia nas análises anteriores) e é uma resposta direta ao balde
-"preço dado e ninguém avisado". Só que ele nasceu **só no canal que já era o melhor**.
-
----
-
-## 6. O quadro que junta tudo
-
-```
-             Cart                              Urban
-             ────                              ─────
-conversa   WA 963 ─── 39,9% ──┐          WA 302 ─── 33,8% ──┐
-(14 dias)  IG 1519 ── 32,5% ──┤          IG 1003 ── 12,4% ──┤   ← 5.1: o buraco
-                              │                             │
-handoff ──────────────────────┤                             │
-(nome do especialista =       │                             │
- a chave dos 3 sistemas)      │                             │
-                              ▼                             ▼
-venda           WA 10,2% · IG 2,4%             WA 11,9% · IG 4,4%
-(coorte jun)                    ↑                             ↑
-                                └─── 5.2: 3–4× de diferença ──┘
-```
-
-O que já se sabia e continua valendo: **ser transferido multiplica a conversão por 8,7×**
-(`ANALISE-MAJU-AGO-2026.md`) e **a alavanca de comportamento da IA é ela perguntar o dia** — parada
-em 16–25% por onze semanas.
-
-Este documento acrescenta que **a mesma alavanca tem tamanhos muito diferentes por canal e por
-loja**, e que o pior lugar do sistema inteiro é o **Instagram da Urban**, que ninguém tinha olhado
-separado porque as análises anteriores foram quase todas de WhatsApp/Cart.
+| buraco | tamanho |
+|---|---|
+| **Telefone do lead de Instagram** | 3 em 1.678 (Cart), 1 em 9.749 (Urban). É a causa raiz dos ~30% não atribuídos |
+| **A conversa do especialista** | 100% invisível — vai pro WhatsApp pessoal dele |
+| **Motivo de não-transferência** | `conversa_estado` responderia; tem 1 linha (§3.3) |
+| `n8n_chat_histories_*` sem `created_at` | 95% das mensagens; a coluna só começou em 10/ago/2026 |
+| `agendamentos` | morta desde 11/mai/2026 |
+| **Custo da IA na Cart** | `uso_tokens` só existe na Urban |
+| `transfer_falhas` | 14 linhas na Cart, **0** na Urban — instrumento certo, praticamente desligado |
 
 ---
 
-## 7. O que falta
+## 7. O caminho pro objetivo (por que o lead não é transferido)
 
-1. **Perguntar pro Dudu a divergência 5.3** — quem realmente recebe o lead de IG na Urban.
-2. **Comparar o prompt/fluxo de handoff da Duda no Instagram com o da Maju.** A diferença de 12,4%
-   contra 32,5% tem que estar em configuração — é a coisa mais barata de consertar da lista.
-3. **Levar o `transfer_retentativas` pro Instagram** (hoje é 1 alerta/mês lá).
-4. **Conectar o WhatsApp pessoal dos especialistas ao Chatwoot** (plano do dono) — é o que abre a
-   segunda metade do funil, hoje invisível.
-5. Continua da lista antiga: o prompt atual das IAs, quem grava `agendamento`, gasto de mídia por
-   canal, e A/B por hash de telefone.
+Em ordem de custo:
+
+1. **Pedir pro Dudu ligar `conversa_estado`** — `motivo_transferencia`, `objecoes_levantadas`,
+   `desistiu_em`. Existe, está vazia, e responde a pergunta direto. **Fazer isso antes de qualquer
+   análise nova.**
+2. **Comparar o fluxo/prompt de handoff do Instagram com o do WhatsApp** (nas duas lojas — o gap é
+   do canal, não da loja). 21–24% contra 35–39%, e a arquitetura é a mesma.
+3. **Ler conversa de IG não-transferida na mão** — `n8n_chat_histories_instagram`, filtrando lead
+   com `vendedorAtribuido IS NULL` e preço citado. É o que `preco-sem-handoff.js` já faz pro
+   WhatsApp; falta a versão de IG.
+4. **Ligar `transfer_falhas` na Urban** (hoje 0 linhas) — separa "a IA decidiu não transferir" de
+   "a transferência quebrou".
+5. Continua valendo de `ANALISE-MAJU-AGO-2026.md`: **a alavanca é a IA perguntar o dia**, parada em
+   16–25% por onze semanas.
+
+---
 
 ## 8. Como reproduzir
 
-```bash
-# handoff por especialista e canal (Chatwoot, barato — assignee vem na listagem)
-#   GET /api/v1/accounts/1/conversations?status=all&assignee_type=all&page=N  → meta.assignee.name
-#   tokens: ver docs/agents/ e o allowlist do projeto. SÓ GET.
-```
-
 ```sql
--- funil transferência → venda, por canal e especialista (rodar nos DOIS projetos do Dudu)
-with t as (select to_char(dia,'YYYY-MM') mes, lower(vendedor) v, canal, sum(transfers) tr
-           from dash_transfers where dia >= '2026-06-01' group by 1,2,3),
-     s as (select to_char(dia_transf,'YYYY-MM') mes, lower(vendedor) v, canal, count(*) vd
-           from dash_vendas_ia where dia_transf >= '2026-06-01' group by 1,2,3)
-select coalesce(t.mes,s.mes) mes, coalesce(t.v,s.v) vendedor, coalesce(t.canal,s.canal) canal,
-       t.tr transferencias, coalesce(s.vd,0) vendas,
-       round(100.0*coalesce(s.vd,0)/nullif(t.tr,0),2) conv_pct
-from t full join s on t.mes=s.mes and t.v=s.v and t.canal=s.canal
-order by mes desc, transferencias desc;
+-- taxa de transferência por origem x canal (rodar nos DOIS projetos do Dudu;
+-- na Urban, contatosBreno chama-se contatosWhatsApp)
+with l as (
+  select 'instagram' canal, origem, "vendedorAtribuido" v, comprou, id_venda
+  from "contatosInstagram" where created_at >= '2026-08-01' and created_at < '2026-09-01'
+  union all
+  select 'whatsapp', origem, "vendedorAtribuido", comprou, id_venda
+  from "contatosBreno"    where created_at >= '2026-08-01' and created_at < '2026-09-01'
+)
+select origem, canal, count(*) leads,
+       round(100.0*count(*) filter (where v is not null)/count(*),1) pct_transf,
+       round(100.0*count(*) filter (where comprou)/count(*),2) pct_venda,
+       string_agg(distinct id_venda::text,',') filter (where comprou) ids
+from l group by 1,2 order by 3 desc;
+
+-- gasto de mídia
+select conta, sum(spend) from meta_spend_diario where data >= '2026-08-01' group by 1;
 ```
 
-⚠️ Para contar venda, **sempre** `count(distinct id_venda)` — `dash_vendas_ia` tem uma linha por
-lead, e 33% das vendas de agosto são reivindicadas por mais de um.
+Os `ids` vão direto em `vendas.id` do painel (`pfsfsibgmtbifypuyyqf`) para faturamento e lucro.
+
+⚠️ Leads com `origem IS NULL` e `comprou = true` em 100% são **backfill**, não lead do mês.
+Excluir sempre.
+
+⚠️ Para contar venda, **sempre** `count(distinct id_venda)`.
