@@ -367,7 +367,21 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 
 ## Atendimento / Chatwoot
 Mapa de quem é quem e como conversa vira venda: **`docs/IAS-E-ESPECIALISTAS.md`** (ler primeiro).
+Como medir qualidade de lead e da IA: **`docs/PLANO-QUALIDADE-IA.md`**.
 Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026.md` · `scripts/chatwoot.js` · `scripts/maju/` · agente `analista-conversas`.
+- 🔨 ⭐⭐ **Ler 30 conversas dos anúncios "POSSUI / PROCURA-SE"**. São **1.884 leads em 3 meses**
+  (22% dos leads de anúncio) entrando por criativo que fala do aparelho que a pessoa **já tem**, e
+  a IA transfere **14,6%** contra 25,5% dos criativos de preço/produto — mesmo canal, mesma IA.
+  Hipótese: atrai quem quer **vender**, não comprar; se for, é lead de **compra de estoque** no
+  funil errado — e troca é o melhor canal de margem da loja. **Medido, não explicado: ler antes de
+  decidir.** Ver `docs/PLANO-QUALIDADE-IA.md` §3.
+- 🔨 ⭐⭐ **Taxa de transferência padronizada por mix de segmento** — o número único que pode ir num
+  painel sem mentir. Pesos congelados num mês de referência, então mudança de mídia não mexe nela.
+  É a correção do erro que me pegou duas vezes em dois dias. `PLANO-QUALIDADE-IA.md` §6.
+- 🔨 **Estender `scripts/maju/metricas-semanais.sql` pro Instagram e pra Urban** — hoje é só
+  WhatsApp/Cart, e o buraco mora justamente no Instagram.
+- 🔨 **Changelog de versão de prompt.** Barato, e cada mês sem ele custa uma análise de arqueologia
+  de série pra descobrir quando algo mudou.
 - 💰 ⭐⭐ **O gasto de mídia EXISTE e nunca foi usado**: `meta_spend_diario` (cart + urban) e
   `google_spend_diario` no `supabase-cart`, diários desde 09/jun. Todos os relatórios anteriores
   listavam isso como "o que falta". **Meta Ads/Cart, julho:** R$ 21.672 gastos, 3.915 leads
