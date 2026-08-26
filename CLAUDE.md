@@ -171,6 +171,16 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     - **Retorno não aparece na nota**: não há **uma única linha de R$ 0,00** nas 205 de `reparos`.
       Por isso ele fica fora do preço de referência (`bncPrecoRef`) e fora do `semNota` da
       Conferência — sem isso, toda refação viraria alarme falso.
+  - ⚠️ **A Conferência tem DUAS bordas, e a de cima é a última nota carregada.** `reparos` vem de
+    um script rodado à mão e **atrasa**: em 26/ago o livro começava em 13/ago e a nota parava em
+    08/ago — janela vazia, e a tela acusava **40 aparelhos falsos**. Hoje `bncConciliar()` só cobra
+    de quem voltou até `bncUltimaNota()`, e quando não há período em comum a tela diz *"Falta
+    carregar a nota"*. **Nunca deixe o ✅ verde aparecer com janela vazia** — "nada foi comparado"
+    não é "tudo bate", e a mentira silenciosa é pior que o alarme falso.
+  - ⚠️ **O caminho "não está no estoque" oferece o aparelho do estoque.** Estava engolindo
+    aparelho da prateleira: em 26/ago o `SP829` (15 Azul, R$ 2.400, `available`) estava na RR e
+    **fora da lista de "não vender"**. A tela **sugere e a pessoa confirma olhando** — casar por 4
+    dígitos sozinho já colou aparelho de cliente num apple do estoque, e há **dois 8849** hoje.
   - **Teste**: `node test/bancada.test.js`. Monta a tela de Assistência **e a de Estoque** — o selo
     mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
 - **`estoque_correcoes`** — ⚠️ **`estoque` não é editável**: o sync reescreve as 237 linhas de hora

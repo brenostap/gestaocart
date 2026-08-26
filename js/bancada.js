@@ -248,9 +248,28 @@ function bncChaveLinha(l){
   return l.imei4 ? 'i' + l.fornecedor + bncFim4(l.imei4) : null;
 }
 
+// A régua tem DUAS bordas, e faltava a de cima.
+//
+// `desde` protege o passado: linha de nota anterior ao livro é história. Mas a
+// nota vive num arquivo carregado à mão (`node scripts/reparos.js`), e ela
+// ATRASA. Em 26/ago/2026 o livro começava em 13/ago e a última nota carregada
+// era de **08/ago**: a janela era vazia por construção, e mesmo assim a
+// conferência acusava **40 aparelhos** em "voltou e não apareceu na cobrança".
+// Todos falsos — a nota deles não tinha sido carregada ainda.
+//
+// É o mesmo erro que a borda de baixo já evitava, entrando pelo outro lado.
+function bncUltimaNota(){
+  const datas = (_reparosCache || [])
+    .filter(r => r.status !== 'revisar')
+    .map(r => String(r.data_servico || '').slice(0,10))
+    .filter(Boolean).sort();
+  return datas[datas.length - 1] || null;
+}
+
 function bncConciliar(){
   const desde = bncDesde();
   if(!desde) return null;
+  const ate = bncUltimaNota();
 
   const reparos = (_reparosCache || []).filter(r =>
     r.data_servico && r.data_servico >= desde && r.status !== 'revisar');
@@ -282,7 +301,10 @@ function bncConciliar(){
   Object.values(porReg).forEach(g => {
     const n = porNota[g.chave];
     // Só cobra nota de quem já VOLTOU: o que ainda está fora não foi faturado.
-    const voltou = g.linhas.some(l => l.voltou_em);
+    // Só cobra nota de quem voltou DENTRO da janela que a nota cobre. O que
+    // voltou depois da última nota carregada ainda não pôde ser faturado --
+    // acusar isso é cobrar o futuro.
+    const voltou = g.linhas.some(l => l.voltou_em && (!ate || l.voltou_em <= ate));
     // Retorno nao aparece na nota por definicao -- servico refeito na garantia
     // nao e cobrado, e nao ha uma linha de R$ 0,00 nas 205 de `reparos`.
     // Cobrar nota dele seria alarme falso: o mesmo erro que a conferencia ja
@@ -294,7 +316,11 @@ function bncConciliar(){
     }
   });
 
-  return { desde, semRegistro, semNota, valorDiferente,
+  // ⚠️ Janela vazia NÃO é "está tudo certo". Sem essa distinção a tela mostraria
+  // o ✅ verde justamente quando nada foi comparado -- uma mentira mais cara que
+  // os 40 alarmes falsos, porque não pede nada de ninguém.
+  return { desde, ate, janelaVazia: !ate || ate < desde,
+           semRegistro, semNota, valorDiferente,
            notas: Object.keys(porNota).length, registros: Object.keys(porReg).length };
 }
 
@@ -609,6 +635,68 @@ function bncRetornoCand(){
   return alvo ? bncUltimaFechada(alvo) : null;
 }
 
+// ---------------------------------------------------------------------------
+// "NÃO ESTÁ NO ESTOQUE" — mas às vezes está, e a busca é que não achou
+//
+// Achado na auditoria de 26/ago/2026: TRÊS aparelhos do estoque estavam
+// registrados pelo caminho manual, sem `apple_id`. Um deles — `SP829`, iPhone
+// 15 Azul, R$ 2.400, `available` — tinha caído FORA da lista de "não vender"
+// do WhatsApp. O painel dizia que dava pra vender um aparelho que estava na RR.
+// É exatamente o buraco que esta tela existe pra tapar, acontecendo na tela.
+//
+// ⚠️ SUGERE, NÃO CASA SOZINHO. O casamento automático por 4 dígitos já criou um
+// vínculo FALSO em 15/ago (aparelho de cliente colado no apple 339662), e o
+// estrago é o sinal invertido: aparelho que está na loja ganha o selo de fora.
+// Por isso mostra modelo, cor, etiqueta e custo — a pessoa confirma OLHANDO,
+// igual à busca. Dois aparelhos terminam em 8849 no estoque de hoje: um 13 Pro
+// Max Azul disponível e um 17 Pro Max Prateado vendido. Só o olho desempata.
+// ---------------------------------------------------------------------------
+function bncSugCandidatos(){
+  if(!_bncManual) return [];
+  const i4 = String(_bncManual.imei4 || '').replace(/\D/g,'').slice(-4);
+  if(i4.length !== 4 || i4 === '0000') return [];
+  const foraAgora = new Set(bncAbertas().map(l => String(l.apple_id)));
+  return (estoqueItens || [])
+    .filter(i => String(i.imei_1 || '').endsWith(i4))
+    .filter(i => !foraAgora.has(String(i.id)))
+    .slice(0, 4);
+}
+
+function bncSugEstoque(){
+  const cands = bncSugCandidatos();
+  if(!cands.length) return '';
+  return `
+    <div class="bnc-sug" id="bnc-sug">
+      <div class="bnc-sug-tit">Esse final de IMEI é de um aparelho <b>do estoque</b>:</div>
+      ${cands.map(i => {
+        const d = dadosDoItem(i);
+        return `<button class="bnc-cand" onclick="bncUsarDoEstoque(${i.id})">
+          <span class="bnc-check">→</span>
+          <span class="bnc-cand-txt">
+            <b>${UI.esc(d.modelo.replace(/^iPhone\s*/,''))} ${UI.esc(d.capacidade)}</b>
+            <i>${UI.esc(d.cor === '?' ? '' : d.cor)}</i>
+          </span>
+          <span class="bnc-cand-meta">
+            <span class="est-tag">${UI.esc(d.etiqueta || 's/ etiqueta')}</span>
+            ${podeVerMargem() ? `<span class="bnc-custo">${money(d.custo)}</span>` : ''}
+          </span>
+        </button>`;
+      }).join('')}
+      <div class="bnc-dica-inline">Se for esse, <b>use ele</b> — só assim o aparelho sai do
+        disponível e entra na lista de “não vender”. Se for do cliente, ignore: 4 dígitos
+        coincidem entre aparelhos diferentes.</div>
+    </div>`;
+}
+
+// Troca o caminho manual pelo do estoque. O aparelho passa a ter `apple_id`, e
+// com ele: selo no Estoque, capital parado e lista de não vender.
+function bncUsarDoEstoque(id){
+  _bncManual = null;
+  _bncSel = new Set([String(id)]);
+  _bncRetornoDe = null;
+  bncRedesenharModal();
+}
+
 function bncBlocoRetorno(){
   const c = bncRetornoCand();
   if(!c) return '';
@@ -663,9 +751,13 @@ function bncModoManual(){
 function bncSetManual(campo, v){
   if(!_bncManual) return;
   _bncManual[campo] = v;
-  // O bloco "é retorno?" só existe com os 4 dígitos. Redesenha SÓ quando a
-  // resposta muda -- a cada tecla tiraria o cursor do campo.
-  if(campo === 'imei4' && !!bncRetornoCand() !== !!document.getElementById('bnc-retorno')){
+  // Os blocos "é retorno?" e "esse IMEI é do estoque" só existem com os 4
+  // dígitos. Redesenha SÓ quando a resposta muda -- a cada tecla tiraria o
+  // cursor do campo.
+  if(campo !== 'imei4') return;
+  const mudouRet = !!bncRetornoCand()      !== !!document.getElementById('bnc-retorno');
+  const mudouSug = !!bncSugCandidatos().length !== !!document.getElementById('bnc-sug');
+  if(mudouRet || mudouSug){
     bncRedesenharModal();
     setTimeout(() => {
       const el = document.getElementById('bnc-imei4');
@@ -716,6 +808,7 @@ function bncCorpoModal(){
         UI.campo({label:'4 últimos do IMEI', corpo:`<input class="c-input" id="bnc-imei4" inputmode="numeric" maxlength="4"
            placeholder="0000" value="${UI.esc(_bncManual.imei4)}" oninput="bncSetManual('imei4', this.value)">`})
       )}
+      ${bncSugEstoque()}
     </div>` : '';
 
   return `
@@ -1111,11 +1204,26 @@ function bncTelaConferencia(conf){
 
   const nada = !conf.semRegistro.length && !conf.semNota.length && !conf.valorDiferente.length;
 
+  // A nota é carregada à mão e atrasa. Quando ela para antes do livro começar,
+  // não há período em comum -- e dizer "tudo bate" aí seria mentir com fato.
+  if(conf.janelaVazia){
+    return UI.card({corpo: UI.vazio({
+      ico:'📥', titulo:'Falta carregar a nota',
+      texto: (conf.ate
+        ? 'A última nota carregada é de ' + bncFmtData(conf.ate) + ', e o livro da assistência '
+          + 'começou em ' + bncFmtData(conf.desde) + '. Não há período em comum pra conferir.'
+        : 'Nenhuma nota da assistência foi carregada ainda.')
+        + ' Rode `node scripts/reparos.js` com as notas novas — sem elas a conferência '
+        + 'compara contra o vazio.',
+    })});
+  }
+
   return `
     <div class="bnc-conf-nota">
-      Conferindo de <b>${bncFmtData(conf.desde)}</b> pra cá — o dia em que o controle começou.
+      Conferindo de <b>${bncFmtData(conf.desde)}</b> a <b>${bncFmtData(conf.ate)}</b> — do dia em que
+      o controle começou até a última nota carregada.
       ${conf.notas} aparelhos na nota · ${conf.registros} registrados.
-      <span>Linha de nota anterior a essa data não conta como falta: é história, não falha.</span>
+      <span>Fora dessa janela não conta como falta: antes é história, depois a nota ainda não chegou.</span>
     </div>
     ${nada ? UI.card({corpo: UI.vazio({ico:'✅', titulo:'A nota bate com o registro',
         texto:'Nenhum aparelho saiu sem registro, nada voltou sem cobrança e os valores conferem.'})})

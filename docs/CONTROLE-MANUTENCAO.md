@@ -696,3 +696,92 @@ custou dinheiro** em vez de ser coberto pela garantia de quem errou.
   usada, e o alerta "sem valor da nota" já nasce saturado. A conta de dinheiro real continua vindo
   de `reparos` (a nota). Vale decidir se essa coluna manual continua existindo.
 - **Prazo e cobertura da garantia** com RR e Access (ver acima).
+
+## Auditoria do processo — 26/ago/2026
+
+Feita a pedido do dono, logo depois da mudança das duas garantias. **Duas falhas de código**
+(corrigidas no mesmo dia) e **três pendências operacionais** (dependem de gente).
+
+### ❌ Falha 1 — a Conferência só tinha uma borda
+
+`bncDesde()` protege o passado: linha de nota anterior ao livro é história. Faltava a borda de
+cima. A nota vem de um arquivo carregado **à mão** (`node scripts/reparos.js`) e **atrasa**.
+
+No dia da auditoria:
+
+| | |
+|---|---:|
+| O livro da assistência começa em | **13/ago** |
+| A última nota carregada era de | **08/ago** |
+| Aparelhos acusados de *"voltou e não apareceu na cobrança"* | **40** |
+| Quantos eram falsos | **40** |
+
+A janela era **vazia por construção** — não havia um único dia em comum entre as duas fontes — e a
+tela mesmo assim cuspia 40 acusações. É exatamente o erro que a borda de baixo tinha evitado
+("204 faltas no primeiro dia e ninguém abriria a tela de novo"), entrando pelo outro lado.
+
+**Corrigido:** `bncConciliar()` calcula `ate = bncUltimaNota()` e só cobra nota de quem **voltou
+até essa data**. Quando `ate < desde`, a tela mostra **"Falta carregar a nota"** com as duas datas.
+
+⚠️ **O ✅ verde seria pior que os 40 alarmes.** Sem o `janelaVazia`, a correção faria a tela dizer
+*"A nota bate com o registro"* justamente quando **nada foi comparado** — uma mentira que não pede
+nada de ninguém. Por isso o estado vazio é explícito e nomeado.
+
+### ❌ Falha 2 — o caminho manual estava engolindo aparelho do estoque
+
+Três aparelhos **do estoque** estavam registrados por *"não está no estoque"*, sem `apple_id`:
+
+| linha | aparelho | como se sabe | estava na lista de "não vender"? |
+|---|---|---|---|
+| 153 | `E1743` · 14 Pro 256 Roxo · R$ 2.200 | etiqueta na obs | sim (origem `estoque`) |
+| 156 | `E1739` · 13 Pro Max 256 Azul · R$ 2.110 | modelo + cor | sim |
+| **154** | **`SP829` · 15 128 Azul · R$ 2.400** | etiqueta na obs | **NÃO** — origem `garantia` |
+
+O `SP829` estava fisicamente na RR, marcado `available` no Estoque, e **fora do aviso de não
+vender**. É o buraco que esta tela existe pra tapar, acontecendo dentro da tela.
+
+**Corrigido:** ao digitar os 4 do IMEI no caminho manual, a tela procura no estoque e **oferece**
+o aparelho, com modelo, cor, etiqueta e custo. Aceitar troca pro caminho normal e grava o
+`apple_id` — com ele vêm o selo no Estoque, o capital parado e a lista de não vender.
+
+⚠️ **Sugere, NÃO casa sozinho.** O casamento automático por 4 dígitos já colou um aparelho de
+cliente no apple `339662` (15/ago) — com o sinal invertido, que é o pior caso. Hoje mesmo há
+**dois aparelhos terminando em 8849** no estoque: um 13 Pro Max Azul disponível e um 17 Pro Max
+Prateado vendido. Só o olho desempata. As 3 linhas acima foram ligadas à mão.
+
+### ⏳ Pendência 1 — a nota está 18 dias atrasada
+
+`reparos` vai de 06/jul a **08/ago**. Hoje é 26/ago. Enquanto não rodar `node scripts/reparos.js`
+com as notas novas, a Conferência não tem o que conferir — agora ela **diz isso** em vez de acusar
+o inocente, mas o dado continua faltando.
+
+### ⏳ Pendência 2 — R$ 43.283 em 18 linhas que ninguém dá baixa
+
+Dos **R$ 73.604** parados em 37 aparelhos, **R$ 43.283 estão em 18 linhas importadas da planilha**
+— saídas entre 03/jun e 11/ago, e **nenhuma recebeu baixa** desde a importação (14–15/ago). As
+linhas que o Vitinho digita na tela (18/ago em diante) recebem baixa normalmente.
+
+Ou esses 18 estão mesmo fora há 15–84 dias, ou voltaram e ninguém fechou a linha. **Duas já têm
+nota da assistência depois da saída** — ou seja, voltaram:
+
+- linha 9 · `372` · 15 128 Preto · saiu 14/jul (**43 dias**) · nota de *Troca de Conector* em 14/jul
+- linha 19 · 15 Pro Max 256 Titânio Azul · saiu 03/ago (**23 dias**) · nota de *Subida de Bateria* em 08/ago
+
+A mais velha de todas: linha 5, `E1382` · 12 64 Branco · Face ID · **84 dias**.
+
+**Isso é conferência com o Vitinho, não código.** Vale passar a lista das 18 e fechar o que voltou.
+
+### ⏳ Pendência 3 — coisas conhecidas, sem ação urgente
+
+- **20 linhas de `reparos` sem `apple_id`** (R$ 3.290) — todas com `status='revisar'`, ou seja, o
+  próprio importador sinalizou. Backlog conhecido, não falha silenciosa.
+- **`estoque_estado` tem 8 linhas** (7 `saldao`, 1 `outro`). A tabela funciona; é adoção baixa.
+- **111 das 111 linhas que voltaram seguem sem `valor_cobrado`.** Já registrado acima.
+
+### ✅ O que foi conferido e está certo
+
+- **Nenhum aparelho com duas linhas abertas** ao mesmo tempo.
+- **Nenhum aparelho vendido** está com linha aberta na assistência (e agora, se acontecer, ele cai
+  sozinho no bloco *Entregar ao dono*).
+- **Nenhuma linha aberta com `imei4 = '0000'`** — as 5 que existem já foram fechadas.
+- Os 3 retornos históricos batem com a ida anterior por aparelho, fornecedor e serviço.

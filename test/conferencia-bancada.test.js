@@ -70,6 +70,12 @@ vm.runInContext(`
     { id:5, apple_id:505, imei4:'5555', etiqueta:'E1505', modelo_txt:'iPhone 15 128GB Azul',
       fornecedor:'RR', origem:'estoque', servico:'Troca de bateria', retorno_de:99,
       saiu_em:'2026-08-13', voltou_em:'2026-08-14', valor_cobrado:null, criado_em:'2026-08-13T09:00:00Z' },
+    // Voltou DEPOIS da última nota carregada (12/ago). A nota dele ainda não
+    // existe — cobrar isso é cobrar o futuro. Foi assim que a conferência
+    // acusou 40 aparelhos falsos em 26/ago/2026.
+    { id:6, apple_id:506, imei4:'6666', etiqueta:'E1506', modelo_txt:'iPhone 13 128GB Rosa',
+      fornecedor:'RR', origem:'estoque', servico:'Troca de tela',
+      saiu_em:'2026-08-15', voltou_em:'2026-08-20', valor_cobrado:null, criado_em:'2026-08-15T09:00:00Z' },
   ];
 
   _reparosCache = [
@@ -153,6 +159,34 @@ ok('504 ainda está fora — não é cobrado de nota',
 ok('505 é retorno na garantia: voltou sem nota e NÃO é falta',
    !c.semNota.some(g => g.chave === 'a505'),
    'sem nota: ' + c.semNota.map(g => g.chave).join(','));
+
+console.log('\na régua tem duas bordas — a nota atrasa\n');
+
+// ⚠️ A nota é carregada à mão (`node scripts/reparos.js`) e atrasa. Em
+// 26/ago/2026 o livro começava em 13/ago e a última nota era de 08/ago: a
+// janela era vazia e mesmo assim a tela acusava 40 aparelhos.
+eq('a borda de cima é a última nota carregada', R('bncUltimaNota()'), '2026-08-12');
+eq('a conferência diz até quando está conferindo', c.ate, '2026-08-12');
+ok('506 voltou depois da última nota — NÃO é falta de cobrança',
+   !c.semNota.some(g => g.chave === 'a506'),
+   'sem nota: ' + c.semNota.map(g => g.chave).join(','));
+ok('janela válida não é marcada como vazia', c.janelaVazia === false);
+
+// Nota que para ANTES do livro começar: não há período em comum. Dizer
+// "tudo bate" aí seria mentir com fato — é o ✅ verde mais caro possível.
+const vazia = (function(){
+  const antes = R('_reparosCache');
+  R("_reparosCache = _reparosCache.map(r => Object.assign({}, r, {data_servico:'2026-07-20'}));");
+  const cv = R('bncConciliar()');
+  const tela = R('(function(){ _bncAba="conferencia"; return renderBancada(); })()');
+  R('_reparosCache = ' + JSON.stringify(antes));
+  return { cv, tela };
+})();
+ok('nota anterior ao livro => janela vazia', vazia.cv.janelaVazia === true);
+eq('e ninguém é acusado', vazia.cv.semNota.length, 0);
+ok('a tela pede a nota em vez de dar o ✅ verde',
+   /Falta carregar a nota/.test(vazia.tela) && !/A nota bate com o registro/.test(vazia.tela));
+ok('e diz até quando a nota vai', /20\/jul/.test(vazia.tela));
 
 console.log('\npreço de referência: nasce do histórico, não de tabela transcrita\n');
 

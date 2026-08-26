@@ -391,5 +391,59 @@ ok('a tela marca o retorno', /retorno/.test(comSelo));
 ok('retorno mostra "grátis", não campo de valor vazio', comSelo.includes('grátis'));
 ok('KPI de retrabalho aparece', /Retorno[\s\S]{0,300}% das idas/.test(comSelo));
 
+console.log('\n"não está no estoque" — mas às vezes está\n');
+
+// Auditoria de 26/ago/2026: TRÊS aparelhos do estoque estavam registrados pelo
+// caminho manual, sem apple_id. Um deles (SP829, iPhone 15 Azul, R$ 2.400,
+// available) tinha caído FORA da lista de "não vender": o painel dizia que dava
+// pra vender um aparelho que estava na RR.
+const sug = (function(){
+  const antes = R('_bancadaCache');
+  R('_bancadaCache = [];');
+  R("_bncManual = {modelo:'16 rosa', imei4:''};");
+  const r = {};
+  R("_bncManual.imei4 = '858';");  r.parcial = R('bncSugCandidatos().length');
+  R("_bncManual.imei4 = '0000';"); r.zeros   = R('bncSugCandidatos().length');
+  R("_bncManual.imei4 = '9999';"); r.nada    = R('bncSugCandidatos().length');
+  R("_bncManual.imei4 = '8580';");
+  r.acha = R('bncSugCandidatos().map(i => i.id)');
+  r.html = R('bncSugEstoque()');
+  R('bncUsarDoEstoque(101);');
+  r.depoisManual = R('_bncManual');
+  r.depoisSel    = R('[..._bncSel]');
+  R('_bncManual = null; _bncSel = new Set();');
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return r;
+})();
+
+eq('acha o aparelho do estoque pelos 4 do IMEI', sug.acha, [101]);
+eq('menos de 4 dígitos não sugere nada', sug.parcial, 0);
+// '0000' é o "não sei o IMEI" da planilha: sugerir por ele juntaria aparelhos
+// que não têm nada a ver.
+eq('0000 nunca sugere', sug.zeros, 0);
+eq('IMEI que não existe no estoque não sugere', sug.nada, 0);
+// ⚠️ SUGERE, não casa sozinho: mostra modelo, cor, etiqueta e custo pra pessoa
+// confirmar OLHANDO. Casar por 4 dígitos sozinho já colou um aparelho de
+// cliente num apple do estoque (15/ago/2026), com o sinal invertido.
+ok('a sugestão mostra a etiqueta pra pessoa desempatar', sug.html.includes('E1030'));
+ok('e o modelo', /16\b/.test(sug.html));
+ok('e é um botão, não um casamento automático', sug.html.includes('bncUsarDoEstoque(101)'));
+// Aceitar a sugestão troca o caminho manual pelo do estoque: com apple_id vêm
+// o selo no Estoque, o capital parado e a lista de "não vender".
+eq('aceitar sai do modo manual', sug.depoisManual, null);
+eq('e seleciona o aparelho do estoque', sug.depoisSel, ['101']);
+
+// Aparelho que JÁ está fora não pode ser sugerido de novo — viraria segunda
+// linha aberta pro mesmo aparelho.
+const sugFora = (function(){
+  R("_bancadaCache = [{id:1, apple_id:101, imei4:'8580', fornecedor:'RR', origem:'estoque'," +
+    " servico:'x', saiu_em:'2026-08-10', voltou_em:null}];");
+  R("_bncManual = {modelo:'x', imei4:'8580'};");
+  const n = R('bncSugCandidatos().length');
+  R('_bncManual = null; _bancadaCache = [];');
+  return n;
+})();
+eq('aparelho que já está fora não é sugerido', sugFora, 0);
+
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

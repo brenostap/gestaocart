@@ -202,3 +202,17 @@
 /* Retorno não tem nota. Um input vazio ali pediria pra alguém preencher e
    sumiria no meio dos valores que faltam de verdade. */
 .bnc-valor-zero{ font-size:var(--fs-caption); color:var(--text4); }
+
+/* -- "Não está no estoque" — mas às vezes está ---------------------------- */
+/* Sugere e deixa a pessoa confirmar OLHANDO. Casar por 4 dígitos sozinho já
+   colou um aparelho de cliente num apple do estoque (15/ago/2026). */
+.bnc-sug{
+  margin-top:10px; padding:10px 12px; border-radius:var(--radius-sm);
+  border:1px solid var(--yellow); background:var(--yellow-bg);
+}
+.bnc-sug-tit{
+  font-size:var(--fs-caption); line-height:var(--lh-body);
+  color:var(--text2); margin-bottom:6px;
+}
+.bnc-sug .bnc-cand{ background:var(--bg2); }
+.bnc-sug .bnc-dica-inline{ margin-top:8px; }
