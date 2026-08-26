@@ -853,3 +853,74 @@ exatamente o laço de microtask que congelou o celular do dono em 18/ago.
 **Quem vê:** o bloco está atrás de `podeVerCustoServico()` (sócio e bancada). O Vitinho vê as idas
 que ele mesmo registrou; o dinheiro da nota é de sócio (`reparos` tem policy `reparos_socio`), e o
 campo *Investido* fica atrás de `podeVerMargem()`.
+
+## Carga das notas de agosto — 26/ago/2026
+
+O dono mandou os três fechamentos da RR (03/08, 10/08, 17/08) e as duas notas da Access (10/08 e
+17/08). **`reparos` saiu de 205 para 341 linhas**, e a última nota passou de **08/ago para 22/ago**.
+
+| | |
+|---|---:|
+| Linhas importadas | **136** · R$ 24.970,00 |
+| Casadas com aparelho | 112 (82,4%) · R$ 20.825,88 |
+| Em `revisar` | 24 · R$ 4.144,12 |
+| Reparo embutido no estoque disponível | R$ 10.022 → **R$ 21.234** (44 → **97** aparelhos) |
+
+### ⚠️ Havia DUAS notas da RR para a mesma semana
+
+`RR/fechamento_Cart_03-08-2026.pdf` (74 linhas, R$ 7.630) já estava importada. O dono mandou uma
+**segunda nota do mesmo período 03–08/ago** (36 linhas, R$ 9.505). As duas fecham com o próprio
+total impresso, e **não têm um único IMEI em comum** — são notas diferentes, não uma revisão. A
+segunda nunca tinha sido importada: **R$ 9.505 que não estavam no painel**.
+
+Salva como `fechamento_Cart_03-08-2026-b.pdf`. O `nota_ref` é o nome do arquivo, então o `-b`
+é o que impede o upsert de sobrescrever a primeira. **Nome de arquivo aqui é chave, não rótulo.**
+
+### O caminho offline (sem `service_role`)
+
+A chave não estava no ambiente. O import foi feito pelos flags que o próprio script tem:
+
+```
+node scripts/reparos.js importar --estoque <snapshot.json> --vendas <vazio> --sql <saida.sql>
+```
+
+- **`--estoque`**: snapshot local dos 134 aparelhos cujos 4 últimos do IMEI batem com alguma chave
+  das notas. É suficiente: `casar()` indexa por IMEI completo, etiqueta e 4 dígitos — e o conjunto
+  dos 4 dígitos das notas cobre os três caminhos.
+- **`--sql`**: gera o INSERT em vez de gravar, e o SQL foi aplicado pelo MCP.
+- **`tipo` ficou de fora**: sem o mapa de vendas, o script marca tudo como `recondicionamento`.
+  Foi zerado e recalculado **no banco**, com a mesma regra (venda depois do serviço =
+  recondicionamento; antes = garantia). Resultado: 77 recondicionamento (R$ 14.572), 35 garantia
+  (R$ 6.254), 24 indefinido (as em revisão).
+
+⚠️ **Se for repetir isso, prefira exportar `SUPABASE_SERVICE_ROLE_KEY` e rodar `importar` direto.**
+O caminho offline funciona, mas move o cálculo do `tipo` pra fora do script — e regra de negócio em
+dois lugares é como a comissão errada nasce.
+
+### A Conferência voltou a ter sinal
+
+Antes: janela vazia (livro 13/ago, nota 08/ago) e 40 acusações falsas. Agora a janela é
+**13/ago a 22/ago** e o que aparece é real:
+
+| | aparelhos | valor |
+|---|---:|---:|
+| **Na nota, sem registro — conserto individual** | **22** | **R$ 6.289** |
+| Na nota, sem registro — só subida de bateria (R$25) | 34 | R$ 850 |
+| Registrado, voltou e não apareceu na cobrança | 11 | — |
+
+Os **34 de subida de bateria são o preparo de lote** — o doc já dizia que esse controle é *por
+lote*, não por aparelho, então eles vão aparecer sempre. **Os 22 consertos individuais, R$ 6.289,
+são o achado**: saíram da loja e ninguém registrou.
+
+### As 24 linhas em `revisar`
+
+- **9 são lixo de parse do PDF** (cabeçalho vazado, IMEI mascarado com zeros). A trava 1 passa
+  porque o total fecha; as linhas sem código simplesmente não casam. Comportamento correto — o
+  script **nunca chuta**.
+- **11 têm IMEI que não existe no `estoque`** (aparelho de cliente, de outra loja, ou IMEI com 14/16
+  dígitos por erro de digitação da RR — ex.: `3561133311854649`, um dígito a mais que `356133311854649`).
+- **4 são da Access**: dois lotes de bancada sem aparelho, um sem código, e dois códigos (`2880`,
+  `5931`) em que **modelo e cor não bateram** com o candidato — a nota diz "14 preto" e o aparelho
+  é um "14 Pro Preto Espacial". Recusar é o certo.
+
+Resolver: `node scripts/reparos.js revisar` lista, e o UPDATE manual está no rodapé da saída.
