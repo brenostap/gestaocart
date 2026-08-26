@@ -64,6 +64,12 @@ vm.runInContext(`
     { id:4, apple_id:504, imei4:'4444', etiqueta:'E1504', modelo_txt:'iPhone 14 128GB Roxo',
       fornecedor:'RR', origem:'estoque', servico:'Subida de bateria',
       saiu_em:'2026-08-12', voltou_em:null, valor_cobrado:null, criado_em:'2026-08-12T09:00:00Z' },
+    // RETORNO na garantia da assistência: voltou, não está na nota — e está
+    // certo assim. Não há uma única linha de R$ 0,00 nas 205 linhas de reparos:
+    // serviço refeito de graça simplesmente não é faturado.
+    { id:5, apple_id:505, imei4:'5555', etiqueta:'E1505', modelo_txt:'iPhone 15 128GB Azul',
+      fornecedor:'RR', origem:'estoque', servico:'Troca de bateria', retorno_de:99,
+      saiu_em:'2026-08-13', voltou_em:'2026-08-14', valor_cobrado:null, criado_em:'2026-08-13T09:00:00Z' },
   ];
 
   _reparosCache = [
@@ -139,6 +145,14 @@ console.log('\nsó cobra nota de quem já voltou\n');
 eq('503 voltou e não está na nota', c.semNota.map(g => g.chave), ['a503']);
 ok('504 ainda está fora — não é cobrado de nota',
    !c.semNota.some(g => g.chave === 'a504'));
+
+// ⚠️ Retorno é a exceção que faz a mudança de 26/ago/2026 não virar alarme
+// falso. Sem ela, todo serviço refeito na garantia apareceria como "voltou e
+// não apareceu na cobrança" — o mesmo erro que a conferência já evitou uma vez
+// ao só cobrar de `criado_em` pra frente.
+ok('505 é retorno na garantia: voltou sem nota e NÃO é falta',
+   !c.semNota.some(g => g.chave === 'a505'),
+   'sem nota: ' + c.semNota.map(g => g.chave).join(','));
 
 console.log('\npreço de referência: nasce do histórico, não de tabela transcrita\n');
 

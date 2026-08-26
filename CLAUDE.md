@@ -158,6 +158,19 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     WhatsApp: modelo + final do IMEI, **sem preço**, só quem saiu do `estoque` (cliente e garantia
     viram contagem no rodapé). É por não ter preço que o papel `bancada` também exporta — o
     *Exportar WhatsApp* do Estoque continua atrás de `podeVerValor()`.
+  - ⚠️ **Duas garantias, não uma** (26/ago/2026). `Garantia (já vendido)` queria dizer ao mesmo
+    tempo *a nossa garantia pro cliente* e *a garantia que a assistência nos dá do serviço dela* —
+    3 das 9 linhas `garantia` eram de aparelho `available`, e uma trazia "Garantia assistencia"
+    escrito na **observação**. O dropdown de origem **saiu do formulário**: o caminho já responde
+    (achou na busca = prateleira; *"não está no estoque"* = tem dono), e `bncDaPrateleira()` deriva.
+    A segunda garantia virou coluna própria, **`bancada.retorno_de`**.
+    - ⚠️ **A derivação tem três guardas e todas importam**: linha fechada há mais de um dia vale o
+      gravado (status é o estado de HOJE — 35 linhas fechadas são de aparelho vendido *depois*);
+      `estoqueItens` vazio **não deriva** (senão a lista de "não vender" sai vazia e o balcão vende
+      aparelho que está fora); sem `apple_id` vale o gravado (são 15 linhas da planilha).
+    - **Retorno não aparece na nota**: não há **uma única linha de R$ 0,00** nas 205 de `reparos`.
+      Por isso ele fica fora do preço de referência (`bncPrecoRef`) e fora do `semNota` da
+      Conferência — sem isso, toda refação viraria alarme falso.
   - **Teste**: `node test/bancada.test.js`. Monta a tela de Assistência **e a de Estoque** — o selo
     mora no meio da linha do Estoque, então quebrar lá derruba a tela toda.
 - **`estoque_correcoes`** — ⚠️ **`estoque` não é editável**: o sync reescreve as 237 linhas de hora

@@ -81,13 +81,34 @@ function bncChipsServico(sel, fn){
 
 const BNC_DIAS_ALERTA = 14;   // acima disso o aparelho vira cobranca, nao registro
 
+// ---------------------------------------------------------------------------
+// RETORNO — a garantia que a ASSISTENCIA nos da do servico dela
+//
+// Nao confundir com a nossa garantia pro cliente. Sao duas garantias em
+// sentidos opostos, e ate 26/ago/2026 as duas moravam na mesma palavra: das 9
+// linhas com origem `garantia`, 3 eram de aparelho `available` (nunca vendido)
+// -- e uma delas trazia "Garantia assistencia" escrito na OBSERVACAO a mao,
+// porque o campo nao existia.
+//
+// Retorno nao aparece na nota: nao ha uma unica linha de R$ 0,00 nas 205 de
+// `reparos`. Servico refeito de graca so existe se for registrado aqui.
+const BNC_RETORNO_DIAS = 90;   // fora disso a tela nao sugere -- e servico novo
+
+// ⚠️ A taxa de retrabalho so conta a partir daqui, pela mesma razao da
+// Conferencia. 18/ago e o dia em que o Vitinho passou a registrar NA TELA (47
+// linhas dele comecam ali); as 100 linhas anteriores vieram da planilha
+// importada, onde a pergunta "e retorno?" nao existia. Dividir por um
+// denominador que nao sabia da pergunta produz um numero que parece medido e
+// nao e.
+const BNC_RETORNO_DESDE = '2026-08-18';
+
 let _bancadaCache = null;     // null = nunca carregou; [] = carregou e esta vazia
 let _bncCarregando = false;
 let _bncAba        = 'abertas';
 let _bncBusca      = '';
 let _bncSel        = new Set();   // apple_ids marcados no modal (lote)
 let _bncForn       = 'RR';
-let _bncOrigem     = 'estoque';
+let _bncRetornoDe  = null;   // id da ida anterior, quando esta e um retorno
 let _bncServs      = [BNC_SERVICOS[0]];  // mais de um serviço por aparelho
 let _bncServExtra  = '';                 // serviço que não está na lista
 let _bncObs        = '';
@@ -116,6 +137,58 @@ async function carregarBancada(){
 }
 
 function bncAbertas(){ return (_bancadaCache || []).filter(l => !l.voltou_em); }
+
+// Mesma chave do resto da tela: apple_id manda, 4 do IMEI e a reserva. Nunca
+// etiqueta -- E1030 e SP1030 colidem sem o prefixo (138 itens do estoque).
+function bncMesmoAparelho(a, b){
+  if(a.apple_id && b.apple_id) return String(a.apple_id) === String(b.apple_id);
+  const x = String(a.imei4 || ''), y = String(b.imei4 || '');
+  return x.length === 4 && x !== '0000' && x === y;
+}
+
+// A ultima ida FECHADA deste aparelho, dentro da janela de garantia. E ela que
+// a tela oferece como "e retorno disto?".
+//
+// Sugerir e trabalho de maquina; dizer se e o MESMO defeito e trabalho de quem
+// esta com o aparelho na mao. Por isso a tela pergunta e nao decide.
+function bncUltimaFechada(alvo){
+  const hoje = new Date(bncHoje() + 'T12:00:00').getTime();
+  return (_bancadaCache || [])
+    .filter(l => l.voltou_em && bncMesmoAparelho(l, alvo))
+    .filter(l => (hoje - new Date(String(l.voltou_em).slice(0,10) + 'T12:00:00').getTime())
+                 / 86400000 <= BNC_RETORNO_DIAS)
+    .sort((a, b) => String(b.voltou_em).localeCompare(String(a.voltou_em)))[0] || null;
+}
+
+// ---------------------------------------------------------------------------
+// DA PRATELEIRA OU TEM DONO? — derivado, nao perguntado
+//
+// O caminho ja respondeu: quem foi achado na busca do estoque tem `apple_id` e
+// esta `available`; quem entrou por "nao esta no estoque" nao tem. O dropdown
+// de origem pedia a mesma informacao uma segunda vez -- e em 4 das 37 linhas
+// abertas de 26/ago as duas respostas se contradiziam (3 `garantia` e 1
+// `cliente` em aparelho que nunca saiu do estoque).
+//
+// ⚠️ So a lista VIVA deriva. `estoque.status` e o estado de HOJE: 35 das 111
+// linhas fechadas sao de aparelho consertado e vendido DEPOIS, e derivar ali
+// diria "do cliente" pra reparo que entrou no custo de aquisicao. Linha fechada
+// ha mais de um dia e historia: vale o que foi gravado.
+//
+// ⚠️ GUARDA: sem estoque carregado, NAO deriva. `estoqueItens` vazio faria toda
+// linha virar "tem dono" e a lista de "nao vender" sair VAZIA -- o balcao
+// venderia aparelho que esta fora, o inverso exato do que esta tela existe pra
+// fazer. E o modo de falha do CLAUDE.md: 200 com lista vazia e ninguem
+// desconfia.
+function bncDaPrateleira(l){
+  const vivo = !l.voltou_em || String(l.voltou_em).slice(0,10) === bncHoje();
+  if(!vivo || !(estoqueItens || []).length) return l.origem === 'estoque';
+  // ⚠️ SEM apple_id NAO E "tem dono" -- e "nao da pra derivar". Ali vale o que
+  // foi gravado, e o caminho manual grava 'cliente'. Sao 15 linhas importadas
+  // da planilha com origem 'estoque' e sem id: tratar id ausente como dono
+  // tiraria todas elas da lista de "nao vender", que e o lugar delas.
+  if(!l.apple_id) return l.origem === 'estoque';
+  return (estoqueItens || []).some(i => String(i.id) === String(l.apple_id));
+}
 
 // ---------------------------------------------------------------------------
 // CONFERÊNCIA — a nota bate com o que foi registrado?
@@ -210,7 +283,12 @@ function bncConciliar(){
     const n = porNota[g.chave];
     // Só cobra nota de quem já VOLTOU: o que ainda está fora não foi faturado.
     const voltou = g.linhas.some(l => l.voltou_em);
-    if(!n && voltou) semNota.push(g);
+    // Retorno nao aparece na nota por definicao -- servico refeito na garantia
+    // nao e cobrado, e nao ha uma linha de R$ 0,00 nas 205 de `reparos`.
+    // Cobrar nota dele seria alarme falso: o mesmo erro que a conferencia ja
+    // evitou ao so cobrar de `criado_em` pra frente.
+    const soRetorno = g.linhas.every(l => l.retorno_de);
+    if(!n && voltou && !soRetorno) semNota.push(g);
     else if(n && g.temValor && Math.abs(n.total - g.cobrado) >= 1){
       valorDiferente.push({ ...g, nota: n.total, dif: g.cobrado - n.total });
     }
@@ -234,7 +312,10 @@ function bncPrecoRef(fornecedor, servico){
       vals.push(parseFloat(r.valor_liquido || 0));
   });
   (_bancadaCache || []).forEach(l => {
-    if(l.fornecedor === fornecedor && l.valor_cobrado != null &&
+    // Retorno fica FORA: servico refeito na garantia custa zero, e um zero na
+    // lista puxaria a mediana pra baixo e faria a tela acusar "preco fora" em
+    // servico normal. Ausencia de preco nao e amostra de preco.
+    if(l.fornecedor === fornecedor && l.valor_cobrado != null && !l.retorno_de &&
        bncNormServico(l.servico) === alvo)
       vals.push(parseFloat(l.valor_cobrado));
   });
@@ -355,6 +436,11 @@ async function bncSalvarValor(id, el){
 
 function bncCampoValor(l){
   if(!podeVerCustoServico()) return '—';
+  // Retorno na garantia da assistência não é "valor que falta lançar": é valor
+  // que não existe. Input vazio ali pede pra alguém preencher e some no meio
+  // dos que faltam de verdade.
+  if(l.retorno_de && l.valor_cobrado == null)
+    return `<span class="bnc-valor-zero" title="Retorno na garantia — não é cobrado">grátis</span>`;
   // A referência é a mediana do que a loja já pagou por este serviço neste
   // fornecedor. Serve pra pegar o dedo gordo na hora, não pra brigar com a nota.
   const ref = bncPrecoRef(l.fornecedor, l.servico);
@@ -458,7 +544,7 @@ function bncCandidatos(){
 
 function bncAbrirSaida(){
   _bncBusca = ''; _bncSel = new Set(); _bncManual = null;
-  _bncForn = 'RR'; _bncOrigem = 'estoque';
+  _bncForn = 'RR'; _bncRetornoDe = null;
   _bncServs = [BNC_SERVICOS[0]]; _bncServExtra = '';
   _bncObs = ''; _bncErro = '';
   UI.abrirModal({ titulo:'Registrar saída', corpo: bncCorpoModal(), foot: bncPeModal(),
@@ -488,6 +574,7 @@ function bncSetBusca(v){
 function bncToggle(id){
   const k = String(id);
   if(_bncSel.has(k)) _bncSel.delete(k); else _bncSel.add(k);
+  _bncRetornoDe = null;   // mudou o aparelho, a sugestão anterior não vale mais
   bncRedesenharModal();
   setTimeout(() => {
     const el = document.getElementById('bnc-busca');
@@ -496,7 +583,55 @@ function bncToggle(id){
 }
 
 function bncSetForn(f){ _bncForn = f; bncRedesenharModal(); }
-function bncSetOrigem(o){ _bncOrigem = o; bncRedesenharModal(); }
+
+// ---------------------------------------------------------------------------
+// "É retorno?" — a única pergunta do formulário que a máquina não sabe
+//
+// A tela SUGERE (achou uma ida fechada do mesmo aparelho dentro da janela de
+// garantia) e a pessoa CONFIRMA (é o mesmo defeito?). Trocamos o dropdown de
+// origem — que o próprio caminho já respondia, e que errou em 4 das 37 linhas
+// abertas — por este, que só quem está com o aparelho na mão sabe responder.
+//
+// Lote não pergunta: 26 aparelhos saindo juntos são serviço novo em lote, não
+// 26 retornos. Só aparece com UM aparelho selecionado.
+// ---------------------------------------------------------------------------
+function bncRetornoCand(){
+  let alvo = null;
+  if(_bncManual){
+    const i4 = String(_bncManual.imei4 || '').replace(/\D/g,'').slice(-4);
+    if(i4.length === 4) alvo = { apple_id:null, imei4:i4 };
+  } else if(_bncSel.size === 1){
+    const id = [..._bncSel][0];
+    const it = (estoqueItens || []).find(i => String(i.id) === String(id));
+    const d  = it ? dadosDoItem(it) : null;
+    alvo = { apple_id:Number(id), imei4:String(d && d.imei || '').slice(-4) };
+  }
+  return alvo ? bncUltimaFechada(alvo) : null;
+}
+
+function bncBlocoRetorno(){
+  const c = bncRetornoCand();
+  if(!c) return '';
+  const onde = c.fornecedor === 'RR' ? 'RR / Legacy' : 'Access';
+  return `
+    <div class="bnc-retorno${_bncRetornoDe ? ' marcado' : ''}" id="bnc-retorno">
+      <label class="bnc-retorno-lbl">
+        <input type="checkbox" ${_bncRetornoDe ? 'checked' : ''}
+               onchange="bncSetRetorno(this.checked)">
+        <span>Este aparelho voltou da <b>${UI.esc(onde)}</b> em
+              ${bncFmtData(c.voltou_em)}. É <b>retorno</b> desse serviço?</span>
+      </label>
+      <div class="bnc-dica-inline">Era “${UI.esc(c.servico || '—')}”. Marque só se for o
+        <b>mesmo problema</b> — aí é garantia da assistência e não deve ser cobrado.
+        Defeito diferente é serviço novo.</div>
+    </div>`;
+}
+
+function bncSetRetorno(v){
+  const c = bncRetornoCand();
+  _bncRetornoDe = (v && c) ? c.id : null;
+  bncRedesenharModal();
+}
 // Redesenha SÓ os chips: `bncRedesenharModal()` remonta o corpo inteiro e
 // tiraria o cursor do campo "outro serviço" a cada toque.
 function bncRedesenharChips(id, sel, fn){
@@ -513,14 +648,31 @@ function bncToggleServico(i){
 function bncSetServExtra(v){ _bncServExtra = v; }
 function bncSetObs(v){ _bncObs = v; }
 
-// Aparelho do cliente nao esta no estoque e nao tem apple_id. Sem este caminho
-// o Vitinho voltaria pra planilha na primeira garantia que aparecesse.
+// Aparelho ja vendido (ou do cliente) nao esta no estoque `available` e nao tem
+// apple_id. Sem este caminho o Vitinho voltaria pra planilha na primeira
+// garantia que aparecesse.
+//
+// ⚠️ Este botao E a resposta de "tem dono". Nao ha dropdown perguntando de novo:
+// ver `bncDaPrateleira()`.
 function bncModoManual(){
   _bncManual = _bncManual ? null : { modelo:'', imei4:'' };
-  if(_bncManual) _bncOrigem = 'cliente';
+  _bncRetornoDe = null;
   bncRedesenharModal();
 }
-function bncSetManual(campo, v){ if(_bncManual) _bncManual[campo] = v; }
+
+function bncSetManual(campo, v){
+  if(!_bncManual) return;
+  _bncManual[campo] = v;
+  // O bloco "é retorno?" só existe com os 4 dígitos. Redesenha SÓ quando a
+  // resposta muda -- a cada tecla tiraria o cursor do campo.
+  if(campo === 'imei4' && !!bncRetornoCand() !== !!document.getElementById('bnc-retorno')){
+    bncRedesenharModal();
+    setTimeout(() => {
+      const el = document.getElementById('bnc-imei4');
+      if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }, 0);
+  }
+}
 
 function bncListaHtml(){
   const cands = bncCandidatos();
@@ -528,8 +680,11 @@ function bncListaHtml(){
     return `<div class="bnc-dica">Digite os <b>4 últimos do IMEI</b>, a etiqueta ou o modelo.</div>`;
   }
   if(!cands.length){
-    return `<div class="bnc-dica">Nada no estoque com isso. Se o aparelho é do cliente,
-      use <b>“não está no estoque”</b> aqui embaixo.</div>`;
+    // A busca só enxerga o estoque `available`. Aparelho já vendido — que é o
+    // que volta na NOSSA garantia — nunca vai aparecer aqui, e é por isso que o
+    // caminho de baixo existe.
+    return `<div class="bnc-dica">Nada no estoque disponível com isso. Se o aparelho
+      <b>já foi vendido</b> ou é do cliente, use <b>“não está no estoque”</b> aqui embaixo.</div>`;
   }
   return cands.map(i => {
     const d = dadosDoItem(i);
@@ -558,7 +713,7 @@ function bncCorpoModal(){
       ${UI.linha(
         UI.campo({label:'Modelo e cor', corpo:`<input class="c-input" placeholder="14 Pro Max Roxo"
            value="${UI.esc(_bncManual.modelo)}" oninput="bncSetManual('modelo', this.value)">`}),
-        UI.campo({label:'4 últimos do IMEI', corpo:`<input class="c-input" inputmode="numeric" maxlength="4"
+        UI.campo({label:'4 últimos do IMEI', corpo:`<input class="c-input" id="bnc-imei4" inputmode="numeric" maxlength="4"
            placeholder="0000" value="${UI.esc(_bncManual.imei4)}" oninput="bncSetManual('imei4', this.value)">`})
       )}
     </div>` : '';
@@ -575,7 +730,7 @@ function bncCorpoModal(){
     <div class="bnc-lista" id="bnc-lista">${bncListaHtml()}</div>
 
     <button class="bnc-link" onclick="bncModoManual()">
-      ${_bncManual ? '← voltar pra busca no estoque' : 'não está no estoque (aparelho do cliente)'}
+      ${_bncManual ? '← voltar pra busca no estoque' : 'não está no estoque (já vendido / do cliente)'}
     </button>
     ${manual}
 
@@ -586,11 +741,7 @@ function bncCorpoModal(){
       `<div class="bnc-servs" id="bnc-servs-saida">${bncChipsServico(_bncServs, 'bncToggleServico')}</div>
        <input class="c-input bnc-serv-outro" placeholder="outro serviço (opcional)"
           value="${UI.esc(_bncServExtra)}" oninput="bncSetServExtra(this.value)">`})}
-    ${UI.campo({label:'Origem', corpo: UI.select({id:'bnc-origem', valor:_bncOrigem, extra:'onchange="bncSetOrigem(this.value)"', opcoes:[
-      {v:'estoque', t:'Estoque (recondicionamento)'},
-      {v:'garantia', t:'Garantia (já vendido)'},
-      {v:'cliente',  t:'Cliente (serviço pago)'},
-    ]})})}
+    ${bncBlocoRetorno()}
     ${UI.campo({label:'Observação', corpo:`<input class="c-input" placeholder="opcional"
        value="${UI.esc(_bncObs)}" oninput="bncSetObs(this.value)">`})}`;
 }
@@ -606,7 +757,10 @@ function bncPeModal(){
 async function bncSalvar(){
   if(_bncSalvando) return;
   const quem = (typeof usuarioEmail === 'string' ? usuarioEmail : '') || null;
-  const base = { fornecedor:_bncForn, origem:_bncOrigem,
+  // ORIGEM É DERIVADA DO CAMINHO, não perguntada: quem foi achado na busca veio
+  // da prateleira, quem entrou pelo "não está no estoque" tem dono. O dropdown
+  // que existia aqui pedia a mesma coisa uma segunda vez — e errava.
+  const base = { fornecedor:_bncForn, origem: _bncManual ? 'cliente' : 'estoque',
                  servico: bncJuntarServico(_bncServs, _bncServExtra),
                  saiu_em: bncHoje(), obs: _bncObs || null, quem };
 
@@ -631,6 +785,13 @@ async function bncSalvar(){
         lote,
       });
     });
+  }
+
+  // Retorno só existe pra UM aparelho: lote é serviço novo em lote, não N
+  // retornos. Revalidado aqui porque a seleção pode ter mudado depois do clique.
+  if(linhas.length === 1 && _bncRetornoDe){
+    const c = bncRetornoCand();
+    if(c && String(c.id) === String(_bncRetornoDe)) linhas[0].retorno_de = c.id;
   }
 
   _bncSalvando = true; _bncErro = ''; bncRedesenharModal();
@@ -726,7 +887,7 @@ function bncTextoWhatsApp(){
   // Mesma ordem da tela: saiu_em crescente, o mais velho no topo. A lista que
   // se cola no grupo e a que se olha aqui sao a mesma lista, na mesma ordem --
   // conferir uma contra a outra nao pode exigir procurar.
-  const doEstoque = abertas.filter(l => l.origem === 'estoque')
+  const doEstoque = abertas.filter(bncDaPrateleira)
     .sort((a, b) => String(a.saiu_em).localeCompare(String(b.saiu_em)));
   const outros = abertas.length - doEstoque.length;
   const hoje = bncFmtData(bncHoje());
@@ -785,8 +946,11 @@ function bncTextoWhatsAppVoltaram(dia){
                    + ((l.imei4 && l.imei4 !== '0000') ? ' · ' + l.imei4 : '')
                    + (l.servico ? ' — ' + l.servico : '');
 
-  const doEstoque = linhas.filter(l => l.origem === 'estoque');
-  const outros    = linhas.filter(l => l.origem !== 'estoque');
+  // Aparelho VENDIDO enquanto estava fora cai sozinho no bloco de entregar:
+  // ele nao esta mais em `estoqueItens` (que so traz `available`). Era um item
+  // aberto de "conferir com o Vitinho" no doc -- some sem ninguem fazer nada.
+  const doEstoque = linhas.filter(bncDaPrateleira);
+  const outros    = linhas.filter(l => !bncDaPrateleira(l));
 
   const blocos = [];
   if(doEstoque.length)
@@ -822,13 +986,27 @@ function renderBancada(){
     kpis.splice(1, 0, { rotulo:'Capital parado', valor: money(capital),
       sub:'custo que está fora da loja' });
   }
+  // Retrabalho: o número que decide pra ONDE mandar o próximo aparelho. Só
+  // conta de BNC_RETORNO_DESDE pra frente -- antes disso a pergunta não existia
+  // e o denominador não sabia dela.
+  const idas = (_bancadaCache || []).filter(l => l.saiu_em >= BNC_RETORNO_DESDE);
+  const retornos = idas.filter(l => l.retorno_de).length;
+  if(idas.length){
+    kpis.push({ rotulo:'Retorno', valor: retornos,
+      tom: retornos ? 'alerta' : undefined,
+      sub: (idas.length ? Math.round(retornos / idas.length * 100) : 0)
+           + '% das idas desde ' + bncFmtData(BNC_RETORNO_DESDE) });
+  }
+
   // Gasto de bancada do mes corrente. Fica atras do interruptor de custo de
   // SERVICO, nao do de margem: sao dinheiros diferentes.
   if(podeVerCustoServico()){
     const mes = bncHoje().slice(0,7);
     const doMes = (_bancadaCache || []).filter(l =>
       l.valor_cobrado != null && String(l.voltou_em || l.saiu_em).startsWith(mes));
-    const semValor = (_bancadaCache || []).filter(l => l.voltou_em && l.valor_cobrado == null).length;
+    // Retorno não tem nota -- cobrar valor dele seria um alerta que nunca apaga.
+    const semValor = (_bancadaCache || []).filter(l =>
+      l.voltou_em && l.valor_cobrado == null && !l.retorno_de).length;
     kpis.push({ rotulo:'Serviço no mês',
       valor: moneyServico(doMes.reduce((a,l) => a + parseFloat(l.valor_cobrado || 0), 0)),
       tom: semValor ? 'alerta' : undefined,
@@ -944,10 +1122,24 @@ function bncTelaConferencia(conf){
       : semRegistro + semNota + difs}`;
 }
 
-function bncOrigemBadge(o){
-  if(o === 'garantia') return UI.badge('Garantia', 'alerta');
-  if(o === 'cliente')  return UI.badge('Cliente', 'processo');
-  return UI.badge('Estoque');
+// Duas respostas, não três: o aparelho é da prateleira ou tem dono.
+//
+// A palavra "Garantia" saiu do rótulo DE PROPÓSITO — ela queria dizer duas
+// coisas opostas ao mesmo tempo (a nossa, pro cliente; e a da assistência, pra
+// nós). O segundo sentido virou coluna própria, `retorno_de`.
+function bncDonoBadge(l){
+  return bncDaPrateleira(l) ? UI.badge('Estoque') : UI.badge('Do cliente', 'processo');
+}
+
+// O selo de retorno mora na coluna do SERVIÇO, não na de origem: retorno
+// qualifica o serviço ("de novo"), não de quem é o aparelho.
+function bncRetornoSelo(l){
+  if(!l.retorno_de) return '';
+  const ant = (_bancadaCache || []).find(x => String(x.id) === String(l.retorno_de));
+  const t = ant
+    ? 'Retorno do serviço de ' + bncFmtData(ant.saiu_em) + ' — garantia da assistência'
+    : 'Retorno — garantia da assistência';
+  return `<span class="bnc-retorno-selo" title="${UI.esc(t)}">${UI.badge('↩ retorno','alerta')}</span>`;
 }
 
 function bncProduto(l){
@@ -982,8 +1174,8 @@ function bncTabelaAbertas(abertas){
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="IMEI" data-campo="imei">${(l.imei4 && l.imei4 !== '0000') ? `<span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço" data-campo="servico">${bncCelulaServico(l)}</td>
-      <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
+      <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
+      <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Dias" data-campo="dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
       ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
@@ -1001,7 +1193,7 @@ function bncTabelaAbertas(abertas){
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>IMEI</th><th>Onde</th><th>Serviço</th>
-        <th>Origem</th><th>Saiu</th><th class="num">Dias</th>
+        <th>De onde</th><th>Saiu</th><th class="num">Dias</th>
         ${podeVerCustoServico() ? '<th class="num">R$</th>' : ''}<th></th>
       </tr></thead><tbody>${linhas}</tbody></table></div>`
   });
@@ -1033,8 +1225,8 @@ function bncTabelaFechadas(){
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
-      <td data-rot="Serviço" data-campo="servico">${bncCelulaServico(l)}</td>
-      <td data-rot="Origem" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncOrigemBadge(l.origem)}</td>
+      <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
+      <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
       <td data-rot="Ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
@@ -1043,7 +1235,7 @@ function bncTabelaFechadas(){
     </tr>`;
   }).join('');
 
-  const semValor = fechadas.filter(l => l.valor_cobrado == null).length;
+  const semValor = fechadas.filter(l => l.valor_cobrado == null && !l.retorno_de).length;
   return UI.card({
     titulo:'Voltaram',
     sub: (_bncFiltro ? fechadas.length + ' com esse filtro' : fechadas.length + ' últimas')
@@ -1052,7 +1244,7 @@ function bncTabelaFechadas(){
     corpo: `<div class="c-tabela-wrap"><table class="c-tabela bnc-tabela">
       <thead><tr>
         <th>Aparelho</th><th>Etiqueta</th><th>Onde</th><th>Serviço</th>
-        <th>Origem</th><th>Saiu</th><th>Voltou</th><th class="num">Ficou</th>
+        <th>De onde</th><th>Saiu</th><th>Voltou</th><th class="num">Ficou</th>
         ${podeVerCustoServico() ? '<th class="num">R$</th>' : ''}<th></th>
       </tr></thead><tbody>${linhas}</tbody></table></div>`
   });

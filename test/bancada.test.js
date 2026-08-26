@@ -135,7 +135,11 @@ ok('renderBancada() devolve HTML', typeof bnc === 'string' && bnc.length > 500);
 ok('mostra os 3 aparelhos abertos', (bnc.match(/class="bnc-linha"/g) || []).length === 3,
    'linhas: ' + (bnc.match(/class="bnc-linha"/g) || []).length);
 ok('o mais velho vem primeiro (o de 11/mai)', bnc.indexOf('16 Plus') < bnc.indexOf('16 128GB Rosa'));
-ok('marca a origem garantia/cliente', bnc.includes('Cliente'));
+ok('marca quem tem dono', bnc.includes('Do cliente'));
+// A palavra "Garantia" saiu do rótulo: ela dizia duas coisas opostas ao mesmo
+// tempo (a nossa, pro cliente; a da assistência, pra nós). A segunda virou
+// coluna própria, `retorno_de`.
+ok('a palavra "Garantia" não é mais rótulo de origem', !/>Garantia</.test(bnc));
 
 const fech = R('(function(){ _bncAba = "fechadas"; return renderBancada(); })()');
 ok('aba Voltaram mostra o que voltou', fech.includes('SP1030'));
@@ -268,6 +272,124 @@ ok('dia sem baixa não gera lista falsa',
 R('_bancadaCache = [];');
 ok('bancada vazia não gera lista falsa',
    /Nenhum aparelho do estoque/.test(R('bncTextoWhatsApp()')));
+
+console.log('\nde onde vem o aparelho — derivado, não perguntado\n');
+
+// O dropdown de origem saiu do formulário em 26/ago/2026: o CAMINHO já
+// responde (achou na busca do estoque = prateleira; "não está no estoque" =
+// tem dono), e perguntar de novo errava — em 4 das 37 linhas abertas daquele
+// dia as duas respostas se contradiziam.
+const derivado = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    // origem gravada diz 'garantia', mas o aparelho 202 está available no
+    // estoque: nunca foi vendido. É o caso real da linha 155 (26/ago).
+    "{id:50,apple_id:202,imei4:'1234',modelo_txt:'iPhone 16 128GB Preto',fornecedor:'RR'," +
+    " origem:'garantia',servico:'Não liga',saiu_em:'2026-08-20',voltou_em:null}," +
+    // sem apple_id e origem 'estoque': linha importada da planilha. NÃO dá pra
+    // derivar, então vale o que foi gravado — são 15 dessas em produção.
+    "{id:51,apple_id:null,imei4:'5555',modelo_txt:'14 Pro Roxo',fornecedor:'RR'," +
+    " origem:'estoque',servico:'Face ID',saiu_em:'2026-08-21',voltou_em:null}," +
+    // sem apple_id e origem 'cliente': o caminho manual. Tem dono.
+    "{id:52,apple_id:null,imei4:'6666',modelo_txt:'13 Azul',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Troca de tela',saiu_em:'2026-08-22',voltou_em:null}]");
+  const r = {
+    g: R('bncDaPrateleira(_bancadaCache[0])'),
+    semId: R('bncDaPrateleira(_bancadaCache[1])'),
+    dono: R('bncDaPrateleira(_bancadaCache[2])'),
+    wa: R('bncTextoWhatsApp()'),
+  };
+  // ⚠️ GUARDA: estoque vazio não pode fazer a lista de "não vender" sair vazia.
+  const est = R('estoqueItens');
+  R('estoqueItens = [];');
+  r.semEstoque = R('bncDaPrateleira(_bancadaCache[0])');
+  r.waSemEstoque = R('bncTextoWhatsApp()');
+  R('estoqueItens = ' + JSON.stringify(est));
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return r;
+})();
+
+ok('origem gravada "garantia" em aparelho available vira prateleira', derivado.g === true);
+ok('sem apple_id NÃO é "tem dono": vale o gravado', derivado.semId === true);
+ok('caminho manual (origem cliente) tem dono', derivado.dono === false);
+ok('os dois da prateleira entram na lista de não vender',
+   derivado.wa.includes('1234') && derivado.wa.includes('5555'));
+ok('o que tem dono fica fora da lista', !derivado.wa.includes('6666'));
+// Sem estoque carregado a derivação desliga: derivar ali diria "tem dono" pra
+// tudo e a lista sairia VAZIA — o balcão venderia aparelho que está fora.
+ok('estoque vazio NÃO deriva: cai no que foi gravado', derivado.semEstoque === false);
+ok('e a lista de não vender não some (a linha do estoque continua)',
+   derivado.waSemEstoque.includes('5555'));
+
+console.log('\nretorno — a garantia que a ASSISTÊNCIA nos dá\n');
+
+const ret = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:60,apple_id:null,imei4:'9722',modelo_txt:'15 max preto',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Troca de bateria',saiu_em:'2026-08-24',voltou_em:bncHoje()}," +
+    // mesma etiqueta de tempo, aparelho diferente: não pode casar
+    "{id:61,apple_id:null,imei4:'1111',modelo_txt:'13 azul',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Troca de tela',saiu_em:'2026-08-20',voltou_em:bncHoje()}," +
+    // ida antiga do MESMO aparelho, fora da janela de 90 dias
+    "{id:62,apple_id:null,imei4:'9722',modelo_txt:'15 max preto',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Face ID',saiu_em:'2026-01-02',voltou_em:'2026-01-05'}]");
+  const r = {
+    acha:   R("(bncUltimaFechada({apple_id:null, imei4:'9722'})||{}).id"),
+    outro:  R("(bncUltimaFechada({apple_id:null, imei4:'1111'})||{}).id"),
+    zeros:  R("bncUltimaFechada({apple_id:null, imei4:'0000'})"),
+    naoTem: R("bncUltimaFechada({apple_id:null, imei4:'4321'})"),
+  };
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return r;
+})();
+
+// Sugerir é trabalho de máquina; dizer se é o MESMO defeito é de quem está com
+// o aparelho na mão. Por isso a tela oferece a ida anterior e não decide.
+eq('sugere a última ida fechada do mesmo aparelho', ret.acha, 60);
+eq('não confunde aparelhos diferentes', ret.outro, 61);
+// A ida de janeiro está fora da janela: é serviço novo, não retorno.
+ok('ida fora da janela de 90 dias não é sugerida', ret.acha !== 62);
+// '0000' é o "não sei o IMEI" da planilha — casar por ele juntaria 5 aparelhos
+// distintos numa coisa só.
+eq('imei 0000 nunca casa', ret.zeros, null);
+eq('aparelho sem histórico não sugere nada', ret.naoTem, null);
+
+// A mediana de referência é o número que acusa "preço fora". Um zero de
+// retorno ali puxaria a referência pra baixo e faria a tela reclamar de
+// serviço normal. Ausência de preço não é amostra de preço.
+const precoRef = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:70,fornecedor:'RR',servico:'Troca de tela',valor_cobrado:300,voltou_em:'2026-08-01'}," +
+    "{id:71,fornecedor:'RR',servico:'Troca de tela',valor_cobrado:300,voltou_em:'2026-08-02'}," +
+    "{id:72,fornecedor:'RR',servico:'Troca de tela',valor_cobrado:300,voltou_em:'2026-08-03'}," +
+    "{id:73,fornecedor:'RR',servico:'Troca de tela',valor_cobrado:0,retorno_de:70,voltou_em:'2026-08-04'}]");
+  const r = R("(bncPrecoRef('RR','Troca de tela')||{})");
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return r;
+})();
+eq('retorno a R$ 0 não entra na mediana de referência', precoRef.valor, 300);
+eq('e nem conta como amostra', precoRef.n, 3);
+
+// O selo mora na coluna do SERVIÇO: retorno qualifica o serviço ("de novo"),
+// não de quem é o aparelho.
+const comSelo = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:80,apple_id:101,imei4:'8580',modelo_txt:'iPhone 16 128GB Rosa',fornecedor:'RR'," +
+    " origem:'estoque',servico:'Troca de bateria',saiu_em:'2026-08-20',voltou_em:'2026-08-21',valor_cobrado:120}," +
+    "{id:81,apple_id:101,imei4:'8580',modelo_txt:'iPhone 16 128GB Rosa',fornecedor:'RR'," +
+    " origem:'estoque',servico:'Troca de bateria',saiu_em:'2026-08-25',voltou_em:null,retorno_de:80}]");
+  const h = R("(function(){ _bncAba='abertas'; currentTab='bancada'; return renderBancada(); })()");
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return h;
+})();
+ok('a tela marca o retorno', /retorno/.test(comSelo));
+// Retorno não tem nota. Input vazio ali pediria pra alguém preencher e sumiria
+// no meio dos valores que faltam de verdade.
+ok('retorno mostra "grátis", não campo de valor vazio', comSelo.includes('grátis'));
+ok('KPI de retrabalho aparece', /Retorno[\s\S]{0,300}% das idas/.test(comSelo));
 
 console.log(falhas ? `\n${falhas} falha(s)\n` : '\nTudo certo.\n');
 process.exit(falhas ? 1 : 0);

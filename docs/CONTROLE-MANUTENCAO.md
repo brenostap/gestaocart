@@ -598,3 +598,101 @@ assistência. Sobraram **35 aparelhos fora** de 121 idas no total.
 ⚠️ **Apagar linha da `bancada` ainda é operação de banco** (policy: só sócio). Não há botão de
 excluir na tela, e é de propósito: "Voltou" é o gesto de todo dia e um toque a desfaz; excluir
 apaga a história da ida. Se virar rotina, vira botão — atrás de `podeVerMargem()`.
+
+## As duas garantias — 26/ago/2026
+
+O dono leu a coluna Origem e viu que **`Garantia (já vendido)` estava dizendo duas coisas
+opostas**:
+
+- **A nossa garantia** — aparelho que vendemos, o cliente teve problema, voltou pra assistência.
+- **A garantia da assistência** — serviço que a RR/Access fez, deu problema, e eles refazem
+  **sem cobrar**.
+
+São garantias em sentidos contrários e moravam na mesma palavra.
+
+### A prova estava no banco
+
+Das 9 linhas com origem `garantia`, **3 eram de aparelho `available`** — nunca vendido, logo
+impossível ser "já vendido". Uma delas foi registrada **no mesmo dia dessa conversa** com
+`Garantia assistencia` escrito **na observação, à mão**: o campo não existia e alguém improvisou.
+
+A opção `cliente (serviço pago)` também não descrevia o negócio. **A loja não faz serviço avulso** —
+usa a assistência só pros aparelhos dela, seja pra prateleira, seja pra devolver ao cliente. As 12
+linhas `cliente` e as 9 `garantia` estavam dizendo a mesma coisa com dois nomes: *tem dono*.
+
+### A decisão: trocar a pergunta, não somar uma
+
+**Saiu** o dropdown de origem. Ele pedia de novo o que o **caminho já tinha respondido**:
+
+| Caminho | O que significa | `origem` gravada |
+|---|---|---|
+| achou na busca do estoque | é da prateleira (tem `apple_id`, está `available`) | `estoque` |
+| usou *"não está no estoque"* | tem dono (já vendido ou do cliente) | `cliente` |
+
+**Entrou** `bancada.retorno_de` — a linha da ida anterior, quando esta é um **retorno**. Mesmo
+número de toques no formulário: saiu o campo que ninguém sabia responder, entrou o único que **só
+quem está com o aparelho na mão** sabe.
+
+A tela **sugere** (achou uma ida fechada do mesmo aparelho dentro de `BNC_RETORNO_DIAS`, hoje 90) e
+a pessoa **confirma**. Lote não pergunta: 26 aparelhos saindo juntos são serviço novo em lote.
+
+⚠️ **A janela de 90 dias é um chute defensável, não um combinado.** Falta confirmar com RR e Access
+qual é o prazo real e se a garantia cobre **peça** ou só mão de obra — isso decide se o valor
+esperado de um retorno é R$ 0 ou parcial.
+
+### `bncDaPrateleira()` — derivado, com duas guardas
+
+```
+linha fechada há mais de um dia  → vale o que foi GRAVADO   (é história)
+estoqueItens vazio               → vale o que foi GRAVADO   (guarda)
+sem apple_id                     → vale o que foi GRAVADO   (não dá pra derivar)
+resto                            → está em estoqueItens? então é da prateleira
+```
+
+1. **Só a lista viva deriva.** `estoque.status` é o estado de **hoje**: 35 das 111 linhas fechadas
+   são de aparelho consertado e **vendido depois**. Derivar ali diria "do cliente" pra reparo que
+   entrou no custo de aquisição. Se um dia quisermos separar *reparo antes da venda* de *garantia
+   pós-venda*, o caminho é `saiu_em` contra a data da venda — **nunca** o status.
+2. **Sem estoque carregado, não deriva.** `estoqueItens` vazio faria toda linha virar "tem dono" e
+   a lista de *"não vender"* sair **vazia** — o balcão venderia aparelho que está fora. É o modo de
+   falha do CLAUDE.md: `200` com lista vazia e ninguém desconfia.
+3. **Sem `apple_id` não é "tem dono", é "não dá pra derivar".** São 15 linhas importadas da
+   planilha com origem `estoque` e sem id; tratá-las como dono tiraria todas da lista de não vender.
+
+De brinde, a derivação **conserta 4 linhas abertas** que estavam marcadas errado, e o aparelho
+**vendido enquanto estava fora** cai sozinho no bloco "Entregar ao dono" — era um item aberto de
+*conferir com o Vitinho* (`E1655` ⋯2880).
+
+### O que o retorno destrava (e o que ele quebraria se não fosse tratado)
+
+- **KPI Retorno** — quantas idas são refação e a % delas. Conta **de 18/ago pra frente**, o dia em
+  que o Vitinho passou a registrar na tela; antes disso a pergunta não existia e o denominador não
+  sabia dela. Mesma disciplina da Conferência.
+- **Preço de referência** (`bncPrecoRef`) **ignora retorno**. Um R$ 0 na lista puxaria a mediana
+  pra baixo e faria a tela acusar "preço fora" em serviço normal. Ausência de preço não é amostra.
+- **Conferência não cobra nota de retorno.** Não há **uma única linha de R$ 0,00** nas 205 de
+  `reparos`: serviço refeito de graça simplesmente não é faturado. Sem essa exceção, todo retorno
+  viraria *"voltou e não apareceu na cobrança"* — o mesmo alarme falso que a conferência já evitou
+  ao só cobrar de `criado_em` pra frente.
+- **A célula de R$ mostra "grátis"**, não um input vazio. Vazio pediria pra alguém preencher e
+  sumiria no meio dos valores que faltam de verdade.
+
+### As 3 refações do histórico, marcadas à mão
+
+Eram 3 e são o histórico inteiro. Da mudança pra frente a tela registra sozinha.
+
+| linha | aparelho | ida anterior | o retorno |
+|---|---|---|---|
+| 120 | apple 546389 | RR · *toque fantasma, desligou* (13→18/ago) | ACCESS · *Análise* — segunda opinião |
+| 145 | ⋯4737 | RR · *vidro da tela + auricular* (21→24/ago) | ACCESS · *Auricular* — **pagamos duas vezes** |
+| 152 | ⋯9722 | RR · *troca de bateria* (24/ago) | RR · *troca de bateria* — garantia da RR |
+
+O caso 145 é o que justifica marcar retorno mesmo quando muda de assistência: **é o retrabalho que
+custou dinheiro** em vez de ser coberto pela garantia de quem errou.
+
+### Pendências que essa mudança NÃO resolve
+
+- **111 das 111 linhas que voltaram seguem sem `valor_cobrado`.** A coluna R$ manual nunca foi
+  usada, e o alerta "sem valor da nota" já nasce saturado. A conta de dinheiro real continua vindo
+  de `reparos` (a nota). Vale decidir se essa coluna manual continua existindo.
+- **Prazo e cobertura da garantia** com RR e Access (ver acima).

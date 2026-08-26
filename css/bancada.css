@@ -180,3 +180,25 @@
 
 /* -- Filtro da tela (achar o aparelho) ------------------------------------ */
 .bnc-filtro-barra{ display:flex; gap:8px; align-items:center; margin:0 0 12px; }
+
+/* -- "É retorno?" — a garantia que a ASSISTÊNCIA nos dá do serviço dela ---- */
+/* Âmbar = atenção (cor = significado, ver docs/DESIGN-SYSTEM.md): retorno não
+   é erro nem processo normal, é algo pra olhar. */
+.bnc-retorno{
+  margin-top:12px; padding:10px 12px; border-radius:var(--radius-sm);
+  border:1px solid var(--border); background:var(--bg3);
+}
+.bnc-retorno.marcado{ border-color:var(--yellow); background:var(--yellow-bg); }
+.bnc-retorno-lbl{
+  display:flex; gap:8px; align-items:flex-start; cursor:pointer;
+  font-size:var(--fs-caption); line-height:var(--lh-body); color:var(--text2);
+}
+.bnc-retorno-lbl input{ margin-top:2px; flex:0 0 auto; }
+.bnc-retorno .bnc-dica-inline{ margin-top:6px; }
+
+/* Selo na coluna do serviço: retorno qualifica o SERVIÇO, não o dono. */
+.bnc-retorno-selo{ margin-right:6px; }
+
+/* Retorno não tem nota. Um input vazio ali pediria pra alguém preencher e
+   sumiria no meio dos valores que faltam de verdade. */
+.bnc-valor-zero{ font-size:var(--fs-caption); color:var(--text4); }
