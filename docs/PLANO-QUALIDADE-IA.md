@@ -305,12 +305,30 @@ duas fontes. Isso só muda com o plano de conectar os números ao Chatwoot (§1)
 Amostra estratificada de ~190 por loja, com o join completo contra o n8n, extrapolada pela
 proporção real de cada estrato:
 
+> 🚨 **CORRIGIDO EM 27/AGO — os números abaixo estavam inflados.** O detector contava o **cartão de
+> preço da IA** como vendedor: mensagens tipo *"iPhone 15 Pro Max 256GB → R$ 3.950 à vista ou 18x"*
+> aparecem no Chatwoot e **não** no n8n, e passavam pelo filtro de template porque cada uma é única
+> (preço diferente). O que denunciou foi o retrato delas: **92% cotando preço, 3% fechando, resposta
+> em 0 minuto** — comportamento de robô, não de gente. Filtro novo: se ≥70% do resíduo tem R$, é o
+> cartão. Está nos três scripts.
+>
+> | medido direto na população | Cart | Urban |
+> |---|---|---|
+> | conversas com histórico no n8n | 1.291 | 1.025 |
+> | detectadas como humano **antes** do filtro | 316 (24,5%) | 193 (18,8%) |
+> | **depois do filtro** | **280 · 21,7%** | **170 · 16,6%** |
+> | falsos positivos removidos | 36 | 23 |
+> | **recall do `meta.assignee`** | **91%** (255/280) | **51%** (86/170) |
+>
+> **O que muda:** o nível cai de ~32% para ~22% na Cart e de ~26% para ~17% na Urban. **O que não
+> muda:** o assignee da Urban continua perdendo metade dos atendimentos, que era o achado.
+
 | | Cart | Urban |
 |---|---|---|
 | conversas de Instagram na janela | 1.520 | 1.157 |
-| **com HUMANO escrevendo (estimado)** | **487 · 32,0%** | **302 · 26,1%** |
+| ~~com HUMANO escrevendo (estimado)~~ | ~~487 · 32,0%~~ | ~~302 · 26,1%~~ |
 | com `meta.assignee` no Chatwoot | 502 | 150 |
-| **recall do `meta.assignee`** | **88%** | **43%** |
+| ~~recall do `meta.assignee`~~ | ~~88%~~ | ~~43%~~ |
 | taxa de humano *dentro* dos atribuídos | 85,7% | 86,7% |
 | taxa de humano *fora* dos atribuídos | 5,6% | **17,1%** |
 
@@ -806,3 +824,46 @@ O que sobrou publicável da Urban: `Meta Ads · WhatsApp`, com as 14 vendas que 
 **A régua não é pra escolher lead.** É pra ler as etiquetas da camada 2 **dentro do segmento**:
 "57% não tentou fechar" é ruim num lead de R$ 52/lead e quase irrelevante num de R$ 1,04.
 Recalcular **mensal**, sempre com janela fechada e maturação normalizada.
+
+
+---
+
+## 3-octies. ⭐ O roteiro de cada especialista (27/ago)
+
+`node scripts/tags-atendimento.js cart --quem`. Na tela em **Diário → Atendimento**.
+
+⚠️ **Só a Cart.** A identidade vem do `meta.assignee`, que aqui pega **91%** dos atendimentos
+humanos e na Urban só **51%** — quebrar a Urban por pessoa daria o retrato de metade do time
+parecendo completo.
+
+| | **Isa** | **David** | **Mel** |
+|---|---|---|---|
+| conversas | 91 | 91 | 73 |
+| pede o dia **aberto** | 15% | 13% | 8% |
+| pede o dia **fechado** | 12% | 8% | **26%** |
+| tenta fechar | 16% | 29% | **33%** |
+| chama pelo nome | 53% | **82%** | **3%** |
+| cota preço | 46% | 46% | 55% |
+| escala pro gerente | 2% | 3% | **21%** |
+| **entra em (mediana)** | 55 min | 19 min | **0 min** |
+| **entra em (p90)** | **24 h** | **22 h** | **1 min** |
+
+### Três coisas que saltam
+
+1. ⭐ **A Mel já faz o que eu recomendei pra Maju.** Pergunta fechada em **26%** contra 8–12% dos
+   outros, e é a que mais tenta fechar (33%). **O roteiro que falta na IA existe dentro de casa.**
+2. ⭐ **A Mel responde em 0 min na mediana e 1 min no p90.** Isa e David têm p90 de **22 a 24 horas**
+   — mil vezes mais lento na cauda. Não é média enganando: é a cauda inteira.
+3. **David chama o cliente pelo nome em 82% das conversas; a Mel, em 3%.** São dois estilos opostos
+   e os dois funcionam — o que reforça que o problema não é falta de simpatia, é o fechamento.
+
+⚠️ **Isto é hábito, não desempenho.** Quem converte mais depende do lead que recebeu, e a régua
+disso é a camada 1 (§3-septies). Ranquear pessoa por conversão sem controlar o lead é exatamente o
+erro que o §0 proíbe. **Não use esta tabela pra avaliar ninguém.**
+
+### E o calendário
+
+A **Isa sai pra gerência em setembro** e é a que **menos tenta fechar** dos três (16%) com o **p90
+mais lento** (24 h). Isso não faz da saída dela um alívio — o retrato é de hábito, não de resultado
+— mas muda a pergunta: em vez de *"como não perder o que ela faz"*, é *"o que a Mel faz que os
+outros dois não fazem"*. A resposta está na linha da pergunta fechada.

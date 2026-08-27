@@ -34,6 +34,12 @@
  *   # 2. rode os SQL de ia-texto e segmentos (ver camada2-painel.js --sql)
  *   node scripts/tags-atendimento.js cart               # 3. imprime o resumo
  *   node scripts/tags-atendimento.js cart --sql > t.sql # 4. INSERT pro painel
+ *   node scripts/tags-atendimento.js cart --quem        # 5. quebra por especialista
+ *
+ * ⚠️ O `--quem` SÓ VALE NA CART. A identidade vem do `meta.assignee` do Chatwoot,
+ * que na Cart pega 88% dos atendimentos humanos e na Urban só 43% (medido em
+ * PLANO-QUALIDADE-IA §3-ter). Quebrar a Urban por pessoa daria retrato de
+ * metade do time e pareceria completo.
  */
 
 const fs = require('fs');
@@ -44,6 +50,23 @@ const N = s => (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 const MIN_MSGS_HUMANO = 3;
 const MIN_CONVS_TEMPLATE = 5;
+
+/**
+ * ⚠️ TERCEIRO PONTO CEGO, achado em 27/ago: o CARTÃO DE PREÇO.
+ * Mensagens como *"iPhone 15 Pro Max 256GB → R$ 3.950 à vista ou 18x"* aparecem
+ * no Chatwoot e **não** no `n8n_chat_histories` — outro nó do fluxo as envia. Elas
+ * passavam pelo filtro de template (cada uma é única, com preço diferente) e viravam
+ * "vendedor". Medido: das 316 conversas que o detector marcava como humano na Cart,
+ * **61 eram só isso** — e o retrato delas denunciava (92% cotando preço, 3% fechando,
+ * resposta em 0 minuto: comportamento de robô, não de gente).
+ *
+ * A regra: se quase tudo que sobrou tem R$, é o cartão, não uma pessoa.
+ */
+const ehCartaoDePreco = msgs => {
+  if(!msgs.length) return false;
+  const comPreco = msgs.filter(m => /r\$\s?\d/i.test(m.txt)).length;
+  return comPreco / msgs.length >= 0.7;
+};
 
 /**
  * As etiquetas. Cada uma é uma FALHA CORRIGÍVEL — não uma descrição.
@@ -167,7 +190,7 @@ function contextos(loja){
     const msgs = (v.loja_msgs || []).filter(m => N(m.txt).length >= 15);
     const marc = msgs.map(m => ({ ...m, vend: !texto.includes(N(m.txt).slice(0, 45)) && !ehTemplate(m.txt) }));
     const vend = marc.filter(m => m.vend);
-    const temHumano = vend.length >= MIN_MSGS_HUMANO;
+    const temHumano = vend.length >= MIN_MSGS_HUMANO && !ehCartaoDePreco(vend);
     const iaMsgs = temHumano ? marc.filter(m => !m.vend) : marc;   // sem humano, tudo é dela
     let gapMin = null;
     if(temHumano){
@@ -246,3 +269,72 @@ if(flag === '--sql'){
     console.log('');
   }
 }
+
+// ===========================================================================
+// --quem : o roteiro de cada especialista, lado a lado.
+//
+// ⚠️ Base = as conversas DELE, não o total. Cada um recebe um volume diferente
+// (rodízio + canal), então comparar sobre o total faria quem recebe menos
+// parecer pior em tudo.
+//
+// ⚠️ E isto é retrato de HÁBITO, não ranking de desempenho: quem converte mais
+// depende do lead que recebeu, e a régua disso é a camada 1. Ler junto.
+// ===========================================================================
+// ⚠️ O despacho do --quem fica no FIM do arquivo, depois desta constante:
+// `const` tem zona morta temporal, e chamar porEspecialista() lá em cima
+// derrubava com "Cannot access 'POR_QUEM' before initialization".
+const POR_QUEM = [
+  ['pede o dia ABERTO',   /\b(que dia|qual dia|melhor dia|que hor[áa]rio|qual hor[áa]rio)/i],
+  ['pede o dia FECHADO',  /\bposso (confirmar|deixar|agendar|separar)/i],
+  ['tenta fechar',        /\b(vai ser (esse|ele)|curtiu|posso (confirmar|separar|deixar)|nome completo|fechamos)/i],
+  ['chama pelo nome',     /\b(bo[am]\s+(dia|tarde|noite)|perfeito|beleza|oi+)[ ,!]+[A-Z][a-zà-ú]{2,}/],
+  ['cota preço',          /r\$\s?\d/i],
+  ['fala de troca',       /\b(troca|upgrade|parte do pagamento|volta (no|pro|do))/i],
+  ['manda o endereço',    /\b(rua |endere[çc]o|tatuap[ée]|metr[ôo])/i],
+  ['escala pro gerente',  /\bgerente\b/i],
+];
+
+function porEspecialista(loja){
+  const ctxs = contextos(loja).filter(c => c.temHumano);
+  const quem = {};
+  for (const c of ctxs){
+    const nome = (c.responsavel || '(não identificado)').replace(/ - (Vendas|Suporte)\s*$/, '').trim();
+    (quem[nome] = quem[nome] || []).push(c);
+  }
+  const nomes = Object.keys(quem).filter(n => quem[n].length >= 15).sort((a, b) => quem[b].length - quem[a].length);
+  if(!nomes.length){ console.log('sem especialista com 15+ conversas'); return; }
+
+  const col = n => String(n).padStart(7);
+  console.log(`\n${loja.toUpperCase()} — roteiro de cada especialista (base: as conversas dele)\n`);
+  console.log('comportamento'.padEnd(24) + nomes.map(n => col(n)).join(''));
+  console.log('conversas'.padEnd(24) + nomes.map(n => col(quem[n].length)).join(''));
+  console.log('-'.repeat(24 + 7 * nomes.length));
+  for (const [rot, re] of POR_QUEM){
+    const linha = nomes.map(n => {
+      const g = quem[n];
+      const k = g.filter(c => c.vend.some(m => re.test(m.txt))).length;
+      return col(Math.round(100 * k / g.length) + '%');
+    }).join('');
+    console.log(rot.padEnd(24) + linha);
+  }
+  // ⚠️ mediana + p90 sempre. A média aqui é catástrofe garantida: a cauda é de um dia.
+  console.log('-'.repeat(24 + 7 * nomes.length));
+  for (const [rot, f] of [['entra em (mediana)', .5], ['entra em (p90)', .9]]){
+    const linha = nomes.map(n => {
+      const g = quem[n].map(c => c.gapMin).filter(x => x != null).sort((a, b) => a - b);
+      if(g.length < 5) return col('—');
+      const m = g[Math.floor(g.length * f)];
+      return col(m >= 60 ? Math.round(m / 60) + 'h' : m + 'min');
+    }).join('');
+    console.log(rot.padEnd(24) + linha);
+  }
+  const msgs = nomes.map(n => {
+    const v = quem[n].map(c => c.vend.length).sort((a, b) => a - b);
+    return col(v[Math.floor(v.length / 2)]);
+  }).join('');
+  console.log('mensagens (mediana)'.padEnd(24) + msgs);
+  console.log('\n⚠️ Hábito, não desempenho: quem converte mais depende do lead que recebeu.');
+  console.log('   A régua disso é a camada 1 (tabela lead_score).');
+}
+
+if(flag === '--quem') porEspecialista(loja);

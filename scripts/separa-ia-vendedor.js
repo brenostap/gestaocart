@@ -161,6 +161,23 @@ async function colher(nome, paginas) {
 const MIN_MSGS_HUMANO = 3;
 const MIN_CONVS_TEMPLATE = 5;
 
+/**
+ * ⚠️ TERCEIRO PONTO CEGO, achado em 27/ago: o CARTÃO DE PREÇO.
+ * Mensagens como *"iPhone 15 Pro Max 256GB → R$ 3.950 à vista ou 18x"* aparecem
+ * no Chatwoot e **não** no `n8n_chat_histories` — outro nó do fluxo as envia. Elas
+ * passavam pelo filtro de template (cada uma é única, com preço diferente) e viravam
+ * "vendedor". Medido: das 316 conversas que o detector marcava como humano na Cart,
+ * **61 eram só isso** — e o retrato delas denunciava (92% cotando preço, 3% fechando,
+ * resposta em 0 minuto: comportamento de robô, não de gente).
+ *
+ * A regra: se quase tudo que sobrou tem R$, é o cartão, não uma pessoa.
+ */
+const ehCartaoDePreco = msgs => {
+  if(!msgs.length) return false;
+  const comPreco = msgs.filter(m => /r\$\s?\d/i.test(m.txt)).length;
+  return comPreco / msgs.length >= 0.7;
+};
+
 function comparar(nome) {
   const cw = JSON.parse(fs.readFileSync(path.join(CACHE, `chatwoot-ig-${nome}.json`), 'utf8'));
   const iaTexto = JSON.parse(fs.readFileSync(path.join(CACHE, `ia-texto-${nome}.json`), 'utf8'));
@@ -183,7 +200,7 @@ function comparar(nome) {
 
     const msgs = (info.loja_msgs || []).filter(m => norm(m.txt).length >= 15);  // "ok"/emoji não decide nada
     const doVendedor = msgs.filter(m => !texto.includes(norm(m.txt).slice(0, 45)) && !ehTemplate(m.txt));
-    const temHumano = doVendedor.length >= MIN_MSGS_HUMANO;
+    const temHumano = doVendedor.length >= MIN_MSGS_HUMANO && !ehCartaoDePreco(doVendedor);
     if (temHumano) comVendedor++; else soIA++;
 
     linhas.push({

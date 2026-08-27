@@ -38,6 +38,7 @@ let atendPadroes = null;
 let atendPares   = null;
 let atendTags    = null;
 let leadScore    = null;
+let atendEsp     = null;
 let atendLoja    = 'cart';   // a análise é por loja: os prompts são diferentes
 
 // ⚠️ Os tons são os do design system (`css/components.css`), não cor inventada:
@@ -76,7 +77,8 @@ function diarioCarregar(){
     fetch(SB_URL + '/rest/v1/atendimento_pares?select=*&order=ordem.asc&limit=100', { headers: h }),
     fetch(SB_URL + '/rest/v1/atendimento_tags?select=*&order=n_conversas.desc&limit=400', { headers: h }),
     fetch(SB_URL + '/rest/v1/lead_score?select=*&order=lucro_por_lead.desc&limit=60', { headers: h }),
-  ]).then(async ([a, b, c, d, e, f]) => {
+    fetch(SB_URL + '/rest/v1/atendimento_especialista?select=*&order=ordem.asc&limit=200', { headers: h }),
+  ]).then(async ([a, b, c, d, e, f, g]) => {
     if(!a.ok || !b.ok) throw new Error('HTTP ' + a.status + '/' + b.status);
     diarioEntradas = await a.json();
     diarioItens    = await b.json();
@@ -86,6 +88,7 @@ function diarioCarregar(){
     atendPares   = d.ok ? await d.json() : [];
     atendTags    = e.ok ? await e.json() : [];
     leadScore    = f.ok ? await f.json() : [];
+    atendEsp     = g.ok ? await g.json() : [];
     return true;
   }).catch(e => {
     console.error('diarioCarregar', e);
@@ -96,6 +99,7 @@ function diarioCarregar(){
     atendPares     = atendPares || [];
     atendTags      = atendTags || [];
     leadScore      = leadScore || [];
+    atendEsp       = atendEsp || [];
     return true;
   }).finally(() => { diarioCarregando = false; });
 }
@@ -354,6 +358,36 @@ function diarioAtendimento(){
       </div>`;
   }).join('') : UI.vazio({ titulo: 'Sem régua', texto: 'A camada 1 ainda não foi medida para esta loja.' });
 
+  // ── por especialista. ⚠️ Só a Cart: o assignee da Urban pega 51%, e quebrar
+  // por pessoa lá daria retrato de metade do time parecendo completo.
+  const esp = (atendEsp || []).filter(e => e.loja === atendLoja);
+  const nomes = [...new Set(esp.map(e => e.quem))];
+  const comps = [...new Set(esp.map(e => e.comportamento))];
+  const acha = (q, c) => esp.find(e => e.quem === q && e.comportamento === c);
+  const tempo = m => m == null ? '—' : (m >= 60 ? Math.round(m / 60) + 'h' : m + 'min');
+  const espHtml = nomes.length ? UI.card({
+    titulo: 'O roteiro de cada especialista',
+    sub: 'base: as conversas dele',
+    corpo: `<div class="scroll"><table class="esp">
+      <thead><tr><th>comportamento</th>${nomes.map(n => `<th class="num">${UI.esc(n)}</th>`).join('')}</tr></thead>
+      <tbody>
+        <tr class="esp-base"><td>conversas</td>${nomes.map(n =>
+          `<td class="num">${(esp.find(e => e.quem === n) || {}).conversas || '—'}</td>`).join('')}</tr>
+        ${comps.map(c => `<tr><td>${UI.esc(c)}</td>${nomes.map(n => {
+          const v = acha(n, c); return `<td class="num">${v ? Math.round(v.pct) + '%' : '—'}</td>`; }).join('')}</tr>`).join('')}
+        <tr class="esp-sep"><td>entra em (mediana)</td>${nomes.map(n =>
+          `<td class="num">${tempo((esp.find(e => e.quem === n) || {}).entra_mediana_min)}</td>`).join('')}</tr>
+        <tr><td>entra em (p90)</td>${nomes.map(n =>
+          `<td class="num">${tempo((esp.find(e => e.quem === n) || {}).entra_p90_min)}</td>`).join('')}</tr>
+      </tbody></table></div>
+      <div class="at-rodape">
+        ⚠️ Isto é <b>hábito, não desempenho</b>. Quem converte mais depende do lead que recebeu — a
+        régua disso é a tabela acima. Ranquear pessoa por conversão sem controlar o lead é
+        exatamente o erro que a regra dura proíbe.<br>
+        ⚠️ Só a Cart: a identificação vem do Chatwoot, que aqui pega <b>91%</b> dos atendimentos
+        humanos e na Urban só <b>51%</b>.
+      </div>` }) : '';
+
   return `
     ${UI.card({
       titulo: 'Quanto vale cada tipo de lead',
@@ -377,6 +411,7 @@ function diarioAtendimento(){
           Etiquetas geradas por fora da IA, a partir do texto — <b>cada uma carrega a frase que a
           gerou</b>. Não dependem da Maju marcar nada, e cobrem o vendedor também.
         </div>` })}
+    ${espHtml}
     ${UI.card({
       titulo: 'A mesma frase, dois finais',
       sub: 'falas reais das conversas',

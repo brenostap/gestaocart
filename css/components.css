@@ -1600,3 +1600,18 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   color:var(--danger); background:var(--bg3); border-left:2px solid var(--danger);
   border-radius:0 var(--radius-sm) var(--radius-sm) 0; padding:8px 11px;
 }
+
+/* -- Atendimento: roteiro por especialista -- */
+table.esp{ border-collapse:collapse; width:100%; font-size:13px; }
+table.esp th, table.esp td{ padding:7px 12px; border-bottom:1px solid var(--border); text-align:left; }
+table.esp thead th{
+  font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--text4); background:var(--bg3); white-space:nowrap;
+}
+table.esp td.num, table.esp th.num{
+  text-align:right; font-family:var(--font-mono);
+  font-variant-numeric:tabular-nums; white-space:nowrap;
+}
+table.esp tr.esp-base td{ font-weight:600; color:var(--text2); }
+table.esp tr.esp-sep td{ border-top:2px solid var(--border2); }
+table.esp tbody tr:last-child td{ border-bottom:none; }
