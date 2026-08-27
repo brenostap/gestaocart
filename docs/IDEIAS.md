@@ -70,6 +70,14 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- 💡 **"Quais aparelhos estão parados?" é pauta de conteúdo, e o David não vê a resposta.** §10 do
+  documento de mídias (`docs/funcoes/midias-e-conteudo.md`) cobra dele visibilidade pro que está
+  parado. Medido em 26/ago: dos 232 disponíveis, média **29 dias**, mas **25 passam de 60 dias
+  (R$ 56.100)** e 15 passam de 90 — com carrego de 0,1%/dia, 60 dias comem ~6% do custo. `dias
+  parado` vem de `v_estoque_margem`, que é `eh_socio()`, e a `v_estoque_vitrine` não traz o campo
+  (`estoque.created_at` está **vazio em 100%**, não serve de proxy). Ele só enxerga o estado
+  `saldao` (7 aparelhos hoje). **Somar `dias_parado` à `v_estoque_vitrine` resolve** — é dia de
+  prateleira, não é custo, então não fere a regra de não mostrar custo pro `comercial`.
 - ⚠️ **Leo, Gabi e Davi não têm login — e são eles que ganham os 25% de acessório.** `perfis` tem 7
   linhas: Vitinho (`bancada`), David/Isa/Mel/Maria (`comercial`) e os dois sócios. Dos **seis** com
   `atKey`, só dois abrem a própria comissão. A tela *Meu dia* já existe e já vem da chave

@@ -13,6 +13,7 @@ lugares diferentes — ver o mapa abaixo.
 | Gerência da loja | Isa — **a partir de set/2026** (em ago ainda é vendedora online) | [gerente-de-loja.md](gerente-de-loja.md) |
 | Coordenadora de Pós-Venda e Atendimento ao Cliente | Maria | [coordenadora-pos-venda.md](coordenadora-pos-venda.md) |
 | Atendente de Vendas | Leo, Gabi e Davi (vale também para o atendimento de Anne e Vitinho) | [atendente-de-vendas.md](atendente-de-vendas.md) |
+| Responsável pelas Mídias e Conteúdo Digital | David — **acumula com vendedor online** | [midias-e-conteudo.md](midias-e-conteudo.md) |
 
 ## Onde vive cada informação da equipe
 
