@@ -523,3 +523,66 @@ da IA: mediana boa, cauda de um dia inteiro. **Use mediana + p90, nunca média.*
 Entra na **camada 2** (determinístico, custo zero), agora com **duas séries e não uma**: o mesmo
 painel de comportamento para a IA e para o vendedor, lado a lado, dentro do mesmo segmento de lead.
 A métrica de topo do §6 ganha um par: **% em que alguém — IA ou humano — pediu um dia**.
+
+---
+
+## 3-quinquies. ⭐ O painel da camada 2 rodado — as duas séries lado a lado
+
+`scripts/camada2-painel.js`, sobre 2.677 conversas de Instagram segmentadas por origem × tema do
+anúncio. Primeira vez que IA e vendedor aparecem na mesma tabela.
+
+⚠️ Rodado ainda no cache **sem paginação** (últimas 20 mensagens por conversa), então os
+percentuais do vendedor são **piso**. A releitura com `before=` refina, não inverte.
+
+### ⭐⭐ A leitura que decide: a coluna ALGUÉM quase não sobe
+
+| segmento | IA pede o dia | vendedor | **ALGUÉM** |
+|---|---|---|---|
+| Cart · Orgânico | 27% | 10% | **29%** |
+| Cart · Meta Ads · preço/produto | 28% | 13% | **30%** |
+| Cart · Meta Ads · aparelho do cliente | 28% | 13% | **29%** |
+| Urban · Meta Ads · preço/produto | 29% | **4%** | **29%** |
+| Urban · Orgânico | 37% | **5%** | **38%** |
+| Urban · Meta Ads · genérico | 33% | **0%** | **33%** |
+
+**O vendedor não cobre o buraco da IA — ele acrescenta 1 a 2 pontos, e na Urban acrescenta zero.**
+
+Isso fecha a discussão de onde mexer: a alavanca do agendamento é **da casa**, não do robô, e hoje
+**ninguém** a puxa. Mudar só o prompt da IA move o número de 29% para talvez 40%; mudar o roteiro
+dos dois é o que muda o funil.
+
+### A divisão de trabalho, medida
+
+| | IA | vendedor |
+|---|---|---|
+| **tentou FECHAR** (*"vai ser esse?"*, *"posso confirmar?"*, nome completo) | **1–8%** | **6–22%** |
+| **morreu PERGUNTANDO** | **56–70%** | 23–49% |
+| falou de TROCA | 60–91% | 14–38% |
+| RESERVOU o aparelho | 0–15% | 0–4% |
+
+⭐ **A IA praticamente nunca tenta fechar** (1–8%) e **morre perguntando em 56 a 70%** das conversas
+em que fica sozinha. O vendedor fecha 3× mais. **A IA entrega o lead sem nunca ter tentado a venda**
+— e em 3 de cada 4 conversas ela nunca entrega.
+
+### ⭐ O segmento de troca é o pior em tudo — inclusive no humano
+
+`Cart · Meta Ads · anúncio: aparelho do cliente`:
+
+| | esse segmento | os outros da Cart |
+|---|---|---|
+| vendedor apareceu | **11%** | 22–25% |
+| **IA → 1ª msg do vendedor (mediana)** | **13h26** | **1 a 21 min** |
+| IA falou de troca | 91% | 60–65% |
+| IA falou de bateria | 46% | 27–28% |
+
+⚠️ n=12 no tempo — direção forte, número frágil.
+
+Não é só que esse lead é menos transferido (§3): **quando é, o vendedor demora meio dia pra
+aparecer.** A avaliação de troca consome a conversa na IA *e* atrasa o humano. É o balde onde as
+duas metades falham juntas.
+
+### Nota de método
+
+A Urban pergunta **bateria** muito mais (52% no Meta Ads/preço contra 27% da Cart) e **fecha muito
+menos** (IA 1%). São prompts diferentes; a comparação entre lojas só vale dentro do mesmo segmento,
+que é o que esta tabela faz.

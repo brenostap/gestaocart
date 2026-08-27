@@ -493,6 +493,16 @@ Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026
   (R$ 5,54/lead), 33 vendas atribuídas, CAC R$ 657, ROAS 4,47×, lucro bruto R$ 19.822 — **empate**.
   Ler as três ressalvas em `docs/IAS-E-ESPECIALISTAS.md` §6.2 antes de decidir verba: cobertura de
   atribuição é ~65%, o lucro é bruto (falta carrego/reparo/taxa) e há venda contada em dois canais.
+- 🔨 ⭐⭐⭐ **Ninguém pede o dia — nem a IA nem o vendedor.** O painel da camada 2 (rodado em 2.677
+  conversas de IG) mostra que a coluna "ALGUÉM pediu um dia" fica em **29–38%**, e o vendedor
+  acrescenta **1 a 2 pontos** — na Urban, **zero**. Mudar só o prompt da IA move pouco; o roteiro
+  é da casa. `PLANO-QUALIDADE-IA.md` §3-quinquies.
+- 🔨 ⭐⭐ **A IA nunca tenta fechar.** Tentativa de fechamento: **IA 1–8%**, vendedor 6–22%. E ela
+  **morre perguntando em 56–70%** das conversas em que fica sozinha. Ela entrega o lead sem ter
+  tentado a venda — e em 3 de cada 4 não entrega.
+- 🔨 ⭐⭐ **No segmento de troca as duas metades falham juntas**: vendedor aparece em **11%** (contra
+  22–25%) e, quando aparece, a mediana IA→vendedor é **13h26** contra 1–21 min dos outros segmentos.
+  (⚠️ n=12 no tempo.)
 - 🔨 ⭐⭐ **A alavanca do "pede o dia" vale pro HUMANO também** — e ele faz pior que a IA: pede dia
   ou hora explícito em **15% (Cart) e 2% (Urban)** das conversas em que aparece, contra 16–25% da
   IA. E **41–44% das últimas mensagens dele terminam com uma pergunta pendurada**, o mesmo padrão
