@@ -531,21 +531,23 @@ A métrica de topo do §6 ganha um par: **% em que alguém — IA ou humano — 
 `scripts/camada2-painel.js`, sobre 2.677 conversas de Instagram segmentadas por origem × tema do
 anúncio. Primeira vez que IA e vendedor aparecem na mesma tabela.
 
-⚠️ Rodado ainda no cache **sem paginação** (últimas 20 mensagens por conversa), então os
-percentuais do vendedor são **piso**. A releitura com `before=` refina, não inverte.
+✅ **Números finais, com paginação** (28.153 mensagens da loja na Cart, 16.985 na Urban; até 129
+por conversa). A releitura subiu todos os percentuais — eu via só a cauda — e **deixou o achado mais
+duro, não mais fraco**.
 
-### ⭐⭐ A leitura que decide: a coluna ALGUÉM quase não sobe
+### ⭐⭐ A leitura que decide: a coluna ALGUÉM não sobe
 
-| segmento | IA pede o dia | vendedor | **ALGUÉM** |
-|---|---|---|---|
-| Cart · Orgânico | 27% | 10% | **29%** |
-| Cart · Meta Ads · preço/produto | 28% | 13% | **30%** |
-| Cart · Meta Ads · aparelho do cliente | 28% | 13% | **29%** |
-| Urban · Meta Ads · preço/produto | 29% | **4%** | **29%** |
-| Urban · Orgânico | 37% | **5%** | **38%** |
-| Urban · Meta Ads · genérico | 33% | **0%** | **33%** |
+| segmento | conversas | IA pede o dia | vendedor | **ALGUÉM** | ganho |
+|---|---|---|---|---|---|
+| Cart · Orgânico | 681 | 37% | 13% | **38%** | +1 |
+| Cart · Meta Ads · preço/produto | 428 | 36% | 17% | **36%** | **0** |
+| Cart · Meta Ads · aparelho do cliente | 133 | 30% | 12% | **30%** | **0** |
+| Urban · Orgânico | 343 | 45% | 5% | **45%** | **0** |
+| Urban · Meta Ads · genérico | 280 | 41% | 2% | **41%** | **0** |
+| Urban · Meta Ads · preço/produto | 384 | 31% | 4% | **31%** | **0** |
 
-**O vendedor não cobre o buraco da IA — ele acrescenta 1 a 2 pontos, e na Urban acrescenta zero.**
+**Em 5 dos 6 segmentos o vendedor acrescenta ZERO.** Quando ele pergunta o dia, a IA já tinha
+perguntado — não há cobertura incremental em lugar nenhum.
 
 Isso fecha a discussão de onde mexer: a alavanca do agendamento é **da casa**, não do robô, e hoje
 **ninguém** a puxa. Mudar só o prompt da IA move o número de 29% para talvez 40%; mudar o roteiro
@@ -555,10 +557,10 @@ dos dois é o que muda o funil.
 
 | | IA | vendedor |
 |---|---|---|
-| **tentou FECHAR** (*"vai ser esse?"*, *"posso confirmar?"*, nome completo) | **1–8%** | **6–22%** |
-| **morreu PERGUNTANDO** | **56–70%** | 23–49% |
-| falou de TROCA | 60–91% | 14–38% |
-| RESERVOU o aparelho | 0–15% | 0–4% |
+| **tentou FECHAR** (*"vai ser esse?"*, *"posso confirmar?"*, nome completo) | **2–18%** | **0–25%** |
+| **morreu PERGUNTANDO** | **50–69%** | 23–47% |
+| falou de TROCA | 81–98% | 16–51% |
+| RESERVOU o aparelho | 1–17% | 0–7% |
 
 ⭐ **A IA praticamente nunca tenta fechar** (1–8%) e **morre perguntando em 56 a 70%** das conversas
 em que fica sozinha. O vendedor fecha 3× mais. **A IA entrega o lead sem nunca ter tentado a venda**
@@ -570,18 +572,21 @@ em que fica sozinha. O vendedor fecha 3× mais. **A IA entrega o lead sem nunca 
 
 | | esse segmento | os outros da Cart |
 |---|---|---|
-| vendedor apareceu | **11%** | 22–25% |
-| **IA → 1ª msg do vendedor (mediana)** | **13h26** | **1 a 21 min** |
-| IA falou de troca | 91% | 60–65% |
-| IA falou de bateria | 46% | 27–28% |
+| vendedor apareceu | **13%** | 22–27% |
+| **IA → 1ª msg do vendedor (mediana)** | **9h45** | **1 min** |
+| IA falou de troca | 98% | 81–86% |
+| IA falou de bateria | 62% | 38–46% |
 
-⚠️ n=12 no tempo — direção forte, número frágil.
+⚠️ n=16 no tempo — direção forte, número frágil.
 
 Não é só que esse lead é menos transferido (§3): **quando é, o vendedor demora meio dia pra
 aparecer.** A avaliação de troca consome a conversa na IA *e* atrasa o humano. É o balde onde as
 duas metades falham juntas.
 
 ### Nota de método
+
+📄 **Fechamento visual da sessão** (para os sócios e para o Dudu):
+https://claude.ai/code/artifact/1ceb30eb-7997-4b1d-88c2-641215c5b8ba
 
 A Urban pergunta **bateria** muito mais (52% no Meta Ads/preço contra 27% da Cart) e **fecha muito
 menos** (IA 1%). São prompts diferentes; a comparação entre lojas só vale dentro do mesmo segmento,
