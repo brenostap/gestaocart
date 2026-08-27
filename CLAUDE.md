@@ -302,6 +302,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   David/Mel/Isa/Maria são os especialistas), a chave que liga conversa→lead→venda, e o mapa de
   **todos** os relatórios das IAs — inclusive as views do Dudu (`dash_transfers`, `dash_vendas_ia`)
   que respondem o funil sem bater na produção. Ler antes de qualquer análise de atendimento.
+- `docs/funcoes/` — **o que cada papel da equipe é responsável por fazer** (um arquivo por
+  função, não por pessoa). O `README.md` de lá tem o mapa de onde vive cada informação de
+  colaborador: cadastro (`FUNC`), dados editáveis (`funcionarios_config`), acesso (`perfis`),
+  apelidos (`apelidos`) e folha (`SALARIOS`). ⚠️ Só markdown ali — a Netlify publica a raiz.
 - `docs/IDEIAS.md` — backlog por área. **Ao começar um trabalho numa área, leia a seção dela** e veja o que encaixa pra fazer junto. Anote ali toda ideia nova que surgir e não for a tarefa do momento.
 
 ## Como trabalhar aqui (evita a bagunça de jul/2026)

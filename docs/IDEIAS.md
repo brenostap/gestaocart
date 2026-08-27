@@ -70,6 +70,21 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- ✅ **Descrição de função virou documento (26/ago/2026)**: `docs/funcoes/` — um arquivo por
+  **função**, não por pessoa (a pessoa sai, a função fica). O primeiro é o de **Gerente de
+  Acessórios**, que a Anne ocupa. Só markdown ali: a Netlify publica a raiz, PDF commitado vira URL
+  pública. O índice (`docs/funcoes/README.md`) tem o mapa de onde vive cada informação da equipe.
+- 💡 **O cargo da Anne no `FUNC` ainda é `Atendente`**, mas ela já recebe como gerente de
+  acessórios: `f.bonus` (só ela tem) paga **5% do lucro de acessórios da loja inteira**, não só do
+  que ela vendeu — `equipe.js:160`. O cargo aparece na tela de Equipe e no cabeçalho do fechamento;
+  trocar pra "Atendente / Gerente de Acessórios" é seguro (só `(saiu)` é interpretado pelo código).
+- ⚠️ **Metade do documento da gerente de acessórios não tem dado no painel.** As seções 4, 9 e 10
+  (estoque, produtos parados, reposição) pedem quantidade disponível, giro e o que está acabando —
+  e o `estoque` do painel tem **232 itens, 230 com IMEI e nenhum acessório** (medido em 26/ago).
+  O acessório só existe *depois de vendido*, dentro de `venda_produtos` (`isAcess()`: sem IMEI,
+  sem apple_id, < R$200). Dá pra responder "o que vendeu e com que margem"; não dá pra responder
+  "o que tem na gaveta" nem "o que está parado". Ver se a FoneNinja expõe esse estoque no `fn`
+  antes de pensar em contagem à mão.
 - ✅ **Ex-funcionário some das telas (02/ago/2026)**: `saiuDaEquipe(f)` em `core.js` é a **única**
   leitura do marcador `(saiu)` no cargo. Tira a pessoa dos rankings do dashboard, dos **cards da
   Equipe** (era o vazamento: `renderEquipe` montava as listas do `FUNC` cru, então Pietra e Luana
