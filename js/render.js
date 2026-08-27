@@ -165,6 +165,7 @@ function renderContent(){
   else if(currentTab==='tabela')c.innerHTML=renderTabela();
   else if(currentTab==='contas')c.innerHTML=renderContas();
   else if(currentTab==='fechamento')c.innerHTML=renderFechamento();
+  else if(currentTab==='diario')c.innerHTML=renderDiario();
   // Qualquer aba que este JS nao conhece cai aqui -- inclusive 'semacesso',
   // que e como um papel novo aterrissa num app desatualizado.
   else c.innerHTML=renderSemAcesso();

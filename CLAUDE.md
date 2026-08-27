@@ -86,6 +86,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/consulta.js` — tela **Pós-venda** (só `comercial`): acha a venda pelo final do IMEI, nome ou
   telefone e mostra quem está esperando aparelho na assistência. Lê **só views**
   (`v_venda_consulta*`, `v_assistencia_cliente`) — sem custo, lucro ou valor de serviço.
+- `js/diario.js` — tela **Diário** (só sócio): o que foi medido, o que ficou decidido e **o que
+  está em aberto, com quem**. Nasceu em 27/ago/2026 porque commit é pra dev e `docs/` é pra agente
+  — faltava o lugar que o dono já abre. ⚠️ **Também é o changelog que a análise de série exige**
+  (`docs/ANALISE-MAJU-AGO-2026.md`: *"carimbe toda mudança de prompt"*) — daí o tipo `prompt`.
+  ⚠️ **O diário LINKA, nunca COPIA**: `resumo` são bullets do que mudou, `docs`/`commits`/`links`
+  são ponteiro. Copiar conteúdo de `docs/` aqui cria terceira fonte de verdade e diverge.
+  Teste: `node test/diario.test.js`.
 - `js/ui.js` — **kit de componentes** (`UI.card/kpi/badge/tabela/...`). Telas pedem componentes, não escrevem HTML na mão.
 - `js/auth.js` — login + `sbGet(tabela, params, limit)` (wrapper do Supabase REST).
 - `js/shell.js` — navegação, contexto (loja+período), **permissões** (`papelAtual`, `podeVerValor`, `podeVerMargem`).
@@ -139,7 +146,7 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     sem risco de comer um deles calado. **Não volte pra forma literal.**
 - Tabelas principais: `vendas`, `venda_produtos`, `pagamentos`, `contas`, `estoque`, `clientes`, `compras`, `custos`, `reparos`, `bancada`.
 - ⚠️ **"O app só lê" vale pros dados da FoneNinja.** As tabelas do próprio painel — `custos`,
-  `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada` — o browser **grava direto**
+  `metas_mensais`, `funcionarios_config`, `tabela_precos`, `bancada`, `diario`/`diario_itens` — o browser **grava direto**
   por upsert (`setEquipeExtra()` em `equipe.js` é o modelo). **Mas escrita é por papel**, não é
   `auth_all` como já foi: `custos`, `metas_mensais`, `funcionarios_config` e `tabela_precos` pedem
   `eh_socio()`; `bancada`, `estoque_correcoes` e `estoque_estado` pedem `pode_operar()` (sócio ou

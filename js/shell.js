@@ -43,6 +43,11 @@ const NAV = [
   ]},
   { grupo:'Gestão', itens:[
     {id:'equipe',  label:'Equipe'},
+    // O que foi medido, o que ficou decidido e o que esta em aberto -- e com
+    // quem. Nasceu em 27/ago/2026 porque commit e docs/ nao sao escritos pro
+    // dono. Tambem e o changelog que a analise de serie exige: sem data de
+    // mudanca de prompt, comparar antes/depois vira arqueologia.
+    {id:'diario',  label:'Diário'},
     {id:'tabela',  label:'Tabela de preços'},
   ]},
   { grupo:'Financeiro', itens:[
@@ -106,7 +111,7 @@ function navMobile(){
 // Bancada e operacao de loja, nao financeiro: quem atende precisa saber que o
 // aparelho nao esta na prateleira antes de prometer.
 const MATRIZ_ACESSO = {
-  socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento'],
+  socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento','diario'],
   // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
   bancada:   ['estoque','bancada','tabela'],
   // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta

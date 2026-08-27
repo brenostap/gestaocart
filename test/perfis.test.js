@@ -121,13 +121,16 @@ eq('papel bancada vê as TRÊS telas na barra do celular',
    comoPapel('bancada','navMobile().fixas'), ['estoque','bancada','tabela']);
 eq('papel que cabe na barra não precisa de "Mais"',
    comoPapel('bancada','navMobile().mais'), []);
-// O socio tem 11 telas: 4 ficam fixas e as outras 7 vao pro "Mais". Antes de
-// 15/ago as 7 simplesmente nao existiam no celular.
+// O socio tem 12 telas: 4 ficam fixas e as outras 8 vao pro "Mais". Antes de
+// 15/ago as do "Mais" simplesmente nao existiam no celular -- sem rolagem e sem
+// aviso. ⚠️ Esta lista e conferida NA MAO de proposito: tela nova que entra na
+// MATRIZ_ACESSO e nao aparece aqui e tela que o dono nao alcanca pelo telefone.
+// `diario` entrou em 27/ago/2026.
 eq('sócio tem 4 slots fixos',
    comoPapel('socio','navMobile().fixas'), ['dash','vendas','estoque','equipe']);
-eq('e as outras 7 ficam alcançáveis pelo "Mais"',
+eq('e as outras 8 ficam alcançáveis pelo "Mais"',
    comoPapel('socio','navMobile().mais'),
-   ['compras','bancada','movs','tabela','contas','custos','fechamento']);
+   ['compras','bancada','movs','tabela','contas','custos','fechamento','diario']);
 ok('toda tela do papel é alcançável no celular — fixa ou no "Mais"',
    Object.keys(R('MATRIZ_ACESSO')).every(p => {
      const n = comoPapel(p, 'navMobile()');

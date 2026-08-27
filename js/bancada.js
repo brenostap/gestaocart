@@ -119,6 +119,8 @@ let _bncFiltro     = '';      // busca da tela (achar o aparelho na lista)
 let _bncEditId     = null;    // linha aberta no editor de serviços
 let _bncEditServs  = [];
 let _bncEditExtra  = '';
+let _bncEditCli    = '';     // dono do aparelho -- só quando não é da prateleira
+let _bncEditTel    = '';
 
 // ---------------------------------------------------------------------------
 // DADOS
@@ -586,12 +588,14 @@ function bncAbrirServico(id){
   if(!l) return;
   const p = bncSepararServico(l.servico);
   _bncEditId = l.id; _bncEditServs = p.sel; _bncEditExtra = p.extra;
-  UI.abrirModal({ titulo:'Serviços do aparelho', id:'bnc-modal-serv',
+  _bncEditCli = l.cliente_nome || ''; _bncEditTel = l.cliente_tel || '';
+  UI.abrirModal({ titulo: bncDaPrateleira(l) ? 'Serviços do aparelho' : 'Serviços e dono do aparelho',
+                  id:'bnc-modal-serv',
                   corpo: bncCorpoServico(l), foot: bncPeServico(),
                   onFechar:'bncFecharServico()' });
 }
 
-function bncFecharServico(){ _bncEditId = null; UI.fecharModal(); }
+function bncFecharServico(){ _bncEditId = null; _bncEditCli = ''; _bncEditTel = ''; UI.fecharModal(); }
 
 function bncToggleEditServico(i){
   const s = BNC_SERVICOS[i]; if(!s) return;
@@ -600,6 +604,8 @@ function bncToggleEditServico(i){
   bncRedesenharChips('bnc-servs-edit', _bncEditServs, 'bncToggleEditServico');
 }
 function bncSetEditExtra(v){ _bncEditExtra = v; }
+function bncSetEditCli(v){ _bncEditCli = v; }
+function bncSetEditTel(v){ _bncEditTel = v; }
 
 function bncCorpoServico(l){
   const imei = (l.imei4 && l.imei4 !== '0000')
@@ -611,7 +617,39 @@ function bncCorpoServico(l){
        value="${UI.esc(_bncEditExtra)}" oninput="bncSetEditExtra(this.value)">
     <div class="bnc-dica-inline">Marque tudo que esta ida à assistência inclui. A nota
       cobra junto (“Subida de bateria + Troca de tela”) — registrar junto é o que faz
-      a conferência bater.</div>`;
+      a conferência bater.</div>
+    ${bncBlocoDono(l)}`;
+}
+
+// ---------------------------------------------------------------------------
+// O DONO DO APARELHO — editável DEPOIS, não só na saída
+//
+// O campo nasceu em 26/ago/2026 no formulário de saída, e só lá. Duas coisas
+// ficavam de fora: as 21 idas que JÁ estavam abertas sem dono, e todo
+// esquecimento futuro -- um campo novo num fluxo antigo é esquecido, e sem
+// edição o aparelho ficaria órfão pra sempre.
+//
+// ⚠️ SÓ PARA APARELHO COM DONO. Aparelho da prateleira não tem cliente; o bloco
+// nem aparece, pelo mesmo motivo do formulário de saída.
+// ---------------------------------------------------------------------------
+function bncBlocoDono(l){
+  if(bncDaPrateleira(l)) return '';
+  // O aviso fala do FORMULÁRIO, não da linha gravada: quem abriu o modal já
+  // com o nome preenchido não precisa ser avisado de nada. (`_bncEditCli` nasce
+  // de `l.cliente_nome` em bncAbrirServico.)
+  const falta = !String(_bncEditCli || '').trim();
+  return `
+    <div class="c-sep"></div>
+    <div class="bnc-dono-edit">
+      ${falta ? `<div class="bnc-dica-inline bnc-dono-falta">Este aparelho tem dono e ninguém
+        registrou quem é. Sem isso, o pós-venda não sabe pra quem avisar quando ele voltar.</div>` : ''}
+      ${UI.linha(
+        UI.campo({label:'De quem é o aparelho', corpo:`<input class="c-input" placeholder="nome do cliente"
+           value="${UI.esc(_bncEditCli)}" oninput="bncSetEditCli(this.value)">`}),
+        UI.campo({label:'WhatsApp', corpo:`<input class="c-input" inputmode="tel" placeholder="(11) 90000-0000"
+           value="${UI.esc(_bncEditTel)}" oninput="bncSetEditTel(this.value)">`})
+      )}
+    </div>`;
 }
 
 function bncPeServico(){
@@ -622,8 +660,17 @@ function bncPeServico(){
 async function bncSalvarServico(){
   const id = _bncEditId;
   if(id == null) return;
+  const l = (_bancadaCache || []).find(x => String(x.id) === String(id));
   const txt = bncJuntarServico(_bncEditServs, _bncEditExtra);
-  try { await bncPatch(id, { servico: txt }); }
+  const campos = { servico: txt };
+  // Dono só entra pra aparelho que TEM dono, e '' vira null: string vazia
+  // gravada viraria busca sem resposta e um "sem contato" que parece
+  // preenchido. Ver bncBlocoDono().
+  if(l && !bncDaPrateleira(l)){
+    campos.cliente_nome = String(_bncEditCli || '').trim() || null;
+    campos.cliente_tel  = String(_bncEditTel || '').trim() || null;
+  }
+  try { await bncPatch(id, campos); }
   catch(e){ _bncErro = 'Não gravou o serviço: ' + e.message; }
   bncFecharServico();
   if(currentTab === 'bancada') renderContent();
@@ -1348,11 +1395,19 @@ function bncDonoBadge(l){
   // Com dono conhecido o nome SUBSTITUI o rotulo generico: "Do cliente" nao
   // responde nada, e a coluna e a mesma. O telefone fica no title -- ele serve
   // pra ligar, nao pra ler na tabela.
+  //
+  // ⚠️ E CLICAVEL nos dois casos: sem dono, e o caminho pra preencher (foi
+  // assim que as 21 idas antigas ganharam como ser completadas); com dono, e o
+  // caminho pra corrigir o que foi digitado errado. Abre o mesmo modal do
+  // servico -- uma ida, um lugar de editar.
   const nome = String(l.cliente_nome || '').trim();
-  if(!nome) return UI.badge('Do cliente', 'processo');
-  const tel = String(l.cliente_tel || '').trim();
+  const tel  = String(l.cliente_tel || '').trim();
+  const abre = `event.stopPropagation();bncAbrirServico(${l.id})`;
+  if(!nome) return `<button class="bnc-dono-btn falta" onclick="${abre}"
+      title="Ninguém registrou de quem é. Clique para preencher.">${UI.badge('Do cliente ✎', 'processo')}</button>`;
   const curto = nome.split(/\s+/).slice(0, 2).join(' ');
-  return `<span title="${UI.esc(nome + (tel ? ' · ' + tel : ''))}">${UI.badge(curto, 'processo')}</span>`;
+  return `<button class="bnc-dono-btn" onclick="${abre}"
+      title="${UI.esc(nome + (tel ? ' · ' + tel : '') + ' — clique para corrigir')}">${UI.badge(curto, 'processo')}</button>`;
 }
 
 // O selo de retorno mora na coluna do SERVIÇO, não na de origem: retorno

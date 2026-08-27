@@ -79,6 +79,23 @@ async function cnsRecarregarFora(){
   if(currentTab === 'consulta') renderContent();
 }
 
+// Os dois filtros que a busca monta. Funções PURAS de propósito: sem elas, a
+// única forma de provar que um telefone com parêntese não derruba a query seria
+// bater na rede -- e foi assim que o defeito passou por 14 baterias verdes.
+// test/consulta.test.js monta as duas com termos hostis.
+function cnsFiltroItens(q){
+  const dig = cnsDigitos(q), seguro = cnsSeguro(q);
+  return `or=(imei_1.like."*${dig}*",serial.ilike."*${seguro}*")`;
+}
+function cnsFiltroGente(q){
+  const dig = cnsDigitos(q), seguro = cnsSeguro(q);
+  // Com 4+ dígitos vale procurar nos dois: "7766" tanto pode ser final de IMEI
+  // quanto de telefone, e devolver as duas coisas custa menos que perguntar.
+  return dig.length >= 4
+    ? `or=(cliente_nome.ilike."*${seguro}*",cliente_tel.like."*${dig}*")`
+    : `cliente_nome=ilike."*${seguro}*"`;
+}
+
 // ---------------------------------------------------------------------------
 // A BUSCA
 //
@@ -96,14 +113,13 @@ async function cnsBuscar(){
   if(currentTab === 'consulta') renderContent();
 
   const dig = cnsDigitos(q);
-  const seguro = cnsSeguro(q);
   try{
     const achados = new Map();
 
     // 1. pelo que o cliente tem na mão: IMEI ou etiqueta do aparelho
     if(dig.length >= 4){
       const itens = await sbGet('v_venda_consulta_itens',
-        `or=(imei_1.like."*${dig}*",serial.ilike."*${seguro}*")&order=venda_id.desc`, 60) || [];
+        `${cnsFiltroItens(q)}&order=venda_id.desc`, 60) || [];
       const ids = [...new Set(itens.map(i => i.venda_id))].slice(0, 30);
       if(ids.length){
         const vs = await sbGet('v_venda_consulta',
@@ -113,10 +129,7 @@ async function cnsBuscar(){
     }
 
     // 2. pelo que ele diz: nome ou telefone
-    const porGente = dig.length >= 4
-      ? `or=(cliente_nome.ilike."*${seguro}*",cliente_tel.like."*${dig}*")`
-      : `cliente_nome=ilike."*${seguro}*"`;
-    const vs2 = await sbGet('v_venda_consulta', `${porGente}&order=data_saida.desc`, 30) || [];
+    const vs2 = await sbGet('v_venda_consulta', `${cnsFiltroGente(q)}&order=data_saida.desc`, 30) || [];
     vs2.forEach(v => { if(!achados.has(v.id)) achados.set(v.id, v); });
 
     // 3. "#40611960" — quem já está com a venda aberta em outra tela

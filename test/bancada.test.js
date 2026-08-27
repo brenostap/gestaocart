@@ -355,8 +355,45 @@ ok('o telefone fica no title, não na tabela',
 ok('aparelho de cliente SEM dono ainda diz "Do cliente"', /Do cliente/.test(dono.tabela));
 // É assim que a pergunta chega: pelo nome, não pelo IMEI.
 ok('acha pelo nome do cliente', dono.porNome === 1);
+// ⚠️ O selo é CLICÁVEL nos dois casos: sem dono para preencher (as 21 idas
+// antigas), com dono para corrigir. Sem isso, esquecer na saída era definitivo.
+ok('sem dono, o selo abre o editor', /bnc-dono-btn falta[\s\S]{0,120}bncAbrirServico\(71\)/.test(dono.tabela));
+ok('com dono, também dá pra corrigir', /bncAbrirServico\(70\)/.test(dono.tabela));
 ok('acha pelo telefone', dono.porTel === 1);
 ok('e continua achando pelo modelo', dono.semDono === 1);
+
+console.log('\neditar o dono depois — as 21 idas órfãs\n');
+
+const edicao = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:80,apple_id:null,imei4:'4321',modelo_txt:'13 Azul',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Troca de tela',saiu_em:'2026-08-24',voltou_em:null}," +
+    "{id:81,apple_id:202,imei4:'1234',modelo_txt:'iPhone 16 128GB Preto',fornecedor:'RR'," +
+    " origem:'estoque',servico:'Não liga',saiu_em:'2026-08-20',voltou_em:null}]");
+  R("_bncEditId=80; _bncEditServs=['Troca de tela']; _bncEditExtra='';" +
+    "_bncEditCli=''; _bncEditTel='';");
+  const semDono = R('bncCorpoServico(_bancadaCache[0])');
+  const prateleira = R('bncCorpoServico(_bancadaCache[1])');
+  R("_bncEditCli='Fernanda Alves'; _bncEditTel='(11) 98888-7766';");
+  const comDono = R('bncCorpoServico(_bancadaCache[0])');
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  R("_bncEditId=null; _bncEditCli=''; _bncEditTel='';");
+  return { semDono, prateleira, comDono };
+})();
+
+ok('aparelho de cliente ganha os campos de dono no editor',
+   /De quem é o aparelho/.test(edicao.semDono));
+// Sem dono, o editor DIZ por que aquilo importa -- campo em branco sozinho não
+// explica que o pós-venda depende dele.
+ok('e avisa que ninguém registrou quem é',
+   /ninguém\s+registrou quem é/.test(edicao.semDono.replace(/\s+/g,' ')));
+ok('com dono preenchido o aviso some', !/ninguém\s+registrou/.test(edicao.comDono.replace(/\s+/g,' ')));
+ok('e o nome aparece no campo', /Fernanda Alves/.test(edicao.comDono));
+// ⚠️ Aparelho da prateleira NÃO tem dono: o bloco nem aparece. Deixar o campo
+// convidaria a preencher errado -- mesma razão do formulário de saída.
+ok('aparelho da prateleira NÃO ganha campo de dono',
+   !/De quem é o aparelho/.test(edicao.prateleira));
 
 console.log('\nretorno — a garantia que a ASSISTÊNCIA nos dá\n');
 
