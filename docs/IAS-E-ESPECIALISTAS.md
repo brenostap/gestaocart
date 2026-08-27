@@ -39,12 +39,26 @@ Isso **não é** persona alternativa da IA nem vendedora escrevendo. É a passag
 como "a IA usa 4 nomes diferentes" e estava errado — as mensagens saem **sem remetente**,
 exatamente como as da própria IA, e é fácil repetir o erro.
 
-O que continua verdade: **nenhum humano escreve no Chatwoot**. Depois do handoff o especialista
-conversa pelo **WhatsApp pessoal dele** e o Chatwoot fica cego. Todo relatório "por agente" do
-Chatwoot mede a IA.
+### ⚠️ E uma segunda correção, de 27/ago: depende do CANAL
 
-📌 **Plano do dono:** conectar os números pessoais dos especialistas ao Chatwoot. É a mudança que
-mais aumentaria o que dá pra medir aqui.
+Eu escrevi aqui (e `CHATWOOT-ANALISE.md` escreveu em 10/ago) que **nenhum humano escreve no
+Chatwoot**. **Isso vale só no WhatsApp.**
+
+| canal | onde o especialista atende | dá pra ver? |
+|---|---|---|
+| **WhatsApp** | **número pessoal dele** (`vendedores.telefone`) | ❌ invisível — não passa por Chatwoot nem n8n |
+| **Instagram** | **o mesmo canal**, logo depois do handoff | ✅ **está no Chatwoot** |
+
+No Instagram o Chatwoot **recebe** as mensagens dele — só não consegue **atribuir**: tudo que a loja
+manda por lá chega como `external_echo: true` com `sender: null`, então a fala da Maju e a da Isa
+são indistinguíveis. Foi isso que produziu o "zero mensagens de vendedora" de 10/ago.
+
+Dá pra separar cruzando com o n8n (`scripts/separa-ia-vendedor.js`, e leia as três armadilhas no
+topo do arquivo). Conv 39778: *"Prazer, meu nome é Isa!… Vamos la!… Nós temos essas duas opções
+👆🩷"* — no Chatwoot, **ausente** do n8n. É gente.
+
+📌 **Plano do dono:** conectar os números pessoais dos especialistas ao Chatwoot. Fecharia o buraco
+que sobra — o do WhatsApp. **Os números já estão em `vendedores`** (Supabase da Cart).
 
 ---
 
@@ -63,6 +77,10 @@ O nome do especialista aparece em **três sistemas independentes**:
 
 ⚠️ **O `meta.assignee` do Chatwoot não é confiável na Urban** — ver §6.3. Para taxa de
 transferência, a fonte boa é `contatos*.vendedorAtribuido`.
+
+✅ **E ela é boa mesmo:** testado em 44 conversas de Instagram da Cart, `vendedorAtribuido` acertou
+**4 de 4** dos handoffs conhecidos e **0 de 40** dos não-transferidos deram sinal de humano
+(`PLANO-QUALIDADE-IA.md` §3-bis).
 
 ---
 
@@ -105,6 +123,63 @@ transferência, a fonte boa é `contatos*.vendedorAtribuido`.
 | `precos_referencia` · `custos_pecas` · `produtos_estoque` · `produtos_unidades` | 128/145/91/— | catálogo próprio da Duda |
 | **`conversa_estado`** | **1** | ver abaixo ⭐ |
 | `transfer_falhas` | **0** | nunca gravou nada |
+
+### ⚠️ 3.2-bis Correções ao inventário acima (27/ago, segunda varredura)
+
+Reli tudo com cuidado e **três leituras minhas estavam erradas**:
+
+| eu disse | é na verdade |
+|---|---|
+| `uso_tokens` "só existe na Urban" | Mora no projeto da Urban mas **loga as duas IAs**: Maju/Cart **60.175 execuções · 2,1 bilhões de tokens**; Duda/Urban 32.854 · 1,2 bi. **O custo da Maju É medido.** |
+| `transfer_falhas` = "falha técnica na transferência" | É o **guardrail do handoff** (`node_falho='guardrail_handoff'`), motivos `skip_limpo` (11) e `vazou_texto` (3). 14 eventos em 3 meses. **Não** mede transferência quebrada. |
+| `conversa_estado` "construída e nunca ligada" | Correto, e pior: a única linha é de **22/abr/2026**, `fase_atual='qualificacao'`, session de **WhatsApp**, `loja='Cart'` — num projeto da Urban. Protótipo testado uma vez, parado há 4 meses. |
+
+⭐ **E 99% do gasto de token é PROMPT.** Maju/WhatsApp: 689M de prompt contra 5,8M de saída (0,85%).
+São ~38 mil tokens por execução — a conversa inteira reenviada a cada turno. Se o provedor tiver
+prompt caching, é aí que mora a economia; se não tiver, é aí que mora a conta.
+
+### 3.2-ter O que a varredura achou de novo
+
+**⭐ `contatosFormulario` — a chave de telefone que "não existe".**
+1.726 linhas, **100% com telefone real e 100% com dados de troca**. É o formulário de pré-avaliação
+que a IA manda. De jun a ago são 504, e **327 (65%) não são lead de WhatsApp** — ou seja, gente que
+chegou por outro canal e **deixou o telefone**.
+
+⚠️ `docs/ATRIBUICAO-LEADS-VENDAS.md` afirma que *"o buraco inteiro é Instagram, e lá não existe
+chave"* (3 leads de IG com telefone em 1.678). **Existe, em outra tabela.** Ganho medido cruzando
+esses 327 com `vendas.cliente_tel`: **+4 vendas, R$ 24.590**, casamento **exato** (nível N1, a
+certeza mais alta da cascata). Modesto no volume, mas é o único caminho de telefone para lead
+não-WhatsApp — e ninguém tinha olhado.
+
+**`site_eventos` — o site é uma landing de Google Ads, e ninguém mediu.**
+19.179 visitantes desde 04/jun · 11.648 `view_content` · **7.337 `whatsapp_click` de 5.111 pessoas**.
+E **17.607 dos 26.367 page_views (67%) carregam `gclid`** contra 641 com `fbclid`.
+⚠️ O volume de `whatsapp_click` (~1.700/mês) é da mesma ordem do total de leads de WhatsApp da Cart
+(~1.685/mês) — vale entender se o site é o caminho de quase todos eles antes de ler `origem` como
+"plataforma de origem".
+
+**🚨 `relatorioVendas` — existe um SEGUNDO cálculo de comissão e lucro fora do painel, e ele diverge.**
+
+| julho/2026 · Cart | `relatorioVendas` | painel |
+|---|---|---|
+| vendas | 246 | 261 |
+| lucro | R$ 170.345 | R$ 196.395 |
+| comissão vendedor + atendente | R$ 6.425 + R$ 5.002 | (a folha calcula por outro caminho) |
+
+13% de diferença no lucro. **Não investiguei a causa** — pode ser recorte (cancelada, acessório) e
+não erro. Mas é exatamente a classe de problema que o `CLAUDE.md` marca como a mais cara: regra de
+dinheiro em dois lugares **paga errado calado**. **Conferir antes de qualquer um dos dois virar
+decisão.**
+
+**`vendedores` (Cart) — tem o WhatsApp dos especialistas.** Uma linha por pessoa **por loja**:
+David é o mesmo número nas duas; **Mel tem número diferente em cada loja**; Isa e Maria só Cart.
+É o insumo pronto pro plano de conectar os números ao Chatwoot (§1).
+
+**Vazias ou mortas:** `clientesBreno` (0), `agenda_envios` (0), `agendamentos` (parada desde
+11/mai), `n8n_chat_histories` (67.423 linhas, **sem coluna de data**).
+
+**`dash_leads_hora`** — o lead chega concentrado entre **10h e 16h**, pico às 12h. Serve pra escala
+de plantão; não olhei mais fundo.
 
 ### ⭐ 3.3 `conversa_estado` — o instrumento certo, construído e vazio
 

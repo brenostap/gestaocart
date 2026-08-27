@@ -455,8 +455,21 @@ Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026
   buraco é maior no IG.
 - 🔨 ⭐ **Levar o `transfer_retentativas` pro Instagram** — em ago/Cart foram 351 eventos no
   WhatsApp e **1 alerta efetivo no Instagram** no mês inteiro. Nasceu só no canal que já era o melhor.
-- 🔨 **`transfer_falhas` está praticamente desligada**: 14 linhas na Cart, **0 na Urban**. É o que
-  separa "a IA decidiu não transferir" de "a transferência quebrou".
+- ⚠️ ~~`transfer_falhas` separa "decidiu não transferir" de "quebrou"~~ — **leitura minha errada**.
+  É o **guardrail do handoff** (`node_falho='guardrail_handoff'`, motivos `skip_limpo` e
+  `vazou_texto`), 14 eventos em 3 meses. Não mede transferência quebrada.
+- 🔑 ⭐⭐ **`contatosFormulario` tem a chave de telefone que a atribuição diz não existir.** 1.726
+  linhas, **100% com telefone real**; de jun–ago, **327 de 504 não são lead de WhatsApp**. Ganho
+  medido: **+4 vendas, R$ 24.590**, casamento exato (N1). `ATRIBUICAO-LEADS-VENDAS.md` afirma que
+  lead de IG não tem telefone — tem, em outra tabela. Entra como **N1-bis** na cascata.
+- 🚨 ⭐⭐ **Segundo cálculo de comissão e lucro fora do painel.** `relatorioVendas` (Supabase do
+  Dudu) diz julho/Cart = 246 vendas e R$ 170.345 de lucro; o painel diz 261 e R$ 196.395. **13% de
+  diferença**, e ele também calcula `comissão_vendedor` e `comissão_atendente`. Pode ser recorte,
+  não investiguei — mas regra de dinheiro em dois lugares **paga errado calado**. Conferir.
+- 🔨 **`site_eventos` nunca foi olhado**: 19.179 visitantes, **7.337 cliques pro WhatsApp de 5.111
+  pessoas**, e **67% dos page_views com `gclid`**. O volume de clique bate com o total de leads de
+  WhatsApp da Cart — entender se o site é o caminho de quase todos antes de ler `origem` como
+  plataforma.
 - ❓ **Divergência Urban/IG**: `dash_transfers` diz rodízio 50/50 Mel/David; o `meta.assignee` do
   Chatwoot diz David com 98%. Na Cart os dois concordam. **Perguntar pro Dudu** — `vendedorAtribuido`
   é a trava do N5, que sustenta 13 das 21 vendas casadas da Urban.
