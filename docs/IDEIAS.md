@@ -70,6 +70,24 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- ⚠️ **Leo, Gabi e Davi não têm login — e são eles que ganham os 25% de acessório.** `perfis` tem 7
+  linhas: Vitinho (`bancada`), David/Isa/Mel/Maria (`comercial`) e os dois sócios. Dos **seis** com
+  `atKey`, só dois abrem a própria comissão. A tela *Meu dia* já existe e já vem da chave
+  (`at_key`), não do papel — falta só o perfil. O documento dos atendentes
+  (`docs/funcoes/atendente-de-vendas.md`, §14) diz na cara que "os atendentes trabalham com
+  comissão" e que oferecer acessório aumenta o resultado deles; sem login, eles não conseguem
+  conferir. ⚠️ Papel `comercial` lê só views — criar perfil pra eles é barato, mas conferir antes
+  se as views do *Meu dia* cobrem quem é só AT (sem `vo_key`).
+- ⚠️ **A obs da venda é regra escrita, e agosto mostrou o custo de errar.** O §7 do documento dos
+  atendentes manda conferir "vendedor responsável" e "observações necessárias". Em ago/2026: um
+  `Vendedor Davi` (typo de David) que não pagou ninguém em R$3.950 · duas vendas com `vendedor:` em
+  branco (R$3.450 cada) · um `venda online` que virou o vendedor e apagou a Mel (R$2.750) · um
+  `atendendo - mel` que jogou fora os 25% de uma venda de R$8.000 · 3 vendas na loja errada
+  (R$14.710). **O documento agora carrega o formato de três linhas** — vale colar no grupo.
+- 💡 **Dois documentos cobram a MESMA lista de testes** (§10 do atendente e §4 do coordenador de
+  estoque: tela, Face ID, câmeras, flash, áudio, microfone, botões, carga, Wi-Fi, BT, eSIM,
+  bateria) e o resultado não é registrado em lugar nenhum. Se virar campo, tem que servir aos dois
+  momentos: o teste da entrada (estoque) e o teste da entrega (balcão, com o cliente na mesa).
 - ⚠️ **Aparelho de CLIENTE entra na assistência sem dono registrado.** `bancada` não tem coluna de
   cliente: o campo `quem` é o e-mail de quem *registrou* (hoje sempre o Vitinho). Das 168 idas,
   **13 são `origem='cliente'` e 8 `garantia`** — em nenhuma dá pra dizer de quem é o aparelho, e é

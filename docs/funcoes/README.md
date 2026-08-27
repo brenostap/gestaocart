@@ -12,6 +12,7 @@ lugares diferentes — ver o mapa abaixo.
 | Coordenador de Estoque e Qualidade | Vitinho | [coordenador-estoque-qualidade.md](coordenador-estoque-qualidade.md) |
 | Gerência da loja | Isa — **a partir de set/2026** (em ago ainda é vendedora online) | [gerente-de-loja.md](gerente-de-loja.md) |
 | Coordenadora de Pós-Venda e Atendimento ao Cliente | Maria | [coordenadora-pos-venda.md](coordenadora-pos-venda.md) |
+| Atendente de Vendas | Leo, Gabi e Davi (vale também para o atendimento de Anne e Vitinho) | [atendente-de-vendas.md](atendente-de-vendas.md) |
 
 ## Onde vive cada informação da equipe
 
