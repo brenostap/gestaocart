@@ -591,3 +591,82 @@ https://claude.ai/code/artifact/1ceb30eb-7997-4b1d-88c2-641215c5b8ba
 A Urban pergunta **bateria** muito mais (52% no Meta Ads/preço contra 27% da Cart) e **fecha muito
 menos** (IA 1%). São prompts diferentes; a comparação entre lojas só vale dentro do mesmo segmento,
 que é o que esta tabela faz.
+
+---
+
+## 3-sexies. ⭐⭐⭐ Como a Maju poderia fechar melhor — o mecanismo, medido
+
+O objetivo declarado do dono. Sobre 1.291 conversas da Cart e 1.025 da Urban, comparando a forma
+do convite dos dois lados.
+
+### A diferença é a FORMA da pergunta, não o assunto
+
+| forma do convite | Cart · IA | Cart · vendedor | Urban · IA | Urban · vendedor |
+|---|---|---|---|---|
+| **FECHADA** — *"posso confirmar/deixar/separar…"* | **3%** | **12%** | **1%** | **4%** |
+| FECHADA — *"te aguardo / te espero"* | 0% | 3% | 0% | 5% |
+| **ABERTA** — *"que dia? qual horário?"* | **36%** | 10% | **39%** | 3% |
+| ABERTA — *"quer agendar? o que acha?"* | 2% | 10% | 2% | 20% |
+| TEMPERATURA — *"curtiu?"* | 2% | 8% | 1% | 10% |
+| ASSUMIDO — *"me passa seu nome completo"* | 8% | 5% | 4% | 5% |
+| **PESSOAL — chama o cliente pelo nome** | **2%** | **42%** | **0%** | **38%** |
+
+**A matéria-prima já está lá.** A Maju pergunta o dia em 36–39% das conversas — mais que o
+vendedor. O que ela não faz é **pedir um sim**: ela pergunta *"Que dia e horário fica bom pra
+você?"*, que exige o cliente **planejar**; ele pergunta *"Posso confirmar seu horário para as 14h
+então?"*, que exige só **responder**.
+
+### O que ele diz, verbatim
+
+Colhido de 186 mensagens de fechamento em 131 conversas:
+
+> *"Posso confirmar seu horário no dia 24/8 as 16H?"* · *"Posso deixar agendado para as 19:30
+> então?"* · *"Posso confirmar sua vinda hoje?😊"* · *"Posso deixar separado então?"*
+
+> *"Curtiu os valores Léo?"* · *"Qual você curtiu mais?"* · *"O branquinho você não curtiu? ✨"*
+
+> *"Me passa seu nome completo pra que possamos agendar um horário"* ·
+> *"Te aguardo amanhã 💙"* · *"Perfeito Allan, posso confirmar seu horário?"*
+
+Quatro movimentos, e nenhum deles é insistência:
+
+1. **Permissão fechada** — transforma a decisão num sim/não. É o mais usado dele e o mais raro dela.
+2. **Temperatura barata** — *"curtiu?"* não pede compromisso, só mantém a conversa viva.
+3. **Fechamento assumido** — pedir o nome completo **pressupõe** que já estão marcando.
+4. **Nome próprio** — 42% contra 2%. É de graça: ela **tem** o nome.
+
+### As quatro mudanças propostas, em ordem de custo
+
+| # | mudança | hoje | custo |
+|---|---|---|---|
+| 1 | **Depois de propor a visita, oferecer um horário concreto** em vez de perguntar qual | 3% | uma frase no prompt |
+| 2 | **Chamar o cliente pelo nome** quando ele já se identificou | 2% | grátis, o dado está na sessão |
+| 3 | **Perguntar *"curtiu?"* depois de cotar** — abre resposta sem pedir decisão | 2% | uma frase |
+| 4 | **Afirmar a presença** (*"te aguardo amanhã"*) em vez de encerrar passivo | 0% | uma frase |
+
+### ⚠️ O que está provado e o que não está
+
+**Provado:** o cliente dar uma data está associado a **14,9% de conversão contra 3,4%**, e ser
+transferido a **8,7×** — os dois em coorte madura, medidos duas vezes por caminhos independentes.
+**O alvo é certo.**
+
+**Não provado:** que a forma fechada gere mais datas que a aberta. A diferença de forma é **fato
+medido**; o efeito dela é **hipótese**. Tentei medir contra venda e não deu: são 11 compradores em
+1.242 conversas — e nesse tamanho o teste mostrou coisas obviamente invertidas (*"pede nome
+completo"* aparecendo com 7,6% de conversão, que é a venda causando a pergunta, não o contrário).
+
+⚠️ **Duas coisas que a mesma amostra sugere e eu NÃO recomendo agir ainda:** a IA usa
+**reserva** (175 conversas) e **urgência/escassez** (148) muito mais que o vendedor, e nenhuma das
+duas aparece com retorno — 0,57% e 0,68% contra 0,85–0,95% de quem não usa. Pode ser confundimento
+(ela reserva quando o cliente hesita). **Mas se for real, são dois movimentos caros que não pagam.**
+
+**É exatamente isto que o A/B do plano existe pra resolver**, e ele decide em ~10 dias por
+comportamento (*"cliente deu data"*), não por venda. Pergunta pro Dudu: dá pra sortear por hash do
+telefone no n8n?
+
+### ⚠️ E um risco de calendário
+
+A **Isa sai de vendedora online para a gerência em setembro/2026**
+(`docs/funcoes/gerente-de-loja.md`). Ela recebe **32% dos handoffs da Cart** e tem o roteiro mais
+estruturado dos quatro. **Não existe documento de função do vendedor online** — é a única função do
+time sem um. O roteiro dela está medido aqui; convém virar documento antes de 1º de setembro.
