@@ -113,6 +113,31 @@ Conferir depois de criar view:
 `select table_name, privilege_type from information_schema.role_table_grants
  where grantee='authenticated' and table_name like 'v_%'` — só pode aparecer `SELECT`.
 
+### A prova, simulando a sessão da Maria (26/ago/2026)
+
+Não dá pra confiar em leitura de policy: o jeito de saber é **virar a pessoa**. Rodado com
+`set_config('request.jwt.claims', ...)` + `set_config('role','authenticated')` no `user_id` real
+dela:
+
+| O que ela tentou | Resultado |
+|---|---|
+| `v_venda_consulta` | **4.977** vendas ✅ |
+| `v_venda_consulta_itens` | **15.210** itens ✅ |
+| `v_assistencia_cliente` | **21** aparelhos de cliente ✅ |
+| `v_estoque_vitrine` | **231** aparelhos ✅ |
+| `v_minhas_vendas` | **87** — só as dela ✅ |
+| **tabela** `vendas` | **0 linhas** — RLS segurando 🔒 |
+| **tabela** `bancada` | **0 linhas** — RLS segurando 🔒 |
+| `update` pela view | *permission denied* 🔒 |
+| `delete` pela view | *permission denied* 🔒 |
+
+⚠️ **Dívida herdada, não corrigida:** `eh_socio()`, `tem_perfil()`, `pode_operar()`,
+`meu_vo_key()`, `meu_at_key()` e `papel_do_usuario()` continuam executáveis por `anon` — a
+migration de 20/ago revogou de `anon`, mas o `EXECUTE` vem de **PUBLIC**, e revogar de anon não
+tira o que nunca foi dele. As seis são chamadas dentro das policies de RLS: mexer nelas sem um
+login real para testar pode derrubar o acesso de todos de uma vez. **Tarefa com teste, não efeito
+colateral.** O risco hoje é baixo (as seis devolvem `null`/`false` para quem não tem sessão).
+
 ⚠️ **`dias_parado` é tempo, não dinheiro** — por isso pôde entrar. Ele diz o que empurrar
 primeiro sem dizer quanto o aparelho custou. A conta de entrada é a **mesma** de
 `v_estoque_margem` (compra ou troca, a mais recente): se as duas divergirem, dono e vendedor
