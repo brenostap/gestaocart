@@ -113,6 +113,23 @@ Conferir depois de criar view:
 `select table_name, privilege_type from information_schema.role_table_grants
  where grantee='authenticated' and table_name like 'v_%'` — só pode aparecer `SELECT`.
 
+### `scripts/prova-rls.sql` — a prova virou script (26/ago/2026)
+
+Duas vezes em seis dias o mesmo erro passou (views graváveis em 20/ago, e de novo em 26/ago), e as
+duas vezes foi conferência **manual** que pegou. Manual não pega na terceira. O script assume a
+sessão de cada perfil ativo e mede o que ele alcança, com a especificação de quem-pode-ler-o-quê
+escrita dentro dele.
+
+**Rodar depois de criar ou alterar qualquer view ou policy, e ao criar perfil.** Se a primeira
+consulta voltar vazia, a fechadura está certa.
+
+⚠️ Ele **não** substitui `test/perfis.test.js`: aquele prova a **cortina** (menu e `money()`), este
+prova a **fechadura** (o que a API entrega). Um passa com o outro quebrado — foi exatamente o que
+aconteceu nas duas vezes acima.
+
+Rodado em 26/ago nos 7 perfis ativos: **zero alertas** — ninguém lê tabela que não pode, e nenhuma
+das 8 views aceita escrita.
+
 ### A prova, simulando a sessão da Maria (26/ago/2026)
 
 Não dá pra confiar em leitura de policy: o jeito de saber é **virar a pessoa**. Rodado com
