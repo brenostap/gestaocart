@@ -44,6 +44,18 @@ for (const f of ['config.js','ui.js','diario.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'), ctx, {filename:f});
 
 vm.runInContext(`function renderContent(){}`, ctx);
+// as duas tabelas da aba Atendimento (a carga real vem do Supabase)
+vm.runInContext(`
+  atendPadroes = [
+    { comportamento:'Pergunta FECHADA', loja:'cart', pct_ia:3, pct_vendedor:12, destaque:true, nota:null, ordem:10 },
+    { comportamento:'Pergunta ABERTA',  loja:'cart', pct_ia:36, pct_vendedor:10, destaque:true, nota:null, ordem:20 },
+  ];
+  atendPares = [
+    { momento:'Ela separou o aparelho', porque:'Ela pergunta QUAL dia; ele DIZ o dia.',
+      fala_ia:'Que dia pode passar pra ver ele de pertinho?',
+      fala_vendedor:'Fiquei com ele separado pra sexta às 16h. Me passa o nome completo.' },
+  ];
+`, ctx);
 
 // ── dados de exemplo: um item novo, um velho e um fechado ──────────────────
 const hoje = new Date();
@@ -121,7 +133,38 @@ ok(longos.length === 0, 'nenhum bullet de resumo passa de 220 caracteres');
 ok(vm.runInContext('diarioEntradas', ctx).every(e => (e.resumo||[]).length <= 4),
    'nenhuma entrada passa de 4 bullets');
 
-console.log('\n8. Fechar guarda a DATA em vez de apagar a linha');
+console.log('\n8. As duas abas');
+const htmlAtend = vm.runInContext("diarioAba='atendimento'; renderDiario()", ctx);
+vm.runInContext("diarioAba='pendencias'", ctx);
+ok(html.includes('Pendências') && html.includes('Atendimento'), 'as duas abas aparecem');
+ok(!html.includes('Que dia pode passar'), 'a aba Pendências NÃO mostra a análise');
+ok(!htmlAtend.includes('Ligar a conversa_estado') && !htmlAtend.includes('Fazer a Maju anotar'),
+   'a aba Atendimento NÃO mostra pendência');
+
+console.log('\n9. ⚠️ A aba Atendimento mostra a FALA, não só o número');
+ok(htmlAtend.includes('Que dia pode passar pra ver ele de pertinho?'), 'a fala da IA aparece verbatim');
+ok(htmlAtend.includes('Me passa o nome completo'), 'a fala do vendedor aparece verbatim');
+ok(htmlAtend.indexOf('Que dia pode passar') < htmlAtend.indexOf('Pergunta FECHADA'),
+   'o PAR vem antes do número — foi o pedido do dono, e é o que mostra o mecanismo');
+ok(/14,9%[\s\S]{0,40}3,4%/.test(htmlAtend),
+   'o rodapé separa o que está provado do que é hipótese');
+
+console.log('\n10. A aba Atendimento não derruba a de Pendências');
+vm.runInContext('atendPadroes = []; atendPares = [];', ctx);
+const semDados = vm.runInContext("diarioAba='atendimento'; renderDiario()", ctx);
+vm.runInContext("diarioAba='pendencias'", ctx);
+ok(typeof semDados === 'string' && semDados.length > 200, 'sem dado de atendimento, a tela ainda monta');
+ok(vm.runInContext("renderDiario()", ctx).includes('Fazer a Maju anotar') === false ||
+   vm.runInContext("renderDiario()", ctx).includes('Em aberto'),
+   'e a aba de pendências continua de pé');
+
+console.log('\n11. Descartar é diferente de resolver');
+const js = fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8');
+ok(/descartado_em/.test(js), 'existe coluna própria pra descarte');
+ok(js.indexOf('descartado_em') !== js.lastIndexOf('descartado_em'),
+   'descartar não reaproveita fechado_em — se muito item for descartado, o problema é o que EU escrevo');
+
+console.log('\n12. Fechar guarda a DATA em vez de apagar a linha');
 ok(/fechado_em/.test(fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8')),
    'diarioFechar grava fechado_em');
 ok(!/method:\s*'DELETE'/.test(fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8')),

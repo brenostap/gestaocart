@@ -1443,3 +1443,67 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 .bnc-dono-btn.falta{ outline:1px dashed var(--border); outline-offset:2px; border-radius:6px; }
 .bnc-dono-edit{ display:flex; flex-direction:column; gap:8px; }
 .bnc-dono-falta{ color:var(--yellow); }
+
+/* -- Diário: abas -- */
+.di-tabs{ display:flex; gap:4px; margin-bottom:14px; }
+.di-tab{
+  background:none; border:1px solid var(--border); border-radius:var(--radius-pill);
+  padding:7px 16px; font:inherit; font-size:13px; font-weight:600;
+  color:var(--text4); cursor:pointer;
+}
+.di-tab:hover{ color:var(--text2); }
+.di-tab.ativo{ background:var(--blue); border-color:var(--blue); color:#fff; }
+.di-tab:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+
+.di-descartar{ color:var(--text4); }
+
+/* -- Atendimento: o par de falas -- */
+/* ⚠️ O par vem antes do número de propósito: "3% contra 12%" não mostra o
+   mecanismo; as duas frases lado a lado mostram. */
+.at-pares{ display:flex; flex-direction:column; gap:20px; }
+.at-par{ display:flex; flex-direction:column; gap:8px; }
+.at-momento{
+  font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--text4);
+}
+.at-falas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.at-fala{
+  border:1px solid var(--border); border-radius:var(--radius-card);
+  padding:11px 13px; background:var(--bg3);
+  display:flex; flex-direction:column; gap:5px;
+}
+.at-fala p{ margin:0; font-size:13.5px; line-height:1.5; color:var(--text); }
+.at-quem{
+  font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+}
+.at-ia{   border-left:3px solid var(--purple); }
+.at-ia .at-quem{ color:var(--purple); }
+.at-vend{ border-left:3px solid var(--green); }
+.at-vend .at-quem{ color:var(--green); }
+.at-porque{ font-size:13px; color:var(--text2); line-height:1.55; }
+
+/* -- Atendimento: o hábito, em barra dupla -- */
+.at-linhas{ display:flex; flex-direction:column; gap:14px; }
+.at-linha{ display:flex; flex-direction:column; gap:6px; }
+.at-linha.destaque .at-comp{ color:var(--text); font-weight:650; }
+.at-comp{ font-size:13.5px; color:var(--text2); display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+.at-loja{ font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--text4); }
+.at-barras{ display:flex; flex-direction:column; gap:3px; }
+.at-b{ display:grid; grid-template-columns:38px 1fr 42px; gap:8px; align-items:center; }
+.at-b-rot{ font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--text4); }
+.at-b-trilho{ height:7px; background:var(--bg4); border-radius:var(--radius-pill); overflow:hidden; }
+.at-b-trilho i{ display:block; height:100%; background:var(--purple); border-radius:var(--radius-pill); }
+.at-b.vend .at-b-trilho i{ background:var(--green); }
+.at-b-num{
+  font-family:var(--font-mono); font-size:12px; text-align:right;
+  color:var(--text2); font-variant-numeric:tabular-nums;
+}
+.at-nota{ font-size:12.5px; color:var(--text4); line-height:1.5; }
+.at-rodape{
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--border);
+  font-size:12px; color:var(--text4); line-height:1.6;
+}
+
+@media (max-width:640px){
+  .at-falas{ grid-template-columns:1fr; }
+}

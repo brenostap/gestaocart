@@ -28,6 +28,13 @@ let diarioItens    = null;
 let diarioCarregando = false;
 let diarioErro     = null;
 let diarioVerFechados = false;
+// ⚠️ Duas abas porque são duas coisas diferentes: PENDÊNCIAS é o que o dono
+// precisa cobrar; ATENDIMENTO é o que a análise descobriu. Misturar as duas foi
+// o primeiro desenho, e o dono pediu pra separar -- ele lê as duas em ritmos
+// diferentes (pendência é semanal, análise é quando muda alguma coisa).
+let diarioAba = 'pendencias';
+let atendPadroes = null;
+let atendPares   = null;
 
 // ⚠️ Os tons são os do design system (`css/components.css`), não cor inventada:
 // processo=violeta, marca=tint da loja, alerta=âmbar, critico=vermelho, ok=verde.
@@ -61,16 +68,24 @@ function diarioCarregar(){
   return Promise.all([
     fetch(SB_URL + '/rest/v1/diario?select=*&order=data.desc,id.desc&limit=200', { headers: h }),
     fetch(SB_URL + '/rest/v1/diario_itens?select=*&order=prioridade.asc,aberto_em.asc&limit=300', { headers: h }),
-  ]).then(async ([a, b]) => {
+    fetch(SB_URL + '/rest/v1/atendimento_padroes?select=*&order=ordem.asc&limit=200', { headers: h }),
+    fetch(SB_URL + '/rest/v1/atendimento_pares?select=*&order=ordem.asc&limit=100', { headers: h }),
+  ]).then(async ([a, b, c, d]) => {
     if(!a.ok || !b.ok) throw new Error('HTTP ' + a.status + '/' + b.status);
     diarioEntradas = await a.json();
     diarioItens    = await b.json();
+    // ⚠️ a aba de atendimento não pode derrubar a de pendências: se ela falhar,
+    // fica vazia e o resto da tela continua de pé.
+    atendPadroes = c.ok ? await c.json() : [];
+    atendPares   = d.ok ? await d.json() : [];
     return true;
   }).catch(e => {
     console.error('diarioCarregar', e);
     diarioErro = e.message || String(e);
     diarioEntradas = diarioEntradas || [];
     diarioItens    = diarioItens || [];
+    atendPadroes   = atendPadroes || [];
+    atendPares     = atendPares || [];
     return true;
   }).finally(() => { diarioCarregando = false; });
 }
@@ -96,8 +111,9 @@ function diarioDataBR(iso){
 function diarioItemHtml(it){
   const dono = DIARIO_DONOS[it.dono] || DIARIO_DONOS.nos;
   const dias = diarioDias(it.aberto_em);
-  const velho = !it.fechado_em && dias >= 30;
-  const feito = !!it.fechado_em;
+  const descartado = !!it.descartado_em;
+  const feito = !!it.fechado_em || descartado;
+  const velho = !feito && dias >= 30;
   return `
     <div class="di-item${feito ? ' feito' : ''}${velho ? ' velho' : ''}">
       <div class="di-item-top">
@@ -109,10 +125,13 @@ function diarioItemHtml(it){
       </div>
       ${it.detalhe ? `<div class="di-item-det">${UI.esc(it.detalhe)}</div>` : ''}
       <div class="di-item-pe">
-        ${feito
-          ? `✓ fechado em ${diarioDataBR(it.fechado_em)}${it.fechado_nota ? ' — ' + UI.esc(it.fechado_nota) : ''}`
+        ${descartado
+          ? `✕ descartado em ${diarioDataBR(it.descartado_em)}${it.fechado_nota ? ' — ' + UI.esc(it.fechado_nota) : ''}`
+          : feito
+          ? `✓ resolvido em ${diarioDataBR(it.fechado_em)}${it.fechado_nota ? ' — ' + UI.esc(it.fechado_nota) : ''}`
           : `aberto há ${dias} ${dias === 1 ? 'dia' : 'dias'}${velho ? ' — sem mexer' : ''}`}
-        ${feito ? '' : `<button class="di-fechar" onclick="diarioFechar(${it.id})">marcar como resolvido</button>`}
+        ${feito ? '' : `<button class="di-fechar" onclick="diarioFechar(${it.id})">resolvido</button>
+                        <button class="di-fechar di-descartar" onclick="diarioDescartar(${it.id})">não serve</button>`}
       </div>
     </div>`;
 }
@@ -140,26 +159,46 @@ function diarioEntradaHtml(e){
     </div>`;
 }
 
+/** As abas. Ordem: o que precisa de ação antes do que precisa de leitura. */
+const DIARIO_ABAS = [
+  { id: 'pendencias',  label: 'Pendências'  },
+  { id: 'atendimento', label: 'Atendimento' },
+];
+
+function diarioTabs(){
+  return `<div class="di-tabs">${DIARIO_ABAS.map(a =>
+    `<button class="di-tab${diarioAba === a.id ? ' ativo' : ''}"
+       onclick="diarioAba='${a.id}';renderContent()">${a.label}</button>`).join('')}</div>`;
+}
+
 function renderDiario(){
   // Primeira entrada na tela: dispara a carga e desenha o esqueleto.
   if(diarioEntradas === null){
     diarioRecarregarUmaVez();
-    return UI.card({ titulo: 'Diário de bordo',
-      corpo: `<div class="di-vazio">Carregando…</div>` });
+    return UI.card({ titulo: 'Diário de bordo', corpo: `<div class="di-vazio">Carregando…</div>` });
   }
+  const erro = diarioErro
+    ? `<div class="di-erro">Não consegui carregar (${UI.esc(diarioErro)}). O que aparece abaixo pode estar velho.</div>` : '';
+  return erro + diarioTabs() + (diarioAba === 'atendimento' ? diarioAtendimento() : diarioPendencias());
+}
 
-  const abertos  = (diarioItens || []).filter(i => !i.fechado_em);
-  const fechados = (diarioItens || []).filter(i => i.fechado_em);
+// ===========================================================================
+// ABA 1 — PENDÊNCIAS: o que está em aberto e com quem, e o histórico do que
+// já foi decidido. É a metade que pede ação.
+// ===========================================================================
+function diarioPendencias(){
+  const vivos    = (diarioItens || []).filter(i => !i.fechado_em && !i.descartado_em);
+  const encerrados = (diarioItens || []).filter(i => i.fechado_em || i.descartado_em);
   const porDono  = {};
-  abertos.forEach(i => { (porDono[i.dono] = porDono[i.dono] || []).push(i); });
+  vivos.forEach(i => { (porDono[i.dono] = porDono[i.dono] || []).push(i); });
   // Ordem fixa: primeiro o que depende de fora, depois o que é nosso.
   const ordem = ['dudu', 'dono', 'nos', 'equipe'].filter(d => porDono[d]);
 
   const kpis = UI.kpis([
-    { rotulo: 'Em aberto',      valor: String(abertos.length) },
-    { rotulo: 'Para agora',     valor: String(abertos.filter(i => i.prioridade === 1).length) },
-    { rotulo: 'Com o Dudu',     valor: String((porDono.dudu || []).length) },
-    { rotulo: 'Parados 30d+',   valor: String(abertos.filter(i => diarioDias(i.aberto_em) >= 30).length) },
+    { rotulo: 'Em aberto',    valor: String(vivos.length) },
+    { rotulo: 'Para agora',   valor: String(vivos.filter(i => i.prioridade === 1).length) },
+    { rotulo: 'Com o Dudu',   valor: String((porDono.dudu || []).length) },
+    { rotulo: 'Parados 30d+', valor: String(vivos.filter(i => diarioDias(i.aberto_em) >= 30).length) },
   ]);
 
   const aberto = ordem.length
@@ -175,24 +214,87 @@ function renderDiario(){
     : UI.vazio({ titulo: 'Sem entradas', texto: 'O diário começa na próxima sessão de trabalho.' });
 
   return `
-    ${diarioErro ? `<div class="di-erro">Não consegui carregar (${UI.esc(diarioErro)}). O que aparece abaixo pode estar velho.</div>` : ''}
     ${kpis}
+    ${UI.card({ titulo: 'Em aberto', sub: 'o que está pendente e com quem',
+      corpo: `<div class="di-abertos">${aberto}</div>` })}
     ${UI.card({
-      titulo: 'Em aberto',
-      sub: 'o que está pendente e com quem',
-      corpo: `<div class="di-abertos">${aberto}</div>`,
-    })}
-    ${UI.card({
-      titulo: 'Histórico',
-      sub: 'o que foi medido e o que ficou decidido',
-      acao: fechados.length
-        ? `<button class="c-btn c-btn-sm" onclick="diarioVerFechados=!diarioVerFechados;renderContent()">${diarioVerFechados ? 'esconder' : 'ver'} ${fechados.length} resolvido${fechados.length === 1 ? '' : 's'}</button>`
+      titulo: 'Histórico', sub: 'o que foi medido e o que ficou decidido',
+      acao: encerrados.length
+        ? `<button class="c-btn c-btn-sm" onclick="diarioVerFechados=!diarioVerFechados;renderContent()">${diarioVerFechados ? 'esconder' : 'ver'} ${encerrados.length} encerrado${encerrados.length === 1 ? '' : 's'}</button>`
         : '',
       corpo: `
-        ${diarioVerFechados && fechados.length
-          ? `<div class="di-abertos di-resolvidos">${fechados.map(diarioItemHtml).join('')}</div>` : ''}
-        <div class="di-historico">${historico}</div>`,
-    })}`;
+        ${diarioVerFechados && encerrados.length
+          ? `<div class="di-abertos di-resolvidos">${encerrados.map(diarioItemHtml).join('')}</div>` : ''}
+        <div class="di-historico">${historico}</div>` })}`;
+}
+
+// ===========================================================================
+// ABA 2 — ATENDIMENTO: o que a Maju faz e o que o vendedor faz.
+//
+// ⚠️ O PAR VEM PRIMEIRO, o número depois. O dono viu a tabela de percentuais e
+// pediu pra VER os exemplos -- porque "3% contra 12%" não mostra o mecanismo, e
+// as duas frases lado a lado mostram: é quase a mesma frase, com final diferente.
+// ===========================================================================
+function diarioAtendimento(){
+  const pares   = atendPares || [];
+  const padroes = atendPadroes || [];
+
+  const paresHtml = pares.length ? pares.map(p => `
+    <div class="at-par">
+      <div class="at-momento">${UI.esc(p.momento)}</div>
+      <div class="at-falas">
+        <div class="at-fala at-ia">
+          <span class="at-quem">Maju / Duda</span>
+          <p>${UI.esc(p.fala_ia)}</p>
+        </div>
+        <div class="at-fala at-vend">
+          <span class="at-quem">Vendedor</span>
+          <p>${UI.esc(p.fala_vendedor)}</p>
+        </div>
+      </div>
+      <div class="at-porque">${UI.esc(p.porque)}</div>
+    </div>`).join('')
+    : UI.vazio({ titulo: 'Sem exemplos', texto: 'Nenhum par foi carregado ainda.' });
+
+  // Números: quem faz mais aparece com a barra maior. Duas barras, não uma --
+  // ⚠️ os denominadores são diferentes (a IA está em todas as conversas, o
+  // vendedor só naquelas em que aparece), e a barra é comparação de HÁBITO.
+  const linhas = padroes.map(p => {
+    const ia = Number(p.pct_ia) || 0, vd = Number(p.pct_vendedor) || 0;
+    const max = Math.max(ia, vd, 1);
+    return `
+      <div class="at-linha${p.destaque ? ' destaque' : ''}">
+        <div class="at-comp">
+          ${UI.esc(p.comportamento)}
+          <span class="at-loja">${p.loja === 'ambas' ? 'as duas lojas' : p.loja}</span>
+        </div>
+        <div class="at-barras">
+          <div class="at-b"><span class="at-b-rot">IA</span>
+            <span class="at-b-trilho"><i style="width:${(100*ia/max).toFixed(0)}%"></i></span>
+            <span class="at-b-num">${ia}%</span></div>
+          <div class="at-b vend"><span class="at-b-rot">vend</span>
+            <span class="at-b-trilho"><i style="width:${(100*vd/max).toFixed(0)}%"></i></span>
+            <span class="at-b-num">${vd}%</span></div>
+        </div>
+        ${p.nota ? `<div class="at-nota">${UI.esc(p.nota)}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  return `
+    ${UI.card({
+      titulo: 'A mesma frase, dois finais',
+      sub: 'falas reais das conversas',
+      corpo: `<div class="at-pares">${paresHtml}</div>` })}
+    ${UI.card({
+      titulo: 'O hábito de cada um',
+      sub: '% das conversas em que aparece',
+      corpo: `<div class="at-linhas">${linhas}</div>
+        <div class="at-rodape">
+          ⚠️ Os dois lados têm bases diferentes: a IA está em todas as conversas, o vendedor só
+          nas que ele assume. A barra compara <b>hábito</b>, não volume.<br>
+          ⚠️ Que <b>marcar o horário funciona melhor que perguntar qual</b> ainda é hipótese —
+          o que está provado é que <b>conversa com dia marcado converte 14,9% contra 3,4%</b>.
+        </div>` })}`;
 }
 
 /**
@@ -222,5 +324,35 @@ function diarioFechar(id){
   }).catch(e => {
     console.error('diarioFechar', e);
     alert('Não deu pra fechar: ' + e.message);
+  });
+}
+
+/**
+ * Descarta um item. ⚠️ NÃO é o mesmo que resolver, e por isso vai em coluna
+ * separada: se muitos itens forem descartados, o problema é o que EU escrevo --
+ * e sem separar as duas colunas isso fica invisível.
+ */
+function diarioDescartar(id){
+  const it = (diarioItens || []).find(i => i.id === id);
+  if(!it) return;
+  const nota = prompt('Descartar "' + it.titulo + '".\nPor que não serve? (opcional, me ajuda a escrever melhor)');
+  if(nota === null) return;
+  const hoje = new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);  // BRT
+  fetch(SB_URL + '/rest/v1/diario_itens?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_TOKEN,
+               'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ descartado_em: hoje, fechado_nota: nota || null }),
+  }).then(async r => {
+    if(!r.ok){
+      const t = await r.text().catch(() => '');
+      throw new Error('HTTP ' + r.status + (t ? ' — ' + t.slice(0, 160) : ''));
+    }
+    it.descartado_em = hoje;
+    it.fechado_nota = nota || null;
+    renderContent();
+  }).catch(e => {
+    console.error('diarioDescartar', e);
+    alert('Não deu pra descartar: ' + e.message);
   });
 }
