@@ -1355,3 +1355,4 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .cns-ficha{ padding:0 10px 12px; }
   .cns-cab-val{ order:3; }
 }
+.cns-atualizar{ padding:10px 14px; display:flex; justify-content:flex-end; }

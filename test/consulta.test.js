@@ -125,6 +125,46 @@ else bad('14 dias fora não virou alerta');
 if (/wa\.me\/5511977771234/.test(lista)) ok('o telefone vira link de WhatsApp, sem máscara');
 else bad('o link de WhatsApp não foi montado');
 
+// -- 4b. o que NÃO carregou não pode virar tela vazia ------------------------
+// Mesmo erro do ✅ verde com janela vazia da Conferência: "não deu pra conferir"
+// não é "está tudo certo". Se a lista falhar, o pós-venda tem que SABER.
+console.log('\nfalha de carga não vira "ninguém esperando"\n');
+R(`cnsJaBuscou = false; cnsFora = []; cnsForaErro = 'Supabase v_assistencia_cliente: 500';`);
+const comFalha = R('renderConsulta()');
+if (/Não consegui ver quem está esperando/.test(comFalha)) ok('a falha aparece na tela');
+else bad('a falha da carga sumiu em silêncio');
+if (/NÃO quer dizer que não há ninguém esperando/.test(comFalha))
+  ok('e diz explicitamente que isso não é "não há ninguém"');
+else bad('a tela não desfaz a leitura errada');
+
+R(`cnsForaErro = ''; cnsFora = [];`);
+const vazio = R('renderConsulta()');
+if (/Nenhum aparelho de cliente na assistência/.test(vazio) && !/Não consegui/.test(vazio))
+  ok('carregou e está vazio de verdade diz outra coisa');
+else bad('vazio real e falha estão dizendo a mesma coisa');
+
+// Duplo Enter não dispara duas rodadas de requisição.
+R(`cnsBuscando = true; cnsBusca = 'teste'; cnsErro = 'nao-tocado';`);
+R(`cnsBuscar()`);
+if (R('cnsErro') === 'nao-tocado') ok('busca em andamento ignora um segundo disparo');
+else bad('duplo Enter disparou duas buscas');
+R(`cnsBuscando = false; cnsErro = '';`);
+
+// -- 4c. telefone que não dá pra ligar não vira link -------------------------
+// 11 dos 4.865 telefones do banco são placeholder ("00000000000"). Link pra eles
+// abriria o WhatsApp num número inexistente, e a pessoa concluiria que o cliente
+// não tem WhatsApp -- quando o que houve foi cadastro vazio.
+console.log('\ntelefone: link só quando dá pra ligar\n');
+if (R(`cnsTelValido('(11) 97777-1234')`) === '11977771234') ok('telefone normal vira 11 dígitos');
+else bad('telefone válido não passou');
+if (R(`cnsTelValido('00000000000')`) === null) ok('placeholder de zeros não é telefone');
+else bad('o placeholder virou link');
+if (R(`cnsTelValido('119140050')`) === null) ok('número curto demais não vira link');
+else bad('número curto passou');
+const htmlTel = R(`cnsTelHtml('00000000000')`);
+if (/inválido/.test(htmlTel) && !/wa\.me/.test(htmlTel)) ok('inválido aparece como texto, dizendo que é inválido');
+else bad('o inválido virou link mesmo assim');
+
 // -- 5. o menu --------------------------------------------------------------
 console.log('\nquem alcança a tela\n');
 if (R(`podeVer('consulta')`)) ok('comercial alcança o Pós-venda');

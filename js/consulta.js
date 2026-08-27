@@ -21,6 +21,7 @@ let cnsVendas = [];        // v_venda_consulta do que a busca achou
 let cnsItens = {};         // venda_id -> itens (v_venda_consulta_itens)
 let cnsFora = [];          // v_assistencia_cliente, aparelhos de cliente fora AGORA
 let cnsForaCarregado = false;
+let cnsForaErro = '';       // ⚠️ 'não carregou' ≠ 'ninguém esperando'
 let cnsBuscando = false;
 let cnsErro = '';
 let cnsJaBuscou = false;
@@ -30,16 +31,52 @@ let cnsAberta = null;      // id da venda expandida
 // jeito ("(11) 98888-7766", "…7766", "7766").
 function cnsDigitos(s){ return String(s || '').replace(/\D/g, ''); }
 
+// ---------------------------------------------------------------------------
+// ⚠️ O TERMO VAI ENTRE ASPAS NO PostgREST -- senão o parêntese do telefone
+// derruba a busca.
+//
+// `or=(campo.ilike.*termo*,outro.like.*x*)` é sintaxe: a VÍRGULA separa as
+// condições e o PARÊNTESE fecha o grupo. Colar "(11) 97777-1234" -- que é o
+// gesto mais provável de quem recebeu o número no WhatsApp -- fecharia o `or`
+// no meio e a API devolveria 400. Entre aspas duplas o valor pode conter os
+// dois. O que não pode entrar de jeito nenhum é a própria aspa e a barra
+// invertida (fechariam a string), e o `*`, que viraria curinga extra.
+// ---------------------------------------------------------------------------
+function cnsSeguro(s){
+  const limpo = String(s || '').replace(/["\\*%]/g, '').replace(/\s+/g, ' ').trim();
+  // E vai percent-encoded por cima: `sbGet` monta a URL na mao e passa pro
+  // fetch. Sem isto, um `#` no nome cortaria a URL (vira fragmento) e um `&`
+  // viraria parametro novo. O servidor decodifica antes de parsear, e as aspas
+  // continuam delimitando o valor -- os dois cuidados se somam, nao se anulam.
+  return encodeURIComponent(limpo);
+}
+
 // A lista de "quem está esperando" (§9) vem junto com a carga do comercial: ela
 // é a primeira coisa que a tela mostra, antes de qualquer busca.
 async function carregarPosVenda(){
+  cnsForaErro = '';
   try{
     cnsFora = await sbGet('v_assistencia_cliente', 'voltou_em=is.null&order=saiu_em.asc', 200) || [];
   }catch(e){
+    // ⚠️ Lista vazia por FALHA não pode virar tela vazia: "não carregou" não é
+    // "ninguém está esperando". É o mesmo erro do ✅ verde com janela vazia da
+    // Conferência -- a mentira silenciosa é pior que o alarme falso.
     console.warn('[pos-venda] assistência não carregou:', e.message);
     cnsFora = [];
+    cnsForaErro = e.message || 'falha de rede';
   }
   cnsForaCarregado = true;
+}
+
+// Recarrega a lista de quem está esperando. É BOTÃO, não gancho automático: o
+// Vitinho registra saída no celular dele e a Maria precisa poder atualizar sem
+// recarregar o app -- mas gancho de "carrega e redesenha" no render é o laço de
+// microtask que travou o Estoque em 18/ago (ver CLAUDE.md).
+async function cnsRecarregarFora(){
+  cnsForaCarregado = false;
+  if(currentTab === 'consulta') renderContent();
+  await carregarPosVenda();
+  if(currentTab === 'consulta') renderContent();
 }
 
 // ---------------------------------------------------------------------------
@@ -51,6 +88,7 @@ async function carregarPosVenda(){
 // coisas custa uma requisição a mais e evita a pergunta.
 // ---------------------------------------------------------------------------
 async function cnsBuscar(){
+  if(cnsBuscando) return;   // Enter repetido não dispara duas rodadas
   const q = String(cnsBusca || '').trim();
   if(q.length < 3){ cnsErro = 'Digite pelo menos 3 caracteres.'; renderContent(); return; }
 
@@ -58,14 +96,14 @@ async function cnsBuscar(){
   if(currentTab === 'consulta') renderContent();
 
   const dig = cnsDigitos(q);
-  const esc = encodeURIComponent(q);
+  const seguro = cnsSeguro(q);
   try{
     const achados = new Map();
 
     // 1. pelo que o cliente tem na mão: IMEI ou etiqueta do aparelho
     if(dig.length >= 4){
       const itens = await sbGet('v_venda_consulta_itens',
-        `or=(imei_1.like.*${dig}*,serial.ilike.*${q}*)&order=venda_id.desc`, 60) || [];
+        `or=(imei_1.like."*${dig}*",serial.ilike."*${seguro}*")&order=venda_id.desc`, 60) || [];
       const ids = [...new Set(itens.map(i => i.venda_id))].slice(0, 30);
       if(ids.length){
         const vs = await sbGet('v_venda_consulta',
@@ -76,8 +114,8 @@ async function cnsBuscar(){
 
     // 2. pelo que ele diz: nome ou telefone
     const porGente = dig.length >= 4
-      ? `or=(cliente_nome.ilike.*${esc}*,cliente_tel.like.*${dig}*)`
-      : `cliente_nome=ilike.*${esc}*`;
+      ? `or=(cliente_nome.ilike."*${seguro}*",cliente_tel.like."*${dig}*")`
+      : `cliente_nome=ilike."*${seguro}*"`;
     const vs2 = await sbGet('v_venda_consulta', `${porGente}&order=data_saida.desc`, 30) || [];
     vs2.forEach(v => { if(!achados.has(v.id)) achados.set(v.id, v); });
 
@@ -141,6 +179,31 @@ function cnsNaAssistencia(item){
     || (i4.length === 4 && String(f.imei4 || '') === i4)) || null;
 }
 
+// ---------------------------------------------------------------------------
+// O telefone só vira link se der pra ligar de verdade.
+//
+// 11 dos 4.865 telefones cadastrados são placeholder ("00000000000"). Montar
+// wa.me pra eles abriria o WhatsApp num número inexistente e a pessoa
+// concluiria que o cliente não tem WhatsApp -- quando o que houve foi cadastro
+// vazio. Aqui o número aparece como texto e o motivo fica claro.
+//
+// Formato: o banco guarda 11 dígitos (DDD + 9 + número) em 4.830 casos e 10 em
+// 35 -- nenhum com o 55 na frente, por isso o prefixo entra aqui.
+// ---------------------------------------------------------------------------
+function cnsTelValido(tel){
+  const d = cnsDigitos(tel);
+  if(d.length < 10 || d.length > 11) return null;
+  if(/^(\d)\1+$/.test(d)) return null;      // 00000000000 e afins
+  return d;
+}
+
+function cnsTelHtml(tel, rotulo){
+  if(!tel) return '<span class="cns-semtel">sem telefone</span>';
+  const d = cnsTelValido(tel);
+  if(!d) return `<span class="cns-semtel" title="Número inválido no cadastro da venda">${UI.esc(tel)} (inválido)</span>`;
+  return `<a class="cns-tel" href="https://wa.me/55${d}" target="_blank" rel="noopener">${UI.esc(rotulo || tel)}</a>`;
+}
+
 function cnsQuem(v){
   const p = [];
   if(v.vendedor_key)  p.push('vendeu ' + v.vendedor_key);
@@ -185,8 +248,7 @@ function cnsFichaHtml(v){
       <div>
         <div class="cns-cli">${UI.esc(v.cliente_nome || 'sem nome')}</div>
         <div class="cns-cli-meta">
-          ${v.cliente_tel ? `<a class="cns-tel" href="https://wa.me/55${UI.esc(cnsDigitos(v.cliente_tel))}"
-             target="_blank" rel="noopener">${UI.esc(v.cliente_tel)}</a>` : '<span>sem telefone</span>'}
+          ${cnsTelHtml(v.cliente_tel)}
           ${v.cliente_cidade ? `<span>${UI.esc(v.cliente_cidade)}</span>` : ''}
         </div>
       </div>
@@ -244,8 +306,18 @@ function cnsResultadoHtml(){
 // retorno". É a primeira coisa da tela porque é o trabalho que não pode esperar
 // alguém lembrar de procurar.
 function cnsForaHtml(){
-  if(!cnsForaCarregado) return '';
-  if(!cnsFora.length) return '';
+  if(!cnsForaCarregado)
+    return UI.card({corpo:`<div class="cns-carregando">Carregando quem está esperando…</div>`});
+  if(cnsForaErro)
+    return UI.card({corpo: UI.vazio({ico:'⚠️',
+      titulo:'Não consegui ver quem está esperando',
+      texto:'A lista de aparelhos na assistência não carregou (' + UI.esc(cnsForaErro) + '). ' +
+            'Isso NÃO quer dizer que não há ninguém esperando — quer dizer que não deu pra conferir.',
+      acao: UI.btn('Tentar de novo', {onclick:'cnsRecarregarFora()', variante:'primario'})})});
+  if(!cnsFora.length)
+    return UI.card({corpo: UI.vazio({ico:'✅', titulo:'Nenhum aparelho de cliente na assistência',
+      texto:'Quando um aparelho de cliente sair para a assistência, ele aparece aqui com o tempo que está fora.',
+      acao: UI.btn('Atualizar', {onclick:'cnsRecarregarFora()'})})});
   const linhas = cnsFora.map(f => `<tr>
     <td data-rot="Cliente" class="forte">${UI.esc(f.cliente_nome || '—')}</td>
     <td data-rot="Aparelho">${UI.esc(String(f.modelo_txt || '—').replace(/^iPhone\s*/,''))}</td>
@@ -254,7 +326,7 @@ function cnsForaHtml(){
     <td data-rot="Onde">${UI.esc(f.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
     <td data-rot="Fora há" class="num">${UI.badge(f.dias_fora + 'd', f.dias_fora >= 10 ? 'critico' : f.dias_fora >= 5 ? 'alerta' : '')}</td>
     <td data-rot="" class="num">${f.cliente_tel
-      ? `<a class="cns-tel" href="https://wa.me/55${UI.esc(cnsDigitos(f.cliente_tel))}" target="_blank" rel="noopener">avisar</a>`
+      ? cnsTelHtml(f.cliente_tel, 'avisar')
       : '<span class="cns-semtel" title="Ninguém registrou o contato do dono na saída">sem contato</span>'}</td>
   </tr>`).join('');
 
@@ -267,7 +339,8 @@ function cnsForaHtml(){
     corpo:`<div class="c-tabela-wrap"><table class="c-tabela cns-tabela">
       <thead><tr><th>Cliente</th><th>Aparelho</th><th>IMEI</th><th>Serviço</th>
       <th>Onde</th><th class="num">Fora há</th><th></th></tr></thead>
-      <tbody>${linhas}</tbody></table></div>`,
+      <tbody>${linhas}</tbody></table></div>
+      <div class="cns-atualizar">${UI.btn('Atualizar', {onclick:'cnsRecarregarFora()', sm:true})}</div>`,
   });
 }
 
@@ -279,7 +352,7 @@ function renderConsulta(){
              value="${UI.esc(cnsBusca)}" oninput="cnsSetBusca(this.value)"
              autocapitalize="none" autocorrect="off" spellcheck="false">
       ${UI.btn(cnsBuscando ? 'Procurando…' : 'Procurar',
-               {onclick:'cnsSubmit()', variante:'primario', disabled: cnsBuscando})}
+               {type:'submit', variante:'primario', disabled: cnsBuscando})}
       ${cnsJaBuscou ? UI.btn('Limpar', {onclick:'cnsLimpar()', variante:'sutil'}) : ''}
     </form>
     ${cnsResultadoHtml()}

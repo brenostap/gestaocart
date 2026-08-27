@@ -99,8 +99,13 @@ const UI = {
   },
 
   // -- Botao / chip -------------------------------------------------------
-  btn(texto, {onclick, variante, sm, id, titulo, disabled} = {}){
-    return `<button class="c-btn${variante ? ' '+variante : ''}${sm ? ' c-btn-sm' : ''}"
+  // ⚠️ `type` default 'button' DE PROPOSITO. Sem type, o HTML trata o botao
+  // dentro de um <form> como SUBMIT: o clique dispara o onclick E o onsubmit,
+  // ou seja, a acao acontece duas vezes. Pego na revisao de 26/ago/2026, na
+  // busca do Pos-venda -- cada clique em "Procurar" fazia duas rodadas de
+  // requisicao, e "Limpar" tambem buscava. Quem QUER submeter pede type:'submit'.
+  btn(texto, {onclick, variante, sm, id, titulo, disabled, type} = {}){
+    return `<button type="${type || 'button'}" class="c-btn${variante ? ' '+variante : ''}${sm ? ' c-btn-sm' : ''}"
       ${id ? `id="${id}"` : ''} ${onclick ? `onclick="${onclick}"` : ''}
       ${titulo ? `title="${this.esc(titulo)}"` : ''} ${disabled ? 'disabled' : ''}>${texto}</button>`;
   },

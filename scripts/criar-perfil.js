@@ -161,6 +161,13 @@ async function criar(ids, opts) {
 
     const senha = senhaNova();
     console.log(`\n  ${f.ap} → papel '${papel}', vo=${f.voKey || '—'}, at=${f.atKey || '—'}, ${email}`);
+    // ⚠️ O QUE ESTE PERFIL PASSA A ENXERGAR -- impresso antes de gravar porque a
+    // tela de Pós-venda entrou no papel `comercial` em 26/ago/2026 e leva junto
+    // nome e telefone de QUALQUER cliente. Quem cria o perfil precisa ver isso
+    // na hora, não descobrir depois.
+    console.log('      vai enxergar: Meu dia (a própria comissão) · Estoque/Vitrine (preço e');
+    console.log('      dia de prateleira) · Tabela de preços · Pós-venda (QUALQUER venda:');
+    console.log('      cliente, telefone, itens e valor — sem custo, lucro ou margem)');
     if (opts.seco) { console.log('      (--seco: não gravei nada)'); continue; }
 
     let user = await acharUsuario(email);
