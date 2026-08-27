@@ -70,6 +70,24 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- 🔨 **Isa vira gerente em setembro/2026** (decidido em 26/ago). Documento da função em
+  `docs/funcoes/gerente-de-loja.md`. **Agosto fecha pela regra antiga** — ela segue vendedora
+  online, comissão por device e `SALARIOS.isa = 1500`; mês pago não muda de valor depois.
+  Três coisas precisam ser decididas ANTES da virada, e nenhuma é automática:
+  - **Remuneração de gerente não existe no `equipe.js`.** O `calcComissaoFunc()` só sabe pagar VO
+    (device), AT (25% de acessório), bônus de meta e os 5% da Anne. Fixo de gerente + algo atrelado
+    ao resultado da loja é regra nova — e mexe na folha, então tem que entrar com o mês certo.
+  - **Acesso.** Ela é `comercial`: vê Meu dia / Vitrine / Tabela e lê só views. Metade dos
+    indicadores que o documento cobra dela (vendas por vendedor, meta, cancelamentos/trocas,
+    resultado vs. mês anterior) está atrás de `eh_socio()`. Papel `gerente` está em `PAPEIS` mas o
+    `CHECK` de `perfis` não aceita — **papel novo = escrever o RLS dele junto**, ou ampliar as views
+    do `comercial`. A segunda opção é mais barata e não inventa papel.
+  - **Meta.** Se ela para de vender no volume de hoje, os 100 aparelhos/mês dela têm que ir pra
+    outra pessoa ou sair da conta — senão a meta coletiva da loja encolhe sozinha em setembro.
+- 💡 **Dois indicadores do documento de gerência o painel não responde**: *conversão* e *clientes em
+  negociação*. Vivem no Chatwoot e nos bancos de lead do Dudu, não aqui. Se a gerência vai ser
+  cobrada por eles, ou a Isa abre dois sistemas todo dia, ou o painel puxa as views do Dudu
+  (`dash_transfers`, `dash_vendas_ia` — ver `docs/IAS-E-ESPECIALISTAS.md`).
 - ✅ **Função do Vitinho documentada (26/ago/2026)**: `docs/funcoes/coordenador-estoque-qualidade.md`.
   O documento é quase o retrato do papel `bancada` — §7 (assistência) é a tabela `bancada`, §3 e §8
   (etiqueta/cadastro divergente) são `estoque_correcoes`, §5 (separar reservado/com problema) é

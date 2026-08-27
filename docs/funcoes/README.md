@@ -10,6 +10,7 @@ lugares diferentes — ver o mapa abaixo.
 |---|---|---|
 | Gerente de Acessórios (Phone Cart) | Anne | [gerente-acessorios.md](gerente-acessorios.md) |
 | Coordenador de Estoque e Qualidade | Vitinho | [coordenador-estoque-qualidade.md](coordenador-estoque-qualidade.md) |
+| Gerência da loja | Isa — **a partir de set/2026** (em ago ainda é vendedora online) | [gerente-de-loja.md](gerente-de-loja.md) |
 
 ## Onde vive cada informação da equipe
 
