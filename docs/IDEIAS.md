@@ -70,7 +70,9 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
-- 💡 **"Quais aparelhos estão parados?" é pauta de conteúdo, e o David não vê a resposta.** §10 do
+- ✅ **Dia de prateleira na Vitrine (26/ago/2026).** `dias_parado` entrou em `v_estoque_vitrine`;
+  o cartão traz selo a partir de 60 dias (vermelho aos 90) e há chip de filtro com a contagem.
+  Contexto do problema: §10 do
   documento de mídias (`docs/funcoes/midias-e-conteudo.md`) cobra dele visibilidade pro que está
   parado. Medido em 26/ago: dos 232 disponíveis, média **29 dias**, mas **25 passam de 60 dias
   (R$ 56.100)** e 15 passam de 90 — com carrego de 0,1%/dia, 60 dias comem ~6% do custo. `dias
@@ -78,7 +80,9 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   (`estoque.created_at` está **vazio em 100%**, não serve de proxy). Ele só enxerga o estado
   `saldao` (7 aparelhos hoje). **Somar `dias_parado` à `v_estoque_vitrine` resolve** — é dia de
   prateleira, não é custo, então não fere a regra de não mostrar custo pro `comercial`.
-- ⚠️ **Leo, Gabi e Davi não têm login — e são eles que ganham os 25% de acessório.** `perfis` tem 7
+- 🔨 **Login de Leo, Gabi e Davi — `scripts/criar-perfil.js` (26/ago/2026), falta rodar.**
+  Cria o usuário no Auth e a linha em `perfis` a partir do `FUNC` (sem segunda tabela de gente).
+  ⚠️ **Leo e Gabi não têm e-mail no cadastro** — passar `--email`. Contexto: `perfis` tem 7
   linhas: Vitinho (`bancada`), David/Isa/Mel/Maria (`comercial`) e os dois sócios. Dos **seis** com
   `atKey`, só dois abrem a própria comissão. A tela *Meu dia* já existe e já vem da chave
   (`at_key`), não do papel — falta só o perfil. O documento dos atendentes
@@ -96,7 +100,9 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   estoque: tela, Face ID, câmeras, flash, áudio, microfone, botões, carga, Wi-Fi, BT, eSIM,
   bateria) e o resultado não é registrado em lugar nenhum. Se virar campo, tem que servir aos dois
   momentos: o teste da entrada (estoque) e o teste da entrega (balcão, com o cliente na mesa).
-- ⚠️ **Aparelho de CLIENTE entra na assistência sem dono registrado.** `bancada` não tem coluna de
+- ✅ **Dono do aparelho na assistência (26/ago/2026).** `bancada.cliente_nome` e `cliente_tel`,
+  perguntados só no caminho "não está no estoque"; a busca da tela acha por nome e telefone.
+  Contexto: `bancada` não tem coluna de
   cliente: o campo `quem` é o e-mail de quem *registrou* (hoje sempre o Vitinho). Das 168 idas,
   **13 são `origem='cliente'` e 8 `garantia`** — em nenhuma dá pra dizer de quem é o aparelho, e é
   a Maria (pós-venda) quem precisa responder isso ao cliente. Duas colunas em `bancada`

@@ -150,7 +150,15 @@ id · apple_id · imei4 · etiqueta · modelo_txt · cor_txt
 fornecedor (RR|ACCESS) · origem (estoque|cliente|garantia)
 servico_pedido · saiu_em · voltou_em · valor_previsto
 reparo_id (→ reparos, preenchido na conciliação) · quem · obs
+cliente_nome · cliente_tel        (26/ago/2026 — só quando origem <> estoque)
 ```
+
+⚠️ **`quem` não é o dono do aparelho** — é o e-mail de quem *registrou* a ida (hoje, sempre o
+Vitinho). Até 26/ago/2026 não havia onde guardar o dono: das 168 idas, **13 eram de cliente e 8 de
+garantia**, e em nenhuma dava pra dizer de quem era o aparelho. Quem precisa dessa resposta é o
+pós-venda (§6 de `docs/funcoes/coordenadora-pos-venda.md`). Agora o formulário pergunta — **só no
+caminho "não está no estoque"**, que é o único onde o aparelho tem dono. A busca da tela acha por
+nome e por telefone, porque é assim que a pergunta chega: *"cadê o aparelho da Fernanda?"*.
 
 Política (desde 14/ago/2026): escrita por **`pode_operar()`** — sócio ou bancada —, e **apagar é
 só do sócio**. Não é mais `auth_all`. Ver `docs/PERFIS-E-ACESSO.md`.

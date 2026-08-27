@@ -73,9 +73,14 @@ rodam com direitos do dono e fazem o próprio filtro por `meu_vo_key()`/`meu_at_
 |---|---|---|
 | `v_minhas_vendas` | minhas vendas como vendedor **ou** atendente, com `fui_vendedor`/`fui_atendente` | `custo_total`, `lucro`, `recebimento_*` |
 | `v_meus_itens` | itens dessas vendas | `valor_estoque`, `lucro` |
-| `v_estoque_vitrine` | estoque disponível pra vender | `valor_estoque`, `ultimo_fornecedor` |
+| `v_estoque_vitrine` | estoque disponível pra vender, com selos e **dia de prateleira** (`dias_parado`, 26/ago/2026) | `valor_estoque`, `ultimo_fornecedor` |
 
 Se uma view esquecer o filtro, vaza tudo — por isso o filtro é **sempre a mesma dupla de funções**.
+
+⚠️ **`dias_parado` é tempo, não dinheiro** — por isso pôde entrar. Ele diz o que empurrar
+primeiro sem dizer quanto o aparelho custou. A conta de entrada é a **mesma** de
+`v_estoque_margem` (compra ou troca, a mais recente): se as duas divergirem, dono e vendedor
+discutem números diferentes do mesmo aparelho.
 
 A lista de quem escreve nessas três tabelas é a função **`pode_operar()`** (`socio`,
 `bancada`), que espelha `podeCorrigirEstoque()` do `js/shell.js` — **os dois mudam juntos**.
