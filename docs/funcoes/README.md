@@ -9,6 +9,7 @@ lugares diferentes — ver o mapa abaixo.
 | Função | Quem ocupa hoje | Documento |
 |---|---|---|
 | Gerente de Acessórios (Phone Cart) | Anne | [gerente-acessorios.md](gerente-acessorios.md) |
+| Coordenador de Estoque e Qualidade | Vitinho | [coordenador-estoque-qualidade.md](coordenador-estoque-qualidade.md) |
 
 ## Onde vive cada informação da equipe
 

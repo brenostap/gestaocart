@@ -70,6 +70,21 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- ✅ **Função do Vitinho documentada (26/ago/2026)**: `docs/funcoes/coordenador-estoque-qualidade.md`.
+  O documento é quase o retrato do papel `bancada` — §7 (assistência) é a tabela `bancada`, §3 e §8
+  (etiqueta/cadastro divergente) são `estoque_correcoes`, §5 (separar reservado/com problema) é
+  `estoque_estado`. **Três itens do documento não têm nada no painel**, listados abaixo.
+- 💡 **§4 Testes e qualidade — não existe checklist.** O documento cobra teste de câmera, Face ID,
+  áudio, botões, tela, carregamento, Wi-Fi/Bluetooth, eSIM e saúde da bateria antes de o aparelho
+  ir pra venda; hoje o resultado disso não fica registrado em lugar nenhum — só o estado
+  `precisa reparo` em `estoque_estado`, que diz *que* tem problema, não *o que* foi testado.
+  Encaixa em `estoque_estado` (é informação nossa, não converge pra FoneNinja) ou numa tabela
+  própria por aparelho. Pensar junto com a ideia de "aparelho pronto pra venda".
+- 💡 **§2 Conferência de entrada — não existe.** `compras` é read-only do sync; não há onde marcar
+  "conferi a nota contra o que chegou". É o mesmo formato da Conferência da Assistência (na nota
+  sem registro · registrado sem nota · valor diferente), aplicado à compra.
+- 💡 **§6/§8 Transferência entre lojas — não existe** como movimentação. A tela Movimentações tem
+  Saídas / Entradas / Clientes. Aparelho que muda de loja hoje não deixa rastro no painel.
 - ✅ **Descrição de função virou documento (26/ago/2026)**: `docs/funcoes/` — um arquivo por
   **função**, não por pessoa (a pessoa sai, a função fica). O primeiro é o de **Gerente de
   Acessórios**, que a Anne ocupa. Só markdown ali: a Netlify publica a raiz, PDF commitado vira URL

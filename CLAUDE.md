@@ -105,9 +105,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `papelReal()` (shell.js) lê a tabela **`perfis`** (`user_id` → papel), carregada por
   `carregarMeuPerfil()` **antes** do `enterApp()`. Padrão `'socio'` quando não carrega — é UX, não
   segurança.
-- **Papéis com RLS de verdade: `socio` e `bancada`.** `gerente`/`vendedor`/`atendente` continuam
-  **só prévia visual** do dono, e o `CHECK` de `perfis` não os aceita: criar um deles hoje daria
-  tela aberta lendo zero linha. **Papel novo = escrever o RLS dele junto.**
+- **Papéis com RLS de verdade: `socio`, `bancada` e `comercial`** — os três que o `CHECK` de
+  `perfis` aceita (`PAPEIS_COM_RLS` em shell.js). `comercial` (David, Isa, Mel, Maria) lê
+  **só views**, nunca as tabelas: `vendas`, `venda_produtos`, `estoque` e `pagamentos` têm
+  policy `eh_socio()` e devolvem zero linha pra ele — é assim que tem que ser, ver
+  `loadComercialData()` em data.js. `gerente`/`vendedor`/`atendente` seguem **só prévia
+  visual** do dono e o `CHECK` não os aceita: criar um deles hoje daria tela aberta lendo
+  zero linha. **Papel novo = escrever o RLS dele junto.**
 - `bancada` (o Vitinho) vê só Estoque + Assistência, não entra em `VE_VALOR` nem `VE_MARGEM`, e tem
   carga própria (`loadBancadaData()` em data.js).
 - Regra dos perfis comerciais: **colaborador vê o VALOR da venda** (negociou o preço) **mas não vê
