@@ -26,6 +26,7 @@ let vitCarregado = false;
 let vitErro = '';
 let vitBusca = '';
 let vitEsconderAssistencia = false;
+let vitSoParados = false;      // >= VIT_PARADO_DIAS na prateleira
 let vitModelo = 'todos';   // "iPhone 13 Pro Max"
 let vitCap    = 'todas';   // "256GB"
 
@@ -51,6 +52,10 @@ function setVitBusca(v){
   const c = document.getElementById('vit-contador');
   if(c) c.textContent = vitContadorTxt();
 }
+function toggleVitParados(){
+  vitSoParados = !vitSoParados;
+  if(currentTab === 'vitrine') renderContent();
+}
 function toggleVitAssistencia(){
   vitEsconderAssistencia = !vitEsconderAssistencia;
   if(currentTab === 'vitrine') renderContent();
@@ -59,6 +64,11 @@ function toggleVitAssistencia(){
 // Enriquece o item da view com o que a linha precisa. NÃO usa dadosDoItem()
 // (estoque.js) de propósito: aquele fala de custo, margem e fornecedor, que não
 // existem aqui — e um null a mais em cada campo só esconderia a intenção.
+// Dia de prateleira: 60 dias e onde o carrego (0,1%/dia, CUSTO_CAPITAL_MES)
+// ja comeu ~6% do custo do aparelho. Nao e alarme, e ordem de prioridade pra
+// quem grava conteudo e pra quem esta com o cliente na frente.
+const VIT_PARADO_DIAS = 60;
+
 function vitDados(item){
   const titulo = item.titulo || '';
   const { modelo, capacidade, cor, condicao } = parseTitulo(titulo);
@@ -71,6 +81,9 @@ function vitDados(item){
     upgrade: preco && preco.upgrade != null ? preco.upgrade : null,
     naAssistencia: !!item.na_assistencia,
     estado: item.estado || null,
+    // null quando a entrada nao foi achada (nem compra nem troca) -- e nesse
+    // caso a tela NAO mostra nada, em vez de fingir "0 dias".
+    dias: item.dias_parado == null ? null : Number(item.dias_parado),
     imei4: String(item.imei_1 || '').slice(-4),
   };
 }
@@ -82,6 +95,7 @@ function vitFiltrados(){
   const q = (vitBusca || '').toLowerCase().trim();
   return (vitItens || []).map(vitDados).filter(d => {
     if(vitEsconderAssistencia && d.naAssistencia) return false;
+    if(vitSoParados && !(d.dias != null && d.dias >= VIT_PARADO_DIAS)) return false;
     if(vitModelo !== 'todos' && d.modelo !== vitModelo) return false;
     if(vitCap    !== 'todas' && d.capacidade !== vitCap) return false;
     if(!q) return true;
@@ -104,6 +118,13 @@ function vitOpcoes(){
   const caps = [...new Set(dados.map(d => d.capacidade).filter(c => c && c !== '?'))]
     .sort((a,b) => (parseInt(a) || 0) - (parseInt(b) || 0));
   return { modelos, caps };
+}
+
+// Quantos estao parados na operacao INTEIRA -- nao no filtro. Mesma regra do
+// contador de assistencia logo abaixo: o chip precisa dizer quanto tem pra
+// achar, senao ninguem toca nele.
+function vitQtdParados(){
+  return (vitItens || []).filter(i => i.dias_parado != null && Number(i.dias_parado) >= VIT_PARADO_DIAS).length;
 }
 
 function vitContadorTxt(){
@@ -140,6 +161,8 @@ function renderVitrine(){
         <span class="vit-contador" id="vit-contador">${vitContadorTxt()}</span>
         ${UI.chip(vitEsconderAssistencia ? 'Mostrando só o que está na loja' : 'Esconder o que está na assistência',
                   vitEsconderAssistencia, 'toggleVitAssistencia()')}
+        ${vitQtdParados() ? UI.chip(`Parados há ${VIT_PARADO_DIAS}+ dias (${vitQtdParados()})`,
+                  vitSoParados, 'toggleVitParados()') : ''}
       </div>
     </div>
     <div id="vit-lista">${vitListaHTML()}</div>
@@ -179,10 +202,16 @@ function vitCartao(d){
   if(d.estado === 'bloqueado') selos.push(UI.badge('Bloqueado', 'critico'));
   if(d.condicao === 'Lacrado') selos.push(UI.badge('Lacrado', 'marca'));
 
+  // Dia de prateleira entra como SELO, nao no meta: ele muda a decisao ("mostra
+  // esse primeiro"), e meta e identificacao (bateria, etiqueta, IMEI).
+  if(d.dias != null && d.dias >= VIT_PARADO_DIAS)
+    selos.push(UI.badge(`${d.dias} dias parado`, d.dias >= 90 ? 'critico' : 'alerta'));
+
   const meta = [
     d.bateria != null ? `${d.bateria}%` : null,
     d.item.serial ? UI.esc(d.item.serial) : null,
     d.imei4 ? '⋯' + d.imei4 : null,
+    d.dias != null && d.dias < VIT_PARADO_DIAS ? `${d.dias}d na loja` : null,
   ].filter(Boolean).join(' · ');
 
   return `<div class="vit-card${d.naAssistencia ? ' fora' : ''}">
@@ -203,6 +232,7 @@ function vitCartao(d){
 
 function limparFiltrosVitrine(){
   vitBusca = ''; vitModelo = 'todos'; vitCap = 'todas'; vitEsconderAssistencia = false;
+  vitSoParados = false;
   if(currentTab === 'vitrine') renderContent();
 }
 

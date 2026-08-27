@@ -321,6 +321,43 @@ ok('estoque vazio NÃO deriva: cai no que foi gravado', derivado.semEstoque === 
 ok('e a lista de não vender não some (a linha do estoque continua)',
    derivado.waSemEstoque.includes('5555'));
 
+console.log('\nde quem é o aparelho — o pós-venda precisa da resposta\n');
+
+// Das 168 idas em 26/ago/2026, 21 eram de cliente ou garantia e NENHUMA dizia
+// de quem era o aparelho: `quem` guarda o e-mail de quem registrou, não o dono.
+// §6 de docs/funcoes/coordenadora-pos-venda.md manda registrar nome e contato.
+const dono = (function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:70,apple_id:null,imei4:'4321',modelo_txt:'13 Azul',fornecedor:'RR'," +
+    " origem:'cliente',servico:'Troca de tela',saiu_em:'2026-08-24',voltou_em:null," +
+    " cliente_nome:'Fernanda Alves de Souza',cliente_tel:'(11) 98888-7766'}," +
+    // Aparelho de cliente ANTIGO, gravado antes das colunas existirem.
+    "{id:71,apple_id:null,imei4:'8888',modelo_txt:'12 mini Preto',fornecedor:'ACCESS'," +
+    " origem:'cliente',servico:'Auricular',saiu_em:'2026-08-25',voltou_em:null}]");
+  const r = {
+    tabela: R('bncTabelaAbertas(bncAbertas())'),
+    porNome: R("_bncFiltro='fernanda'; bncFiltrar(bncAbertas()).length"),
+    porTel:  R("_bncFiltro='98888'; bncFiltrar(bncAbertas()).length"),
+    semDono: R("_bncFiltro='12 mini'; bncFiltrar(bncAbertas()).length"),
+  };
+  R("_bncFiltro='';");
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  return r;
+})();
+
+ok('o nome do dono aparece na linha', /Fernanda Alves/.test(dono.tabela));
+// Nome inteiro estoura a coluna: mostra os dois primeiros, o resto no title.
+ok('a coluna mostra o nome curto', /Fernanda Alves<\/span>|>Fernanda Alves</.test(dono.tabela));
+ok('o telefone fica no title, não na tabela',
+   /title="[^"]*98888-7766/.test(dono.tabela) && !/>\(11\) 98888-7766</.test(dono.tabela));
+// ⚠️ Linha antiga não pode sumir nem quebrar: 21 idas já existem sem dono.
+ok('aparelho de cliente SEM dono ainda diz "Do cliente"', /Do cliente/.test(dono.tabela));
+// É assim que a pergunta chega: pelo nome, não pelo IMEI.
+ok('acha pelo nome do cliente', dono.porNome === 1);
+ok('acha pelo telefone', dono.porTel === 1);
+ok('e continua achando pelo modelo', dono.semDono === 1);
+
 console.log('\nretorno — a garantia que a ASSISTÊNCIA nos dá\n');
 
 const ret = (function(){

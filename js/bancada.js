@@ -836,7 +836,7 @@ function bncSetObs(v){ _bncObs = v; }
 // ⚠️ Este botao E a resposta de "tem dono". Nao ha dropdown perguntando de novo:
 // ver `bncDaPrateleira()`.
 function bncModoManual(){
-  _bncManual = _bncManual ? null : { modelo:'', imei4:'' };
+  _bncManual = _bncManual ? null : { modelo:'', imei4:'', cliente:'', tel:'' };
   _bncRetornoDe = null;
   bncRedesenharModal();
 }
@@ -901,6 +901,14 @@ function bncCorpoModal(){
         UI.campo({label:'4 últimos do IMEI', corpo:`<input class="c-input" id="bnc-imei4" inputmode="numeric" maxlength="4"
            placeholder="0000" value="${UI.esc(_bncManual.imei4)}" oninput="bncSetManual('imei4', this.value)">`})
       )}
+      ${UI.linha(
+        UI.campo({label:'De quem é o aparelho', corpo:`<input class="c-input" placeholder="nome do cliente"
+           value="${UI.esc(_bncManual.cliente)}" oninput="bncSetManual('cliente', this.value)">`}),
+        UI.campo({label:'WhatsApp', corpo:`<input class="c-input" inputmode="tel" placeholder="(11) 90000-0000"
+           value="${UI.esc(_bncManual.tel)}" oninput="bncSetManual('tel', this.value)">`})
+      )}
+      <div class="bnc-dica-inline">É por aqui que o pós-venda descobre de quem é o aparelho e para
+        quem avisar quando voltar. Sem isso, o aparelho fica sem dono no sistema.</div>
       ${bncSugEstoque()}
     </div>` : '';
 
@@ -954,7 +962,11 @@ async function bncSalvar(){
   if(_bncManual){
     const imei4 = String(_bncManual.imei4 || '').replace(/\D/g,'').slice(-4);
     if(imei4.length !== 4){ _bncErro = 'Preciso dos 4 últimos dígitos do IMEI.'; bncRedesenharModal(); return; }
-    linhas = [Object.assign({}, base, { imei4, modelo_txt: _bncManual.modelo || null })];
+    linhas = [Object.assign({}, base, { imei4, modelo_txt: _bncManual.modelo || null,
+      // Dono do aparelho. So existe neste caminho: o da prateleira nao tem
+      // cliente, e um campo vazio gravado como '' viraria busca sem resposta.
+      cliente_nome: (_bncManual.cliente || '').trim() || null,
+      cliente_tel:  (_bncManual.tel     || '').trim() || null })];
   } else {
     // Lote: uma unica saida, N linhas. 26 aparelhos sairam juntos em 11/ago --
     // se isso custasse 26 registros a mao, a tela nao seria usada.
@@ -1033,11 +1045,14 @@ function bncFiltrar(linhas){
   // 138 aparelhos que colidem assim (docs/CONTROLE-MANUTENCAO.md).
   const dig = /^\d+$/.test(q) ? q : '';
   return (linhas || []).filter(l => {
-    const txt = [l.modelo_txt, l.etiqueta, l.servico, l.obs,
+    // O nome do cliente entra na busca porque e assim que a pergunta chega:
+    // "cade o aparelho da Fernanda?" -- ninguem liga com o IMEI na mao.
+    const txt = [l.modelo_txt, l.etiqueta, l.servico, l.obs, l.cliente_nome,
                  l.fornecedor === 'RR' ? 'rr legacy' : 'access'].join(' ').toLowerCase();
     return txt.includes(q)
         || (dig.length >= 2 && String(l.imei4 || '').includes(dig))
         || (dig.length >= 2 && String(l.imei_1 || '').includes(dig))
+        || (dig.length >= 2 && String(l.cliente_tel || '').replace(/\D/g,'').includes(dig))
         || (dig.length >= 2 && String(l.etiqueta || '').replace(/\D/g,'') === dig);
   });
 }
@@ -1329,7 +1344,15 @@ function bncTelaConferencia(conf){
 // coisas opostas ao mesmo tempo (a nossa, pro cliente; e a da assistência, pra
 // nós). O segundo sentido virou coluna própria, `retorno_de`.
 function bncDonoBadge(l){
-  return bncDaPrateleira(l) ? UI.badge('Estoque') : UI.badge('Do cliente', 'processo');
+  if(bncDaPrateleira(l)) return UI.badge('Estoque');
+  // Com dono conhecido o nome SUBSTITUI o rotulo generico: "Do cliente" nao
+  // responde nada, e a coluna e a mesma. O telefone fica no title -- ele serve
+  // pra ligar, nao pra ler na tabela.
+  const nome = String(l.cliente_nome || '').trim();
+  if(!nome) return UI.badge('Do cliente', 'processo');
+  const tel = String(l.cliente_tel || '').trim();
+  const curto = nome.split(/\s+/).slice(0, 2).join(' ');
+  return `<span title="${UI.esc(nome + (tel ? ' · ' + tel : ''))}">${UI.badge(curto, 'processo')}</span>`;
 }
 
 // O selo de retorno mora na coluna do SERVIÇO, não na de origem: retorno

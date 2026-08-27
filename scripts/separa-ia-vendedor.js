@@ -107,13 +107,27 @@ async function colher(nome, paginas) {
   }
   process.stderr.write('\n');
 
+  // ⚠️ /messages devolve só as ÚLTIMAS 20 mensagens. Sem paginar, toda análise vê só a
+  // cauda da conversa — e a cauda é justamente onde o vendedor está, o que enviesa tudo
+  // (o "vendedor entra na mensagem 1" que eu medi antes era isso). `before=<id>` volta.
   for (const [arroba, info] of Object.entries(convs)) {
+    const todas = [];
+    let before = null;
     try {
-      const m = await fetch(`${l.base}/api/v1/accounts/1/conversations/${info.conv}/messages`, { headers: h }).then(x => x.json());
-      const msgs = (Array.isArray(m) ? m : m.payload || [])
-        .filter(x => x.message_type === 1 && !x.private && (x.content || '').trim());
-      info.loja_msgs = msgs.map(x => ({ t: x.created_at, txt: (x.content || '').slice(0, 300) }));
-    } catch (e) { info.loja_msgs = []; }
+      for (let volta = 0; volta < 10; volta++) {          // teto de 200 mensagens por conversa
+        const url = `${l.base}/api/v1/accounts/1/conversations/${info.conv}/messages`
+                  + (before ? `?before=${before}` : '');
+        const m = await fetch(url, { headers: h }).then(x => x.json());
+        const pag = (Array.isArray(m) ? m : m.payload || []);
+        if (!pag.length) break;
+        todas.unshift(...pag);
+        if (pag.length < 20) break;                       // página curta = chegou no começo
+        before = pag[0].id;
+      }
+    } catch (e) { /* rede: fica com o que já veio */ }
+    info.loja_msgs = todas
+      .filter(x => x.message_type === 1 && !x.private && (x.content || '').trim())
+      .map(x => ({ t: x.created_at, txt: (x.content || '').slice(0, 300) }));
   }
 
   fs.mkdirSync(CACHE, { recursive: true });

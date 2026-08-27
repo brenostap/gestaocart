@@ -53,15 +53,16 @@ run(`
   vitItens = [
     { id:1, titulo:'iPhone 13 Pro Max 256GB Grafite Seminovo', serial:'E1381',
       imei_1:'350000000003324', bateria:88, preco_varejo:null, status:'available',
-      na_assistencia:false, estado:null },
+      na_assistencia:false, estado:null, dias_parado:112 },
     { id:2, titulo:'iPhone 15 128GB Rosa Seminovo', serial:'E1618',
       imei_1:'350000000009911', bateria:95, preco_varejo:null, status:'available',
-      na_assistencia:true, estado:null },
+      na_assistencia:true, estado:null, dias_parado:9 },
     { id:3, titulo:'iPhone 15 128GB Preto Seminovo', serial:'E1700',
       imei_1:'350000000007777', bateria:79, preco_varejo:null, status:'available',
-      na_assistencia:false, estado:'saldao' },
+      na_assistencia:false, estado:'saldao', dias_parado:null },
   ];
   vitCarregado = true; vitErro = ''; vitBusca = ''; vitEsconderAssistencia = false;
+  vitSoParados = false;
   currentTab = 'vitrine';
 `);
 
@@ -180,6 +181,43 @@ else bad('ainda diz "Troca"');
 if (/vit-precos[\s\S]{0,220}vit-upgrade/.test(comPreco))
   ok('o upgrade fica na mesma coluna, abaixo do preço de venda');
 else bad('o upgrade não está abaixo do preço');
+
+// -- 5b. dia de prateleira ---------------------------------------------------
+// O §10 de docs/funcoes/midias-e-conteudo.md pergunta "quais aparelhos estão
+// parados?". A resposta existia só do lado do sócio (v_estoque_margem é
+// eh_socio()); agora vem na mesma view da Vitrine, como TEMPO e não dinheiro.
+console.log('dia de prateleira');
+run(`meuPerfil = { papel:'comercial', nome:'David', vo_key:'david', ativo:true };
+     usuarioEmail='davidsr122004@gmail.com'; currentTab='vitrine'; vitSoParados=false;`);
+
+const comDias = run(`renderVitrine()`);
+if (/112 dias parado/.test(comDias)) ok('aparelho de 112 dias ganha selo');
+else bad('o selo de parado não apareceu');
+// 90+ é vermelho, 60-89 é âmbar: a cor diz a urgência sem precisar ler o número.
+if (/112 dias parado[\s\S]{0,40}critico|critico[\s\S]{0,40}112 dias parado/.test(comDias)
+    || /c-badge[^>]*critico[^>]*>112 dias parado/.test(comDias)) ok('90+ dias sai em vermelho');
+else bad('parado de 112 dias não saiu como crítico');
+// Aparelho novo na loja NÃO vira alarme: vai como meta discreta.
+if (/9d na loja/.test(comDias) && !/9 dias parado/.test(comDias))
+  ok('aparelho de 9 dias fica no meta, sem alarme');
+else bad('aparelho novo virou alarme');
+// ⚠️ Entrada não encontrada (nem compra nem troca) NÃO pode virar "0 dias":
+// seria dizer que chegou hoje um aparelho que ninguém sabe de onde veio.
+if (!/0 dias parado/.test(comDias) && !/0d na loja/.test(comDias))
+  ok('sem data de entrada não inventa "0 dias"');
+else bad('item sem entrada virou 0 dias');
+
+// O chip só existe se houver o que achar, e diz quantos são.
+if (/Parados há 60\+ dias \(1\)/.test(comDias)) ok('o chip conta os parados da operação inteira');
+else bad('o chip de parados não apareceu com a contagem');
+
+run(`toggleVitParados()`);
+if (run(`vitFiltrados().length`) === 1) ok('o filtro deixa só os parados');
+else bad('o filtro de parados não cortou a lista');
+run(`limparFiltrosVitrine()`);
+if (run(`vitSoParados`) === false && run(`vitFiltrados().length`) === 3)
+  ok('limpar filtros também solta o de parados');
+else bad('limpar filtros esqueceu o de parados');
 
 // -- 6. o menu ---------------------------------------------------------------
 console.log('menu');

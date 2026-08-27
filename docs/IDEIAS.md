@@ -483,6 +483,21 @@ Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026
   (R$ 5,54/lead), 33 vendas atribuídas, CAC R$ 657, ROAS 4,47×, lucro bruto R$ 19.822 — **empate**.
   Ler as três ressalvas em `docs/IAS-E-ESPECIALISTAS.md` §6.2 antes de decidir verba: cobertura de
   atribuição é ~65%, o lucro é bruto (falta carrego/reparo/taxa) e há venda contada em dois canais.
+- 🔨 ⭐⭐ **A alavanca do "pede o dia" vale pro HUMANO também** — e ele faz pior que a IA: pede dia
+  ou hora explícito em **15% (Cart) e 2% (Urban)** das conversas em que aparece, contra 16–25% da
+  IA. E **41–44% das últimas mensagens dele terminam com uma pergunta pendurada**, o mesmo padrão
+  de morte. Não é problema de robô, é o roteiro da casa. `PLANO-QUALIDADE-IA.md` §3-quater.
+- ⏱️ **Tempo de resposta humana é mensurável no Instagram** (o `CHATWOOT-ANALISE.md` dizia que
+  nunca seria): mediana **26 min** na Cart e **40 min** na Urban, mas **p90 de 20 a 24 horas**.
+- ⚠️ **A API do Chatwoot devolve só as ÚLTIMAS 20 mensagens.** Sem paginar com `before=<id>`, toda
+  análise vê só a cauda — e a cauda é onde o vendedor está. Já enviesou uma medição minha. O
+  `scripts/separa-ia-vendedor.js` foi corrigido; qualquer coisa nova que leia mensagem tem que paginar.
+- ❓ **12% das conversas têm mensagem apagada** ("This message was deleted"), nas duas lojas. Não
+  investiguei o que é.
+- 🔑 **A `conversa_estado` não nos bloqueia.** As linhas `type:'tool'` do n8n já trazem modelo,
+  armazenamento, cor, condição, valor à vista/parcelado, aparelho de troca, bateria e penalidades
+  — a maior parte do schema. Só o Dudu tem o **motivo declarado** da transferência, o julgamento
+  (`lead_quente`, `desistiu_em`) e o carimbo ao vivo. Construir a camada 2 já.
 - 🔨 ⭐⭐ **Pedir pro Dudu ligar `conversa_estado`** (supabase-urban, existe com **1 linha**). O
   schema tem `motivo_transferencia`, `objecoes_levantadas`, `desistiu_em`, `fase_atual` — é
   literalmente "por que o lead não foi transferido", desenhado e nunca ligado. **Fazer isso antes

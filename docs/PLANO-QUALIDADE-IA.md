@@ -446,3 +446,80 @@ Três peças, e **nenhuma precisa de infra nova**:
 
 ⚠️ **Não comece pelo juiz LLM.** É o mais divertido e o menos urgente: a camada 0 dá informação
 melhor de graça, e sem a camada 1 o juiz não tem contra o que ser comparado.
+
+---
+
+## 3-quater. ⭐ O roteiro do VENDEDOR — primeira medição que existe (27/ago)
+
+162 conversas de Instagram (78 Cart · 84 Urban) com o vendedor identificado pelo §3-ter.
+**Nunca ninguém tinha visto isso**: até hoje o Chatwoot era considerado cego depois do handoff.
+
+⚠️ **Leia o limite antes dos números.** A API do Chatwoot devolve só as **últimas 20 mensagens** por
+conversa, e eu não paginei nesta rodada. Então **tudo abaixo é a cauda da conversa**, e todo
+percentual é **piso, não taxa**. O script já foi corrigido pra paginar (`before=<id>`); a próxima
+rodada dá o número cheio. Dois efeitos concretos:
+- **"o vendedor entra na mensagem 1–2"** que eu tinha medido é **artefato** da janela. Descartado.
+- contagem de mensagens dele (mediana 8 na Cart, 6 na Urban) é **mínimo**.
+
+### O que ele faz (piso, % das conversas em que aparece)
+
+| | Cart | Urban |
+|---|---|---|
+| **agendar / vir à loja** (amplo) | **28%** | **17%** |
+| ↳ **pede dia ou hora explícito** | **15%** | **2%** |
+| cota preço | 44% | 32% |
+| fala de troca | 31% | 33% |
+| saudação personalizada (usa o nome) | 45% | 54% |
+| fecha (*"vai ser esse mesmo?"*, *"posso confirmar?"*) | 12% | 12% |
+| fala de bateria | 17% | 12% |
+| escala pro gerente | 9% | 4% |
+| pede nome completo | 5% | 4% |
+| **reserva o aparelho** | **3%** | **1%** |
+| **mensagem apagada** (*"This message was deleted"*) | **12%** | **12%** |
+
+### ⭐ A alavanca é a MESMA dos dois lados
+
+`ANALISE-MAJU-AGO-2026.md` mostrou que a alavanca da IA é **ela perguntar o dia** — parada em
+16–25% por onze semanas. **O humano faz pior:** pede dia ou hora explícito em **15% (Cart)** e
+**2% (Urban)**.
+
+E o padrão de morte também se repete: **41% (Cart) / 44% (Urban) das últimas mensagens do vendedor
+terminam com uma pergunta** — a mesma "pergunta pendurada" que mata as conversas da IA. Dessas, só
+7 são pergunta de agenda.
+
+**Não é problema de robô. É o roteiro da casa.** Qualquer mudança de prompt que não mude também o
+que o humano faz depois resolve metade do funil.
+
+### Os roteiros, lidos
+
+- **Isa (Cart)** — o mais estruturado. Apresenta-se, explica saúde de bateria com transparência
+  (*"Eu gosto sempre de ser transparente… explicar de forma sincera como funciona o mercado"*),
+  pede nome completo, e propõe *"O que você acha de nós agendarmos um horário pra você?"*.
+- **David (Cart)** — tabela de preço em blocos, depois fechamento seco: *"Curtiu os valores?"*,
+  *"Vai ser esse modelo mesmo?"*. Usa o gerente como alavanca (*"preciso do print para passar pro
+  meu gerente"*).
+- **David (Urban)** — tem script de agendamento explícito: *"Nosso atendimento é feito com hora
+  marcada, para mais cuidado, segurança e conforto✨ / Vamos agendar um horário para você hoje?"*.
+  ⚠️ Meu primeiro regex não pegava *"vamos agendar"* e mediu 5% onde são 17%. Corrigido.
+- **Mel (Cart/Urban)** — a mais pessoal, chama pelo nome (*"Bomm dia Gabi! Tudo bem e você?"*) e
+  faz follow-up (*"Quando vamos te receber na loja novamente para conseguir finalizar sua compra?"*).
+
+### ⏱️ Tempo de resposta humana — mensurável pela primeira vez
+
+`CHATWOOT-ANALISE.md` diz que *"não dá pra medir tempo de resposta humana com esse dado — nem agora,
+nem com sync nenhum"*. **Dá, no Instagram**, porque o Chatwoot carimba cada mensagem.
+
+| IA → 1ª mensagem do vendedor | Cart (n=37) | Urban (n=50) |
+|---|---|---|
+| mediana | **26 min** | **40 min** |
+| p75 | 9h45 | 12h10 |
+| p90 | **19h55** | **24h32** |
+
+⚠️ n pequeno e sujeito ao mesmo viés de janela. Mas a **forma** é clara e casa com o que já se sabia
+da IA: mediana boa, cauda de um dia inteiro. **Use mediana + p90, nunca média.**
+
+### O que fazer com isso
+
+Entra na **camada 2** (determinístico, custo zero), agora com **duas séries e não uma**: o mesmo
+painel de comportamento para a IA e para o vendedor, lado a lado, dentro do mesmo segmento de lead.
+A métrica de topo do §6 ganha um par: **% em que alguém — IA ou humano — pediu um dia**.
