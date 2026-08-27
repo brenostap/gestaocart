@@ -1291,3 +1291,67 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
 
 /* Lucro na linha de venda: era style="color:var(--success)" inline. */
 .est-venda.ok{ color:var(--success); }
+
+/* ==========================================================================
+   PÓS-VENDA (js/consulta.js) — achar a venda de quem chegou com problema
+   Mesma família da Vitrine: a pessoa lê isso em pé, com o cliente na frente.
+   ========================================================================== */
+.cns-tela{ display:flex; flex-direction:column; gap:12px; }
+
+.cns-busca-wrap{
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:12px 0 10px; background:var(--bg);
+}
+.cns-busca{ flex:1; min-width:220px; font-size:16px; } /* 16px: iOS dá zoom abaixo disso */
+.cns-carregando{ padding:18px; text-align:center; color:var(--text3); }
+
+.cns-lista{ display:flex; flex-direction:column; }
+.cns-linha{ border-bottom:1px solid var(--border); }
+.cns-linha:last-child{ border-bottom:0; }
+.cns-linha.aberta{ background:var(--surface2, var(--bg)); }
+
+/* A linha fechada é um botão inteiro: no celular, alvo pequeno vira toque errado. */
+.cns-cab{
+  width:100%; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  padding:12px 14px; background:none; border:0; cursor:pointer; text-align:left;
+  font:inherit; color:var(--text);
+}
+.cns-cab:hover{ background:var(--hover, rgba(127,127,127,.06)); }
+.cns-cab-cli{ font-weight:650; flex:1; min-width:140px; }
+.cns-cab-meta{ font-size:var(--fs-caption); color:var(--text3); white-space:nowrap; }
+.cns-cab-val{ font-variant-numeric:tabular-nums; font-weight:600; white-space:nowrap; }
+.cns-seta{ color:var(--text4); width:12px; }
+
+.cns-ficha{ padding:0 14px 14px; display:flex; flex-direction:column; gap:10px; }
+.cns-ficha-topo{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.cns-cli{ font-size:var(--fs-headline); font-weight:650; }
+.cns-cli-meta{ display:flex; gap:10px; flex-wrap:wrap; font-size:var(--fs-caption); color:var(--text3); }
+.cns-tel{ color:var(--accent, var(--success)); text-decoration:none; font-weight:600; }
+.cns-tel:hover{ text-decoration:underline; }
+.cns-semtel{ font-size:var(--fs-caption); color:var(--text4); }
+.cns-ficha-num{ text-align:right; }
+.cns-valor{ font-size:var(--fs-headline); font-weight:700; font-variant-numeric:tabular-nums; }
+.cns-sub{ font-size:var(--fs-caption); color:var(--text4); font-family:var(--font-mono); }
+.cns-ficha-linha{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:center;
+  font-size:var(--fs-caption); color:var(--text3);
+}
+
+.cns-itens{ display:flex; flex-direction:column; gap:6px; }
+.cns-item{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding:8px 10px; background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius-sm, 8px);
+}
+.cns-item-nome{ font-weight:600; }
+.cns-item-meta{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.cns-mono{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text3); }
+.cns-preco{ font-variant-numeric:tabular-nums; font-size:var(--fs-caption); color:var(--text3); }
+.cns-vazio-itens{ font-size:var(--fs-caption); color:var(--text4); }
+
+@media (max-width:640px){
+  .cns-cab{ padding:12px 10px; }
+  .cns-ficha{ padding:0 10px 12px; }
+  .cns-cab-val{ order:3; }
+}

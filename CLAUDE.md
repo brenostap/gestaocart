@@ -83,6 +83,9 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/fechamento.js` — exportação do fechamento (.xlsx, uma aba por colaborador). **Não calcula
   nada**: lê `fechamentoEquipe()` (equipe.js), que lê `calc()` (render.js). Se faltar um número,
   ele nasce em `fechamentoEquipe()`, nunca ali.
+- `js/consulta.js` — tela **Pós-venda** (só `comercial`): acha a venda pelo final do IMEI, nome ou
+  telefone e mostra quem está esperando aparelho na assistência. Lê **só views**
+  (`v_venda_consulta*`, `v_assistencia_cliente`) — sem custo, lucro ou valor de serviço.
 - `js/ui.js` — **kit de componentes** (`UI.card/kpi/badge/tabela/...`). Telas pedem componentes, não escrevem HTML na mão.
 - `js/auth.js` — login + `sbGet(tabela, params, limit)` (wrapper do Supabase REST).
 - `js/shell.js` — navegação, contexto (loja+período), **permissões** (`papelAtual`, `podeVerValor`, `podeVerMargem`).

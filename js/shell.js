@@ -7,6 +7,7 @@
 const ICO = {
   meudia:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
   vitrine:   '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
+  consulta:  '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-3.4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 11.5h7M8.5 8.5h4"/></svg>',
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
@@ -29,6 +30,9 @@ const NAV = [
     // ⚠️ O id continua 'vitrine' (arquivo, funções vit*, MATRIZ_ACESSO). Só o
     // rótulo virou "Estoque" em 17/ago/2026 — mesmo padrão de bancada/Assistência.
     {id:'vitrine', label:'Estoque'},
+    // Achar a venda de quem chegou com problema. Fica na Operacao pelo mesmo
+    // motivo da Vitrine: e trabalho de balcao, nao relatorio.
+    {id:'consulta', label:'Pós-venda'},
     {id:'dash',    label:'Dashboard'},
     {id:'vendas',  label:'Vendas'},
     {id:'compras', label:'Compras'},
@@ -110,7 +114,10 @@ const MATRIZ_ACESSO = {
   // `tabela` entrou em 20/ago a pedido do dono: quem atende precisa do preco
   // oficial na mao, e ele ja chega mastigado pela view `v_tabela_precos`
   // (sem custo, sem margem) -- a mesma que a Vitrine usa.
-  comercial: ['meudia','vitrine','tabela'],
+  // `consulta` entrou em 26/ago/2026: quem atende um problema precisa achar a
+  // venda de QUEM ESTA NA FRENTE DELE, e v_minhas_vendas so traz as proprias.
+  // Decisao do dono, com o limite escrito na migration: sem custo, sem lucro.
+  comercial: ['meudia','vitrine','consulta','tabela'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],

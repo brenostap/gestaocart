@@ -256,6 +256,10 @@ async function loadComercialData(){
     if(typeof carregarMeuDia === 'function') await carregarMeuDia();
     setProgress(70,'Carregando o estoque...');
     if(typeof carregarVitrine === 'function') await carregarVitrine();
+    // Quem esta esperando aparelho volta na PRIMEIRA tela do pos-venda, antes
+    // de qualquer busca -- por isso vem na carga e nao sob demanda.
+    setProgress(90,'Carregando o pós-venda...');
+    if(typeof carregarPosVenda === 'function') await carregarPosVenda();
     setProgress(100,'Pronto!');
   }catch(e){
     console.error('[comercial] carga falhou:', e);

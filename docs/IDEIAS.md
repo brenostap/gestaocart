@@ -108,7 +108,11 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
   a Maria (pós-venda) quem precisa responder isso ao cliente. Duas colunas em `bancada`
   (`cliente_nome`, `cliente_tel`) resolvem, e a tela de Assistência já é do papel `bancada` —
   não precisa de RLS novo. **O buraco mais barato das quatro funções documentadas.**
-- 💡 **Não existe controle de CASO de pós-venda** (§8 do documento da Maria): status, data do
+- ✅ **Tela de Pós-venda (26/ago/2026)**: `js/consulta.js`. Busca única — final do IMEI, nome ou
+  telefone — e abre a ficha da venda com os itens, o IMEI e selo de quem está na assistência.
+  Antes de qualquer busca ela mostra **quem está esperando aparelho**, com os dias fora.
+  Views `v_venda_consulta`, `v_venda_consulta_itens` e `v_assistencia_cliente`.
+- 💡 **Continua não existindo controle de CASO** (§8 do documento da Maria): status, data do
   primeiro contato, último retorno dado, próxima ação, data de finalização. Não está no painel nem
   no Chatwoot — lá é conversa, não caso com status. É a diferença entre "o aparelho está na RR" e
   "a cliente está esperando resposta desde terça". Se virar tela, o modelo natural é o mesmo da

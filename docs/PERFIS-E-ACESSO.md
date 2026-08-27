@@ -77,6 +77,26 @@ rodam com direitos do dono e fazem o próprio filtro por `meu_vo_key()`/`meu_at_
 
 Se uma view esquecer o filtro, vaza tudo — por isso o filtro é **sempre a mesma dupla de funções**.
 
+### As views do pós-venda (26/ago/2026)
+
+O papel `comercial` via só as **próprias** vendas — e pós-venda é sobre a venda **dos outros**.
+Decidido pelo dono em 26/ago: qualquer perfil comercial consulta qualquer venda.
+
+| View | O que traz | O que **não** traz |
+|---|---|---|
+| `v_venda_consulta` | qualquer venda: cliente, telefone, valor, quem vendeu/atendeu | `custo_total`, `lucro`, `recebimento_*` |
+| `v_venda_consulta_itens` | itens dessas vendas (é por aqui que se acha pelo IMEI) | `valor_estoque` |
+| `v_assistencia_cliente` | aparelho **de cliente** na assistência, com dono e dias fora | `valor_previsto`, `valor_cobrado` |
+
+O filtro das três é a função **`pode_consultar_venda()`** = `socio` ou `comercial`. **`bancada`
+fica fora de propósito**: o Vitinho não entra em `VE_VALOR`, e valor de venda é exatamente o que
+essas views carregam.
+
+⚠️ **Isto ampliou o acesso, e vale saber o tamanho.** Até aqui um colaborador só enxergava linha
+que era dele. Agora David, Isa, Mel e Maria alcançam nome e telefone de qualquer cliente. O que
+continua fechado é o dinheiro da loja — os quatro interruptores seguem de pé: `podeVerValor()` sim,
+`podeVerMargem()` não, `podeVerCustoServico()` não. Nenhuma **tabela** ganhou policy nova.
+
 ⚠️ **`dias_parado` é tempo, não dinheiro** — por isso pôde entrar. Ele diz o que empurrar
 primeiro sem dizer quanto o aparelho custou. A conta de entrada é a **mesma** de
 `v_estoque_margem` (compra ou troca, a mais recente): se as duas divergirem, dono e vendedor

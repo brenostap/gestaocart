@@ -153,6 +153,7 @@ function renderContent(){
   if(!c)return;
   if(currentTab==='meudia')c.innerHTML=renderMeuDia();
   else if(currentTab==='vitrine')c.innerHTML=renderVitrine();
+  else if(currentTab==='consulta')c.innerHTML=renderConsulta();
   else if(currentTab==='dash')c.innerHTML=renderDashV2();
   else if(currentTab==='vendas')c.innerHTML=renderVendas();
   else if(currentTab==='compras')c.innerHTML=renderCompras();
