@@ -119,6 +119,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   carga própria (`loadBancadaData()` em data.js).
 - Regra dos perfis comerciais: **colaborador vê o VALOR da venda** (negociou o preço) **mas não vê
   custo/lucro/margem**. `podeVerValor()` e `podeVerMargem()` são os interruptores.
+- ⚠️ **View nova = `revoke all from anon, authenticated` + `grant select`.** Nunca só o grant, e
+  nunca `from public, anon` — o Supabase concede ALL em objeto novo pra `authenticated` por
+  default privilege, e `public` não alcança isso. **View não tem RLS e roda com os direitos do
+  dono**: view gravável é bypass de RLS. Aconteceu em 20/ago e de novo em 26/ago.
 - **Teste**: `node test/perfis.test.js` — prova a cortina, **não** a fechadura.
 
 ## Dados

@@ -97,6 +97,22 @@ que era dele. Agora David, Isa, Mel e Maria alcançam nome e telefone de qualque
 continua fechado é o dinheiro da loja — os quatro interruptores seguem de pé: `podeVerValor()` sim,
 `podeVerMargem()` não, `podeVerCustoServico()` não. Nenhuma **tabela** ganhou policy nova.
 
+⚠️ **As três nasceram graváveis — de novo.** Na primeira escrita da migration o revoke foi
+`from public, anon`, que **não alcança `authenticated`**: as views saíram com INSERT/UPDATE/DELETE
+para qualquer pessoa logada, que é exatamente o bypass de RLS que a auditoria de 20/ago/2026 já
+tinha achado e corrigido (`20260820_view_nao_escreve.sql`). Pego na conferência dos grants, no
+mesmo dia, antes de qualquer uso. **A regra vale sempre e é fácil de errar porque o padrão antigo
+das migrations de 17/ago está escrito do jeito errado:**
+
+```sql
+revoke all on public.<view> from anon, authenticated;   -- nunca `public, anon`
+grant select on public.<view> to authenticated;
+```
+
+Conferir depois de criar view:
+`select table_name, privilege_type from information_schema.role_table_grants
+ where grantee='authenticated' and table_name like 'v_%'` — só pode aparecer `SELECT`.
+
 ⚠️ **`dias_parado` é tempo, não dinheiro** — por isso pôde entrar. Ele diz o que empurrar
 primeiro sem dizer quanto o aparelho custou. A conta de entrada é a **mesma** de
 `v_estoque_margem` (compra ou troca, a mais recente): se as duas divergirem, dono e vendedor

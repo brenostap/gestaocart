@@ -28,6 +28,13 @@
 --
 -- `bancada` NAO ganhou policy nova. Nenhuma tabela ganhou. Como sempre neste
 -- projeto: papel sem margem nao toca tabela, le view.
+--
+-- ⚠️ REVOKE E DE `anon, authenticated` -- NAO de `public, anon`. O Supabase
+-- concede ALL em objeto novo do schema public pra `authenticated` por DEFAULT
+-- PRIVILEGE, e `public` nao alcanca esse grant. View nao tem RLS e roda com os
+-- direitos do DONO: uma view gravavel e um bypass de RLS com a chave do dono na
+-- fechadura. Ja aconteceu -- ver 20260820_view_nao_escreve.sql -- e aconteceu de
+-- novo aqui, na primeira escrita desta migration, pego na conferencia dos grants.
 -- ===========================================================================
 
 -- Quem alcanca a consulta: socio e comercial. `bancada` fica fora de proposito
@@ -69,7 +76,7 @@ select v.id,
 comment on view public.v_venda_consulta is
   'Cabecalho da venda para o pos-venda achar o caso do cliente. Sem custo, lucro ou recebimento.';
 
-revoke all on public.v_venda_consulta from public, anon;
+revoke all on public.v_venda_consulta from anon, authenticated;
 grant select on public.v_venda_consulta to authenticated;
 
 -- -- Os itens da venda, sem o custo ------------------------------------------
@@ -91,7 +98,7 @@ select p.id,
 comment on view public.v_venda_consulta_itens is
   'Itens da venda para busca por IMEI/etiqueta no pos-venda. Sem valor_estoque.';
 
-revoke all on public.v_venda_consulta_itens from public, anon;
+revoke all on public.v_venda_consulta_itens from anon, authenticated;
 grant select on public.v_venda_consulta_itens to authenticated;
 
 -- -- O aparelho do cliente que esta fora -------------------------------------
@@ -125,5 +132,8 @@ select b.id,
 comment on view public.v_assistencia_cliente is
   'Aparelhos de CLIENTE (e de garantia) na assistencia, para o pos-venda responder "onde esta o meu iPhone". Sem valor de servico.';
 
-revoke all on public.v_assistencia_cliente from public, anon;
+revoke all on public.v_assistencia_cliente from anon, authenticated;
 grant select on public.v_assistencia_cliente to authenticated;
+
+-- A funcao de filtro tambem nao e do `anon`: ela so faz sentido com sessao.
+revoke execute on function public.pode_consultar_venda() from anon;
