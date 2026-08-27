@@ -493,6 +493,12 @@ Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026
   (R$ 5,54/lead), 33 vendas atribuídas, CAC R$ 657, ROAS 4,47×, lucro bruto R$ 19.822 — **empate**.
   Ler as três ressalvas em `docs/IAS-E-ESPECIALISTAS.md` §6.2 antes de decidir verba: cobertura de
   atribuição é ~65%, o lucro é bruto (falta carrego/reparo/taxa) e há venda contada em dois canais.
+- 🔨 ⭐⭐ **Camada 1 — score do lead é o gargalo agora.** As camadas 2 (painel + etiquetas) estão
+  no ar e a 0 foi contornada, mas sem a 1 nenhum número da 2 tem régua: "57% não tentou fechar" é
+  ruim ou normal? Depende de que lead era. `PLANO-QUALIDADE-IA.md`, bloco ESTADO.
+- 🔨 ⭐ **Etiqueta por especialista** — hoje o lado humano está agregado, e os quatro roteiros são
+  bem diferentes. Extensão barata do `tags-atendimento.js`. ⚠️ E urgente por outro motivo: a Isa
+  sai dia 1º.
 - 🔨 ⭐⭐⭐ **Ninguém pede o dia — nem a IA nem o vendedor.** O painel da camada 2 (rodado em 2.677
   conversas de IG) mostra que a coluna "ALGUÉM pediu um dia" fica em **29–38%**, e o vendedor
   acrescenta **1 a 2 pontos** — na Urban, **zero**. Mudar só o prompt da IA move pouco; o roteiro

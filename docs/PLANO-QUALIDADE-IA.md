@@ -6,6 +6,27 @@ Plano para responder duas perguntas separadas que hoje vivem misturadas: **o lea
 
 ---
 
+## ⚡ ESTADO EM 27/AGO/2026 — leia isto antes do plano
+
+⚠️ **O plano original dizia que a camada 0 era pré-requisito. Não é mais.** O dono perguntou
+*"por que estamos dependendo da Maju marcar isso? você consegue criar uma tag por fora?"* — e a
+resposta é sim. `scripts/tags-atendimento.js` faz de fora o que eu achava que só ela poderia dizer.
+**Quem chegar aqui não está bloqueado no Dudu.**
+
+| camada | o que é | estado |
+|---|---|---|
+| **0** — a IA grava o próprio veredito | `conversa_estado` | **contornada.** Sobrou o motivo *declarado*, o julgamento dela (`lead_quente`, `desistiu_em`) e o carimbo ao vivo. Virou complemento, não bloqueio. |
+| **1** — score do lead | origem × canal × tema | ❌ **não construída — é o gargalo.** Sem ela, todo número da camada 2 fica sem régua: "57% não tentou fechar" é ruim ou normal? Depende de que lead era. |
+| **2** — determinístico | painel + etiquetas | ✅ **pronta (27/ago).** `camada2-painel.js` e `tags-atendimento.js`, na tela **Diário → Atendimento**. |
+| **3** — juiz LLM | rubrica de 7 itens | ❌ não construída, e **o etiquetador mudou o que ela vale** — ver §5. |
+
+**Ordem hoje:** camada 1 → mais etiquetas (por especialista) → camada 0 com o Dudu → juiz LLM.
+
+⚠️ **Nota de leitura:** as seções `3-bis` a `3-sexies` foram escritas depois e estão fora de ordem
+no arquivo (aparecem entre a §9 e o fim). São os achados; o plano em si é §0 a §9.
+
+---
+
 ## 0. A regra que não pode ser quebrada
 
 > **Nunca julgue a IA pela conversão.**
@@ -47,7 +68,12 @@ entra como **peso do segmento**, não como número único.
 
 ---
 
-## 2. ⭐ Camada 0 — a IA escreve o próprio veredito (a recomendação principal)
+## 2. Camada 0 — a IA escreve o próprio veredito
+
+> ⚠️ **27/ago: deixou de ser "a recomendação principal".** O etiquetador (§4) faz de fora quase
+> tudo que esta seção pedia — e faz melhor em dois pontos: **não é a opinião da IA** (se ela
+> entendeu errado, a tag dela registra o erro dela) e **cobre o vendedor**, que esta seção não
+> cobre. O que sobra pro Dudu está na lista do fim desta seção, e é pouco.
 
 **Não infira o estado da conversa depois. Faça a IA gravar enquanto atende.**
 
@@ -73,6 +99,12 @@ Isso é **melhor que regex e melhor que juiz LLM**, porque:
 
 **Pedido pro Dudu, em uma frase:** *ligar a gravação de `conversa_estado` nas duas lojas e nos dois
 canais, gravando um registro por sessão e atualizando a cada turno.*
+
+⚠️ **O que SÓ ele pode dar** (o resto o §4 já resolve): o **motivo declarado** da transferência
+(qual regra dela disparou — o texto mostra o cartão, não o porquê), o **julgamento** dela
+(`lead_quente`, `desistiu_em`) e o **carimbo ao vivo** — que importa porque **95% das mensagens do
+n8n não têm `created_at`** (a coluna só começou em 10/ago/2026). Aparelho, preço, parcela, troca,
+bateria e defeito já saem das linhas `type:'tool'` do n8n, retroativo.
 
 ⚠️ Um cuidado: **`motivo_transferencia` é o motivo declarado, não a verdade.** Serve pra segmentar e
 pra achar padrão, não pra fechar diagnóstico sozinho. A camada 3 existe pra auditar isso.
@@ -307,7 +339,29 @@ tudo isso cruzado com venda — por especialista. Era o buraco declarado em `IAS
 
 ---
 
-## 4. Camada 2 — score do atendimento (SQL + regex, custo zero)
+## 4. Camada 2 — score do atendimento (SQL + regex, custo zero) — ✅ PRONTA
+
+> **27/ago.** Três peças no ar: `scripts/camada2-painel.js` (as duas séries por segmento),
+> `scripts/tags-atendimento.js` (**10 etiquetas, cada uma com a frase que a gerou e o conserto**) e
+> a tela **Diário → Atendimento** no painel.
+>
+> ⭐ **O etiquetador é a peça que mudou o plano.** Ele produz a tag **por fora da IA**, a partir do
+> texto, e **aponta pra mensagem** — não pra conversa. *"Esta conversa teve encerramento passivo"*
+> não se corrige; *"Me chama quando tiver uma noção melhor do horário"* se corrige.
+>
+> ⚠️ **Tag de AUSÊNCIA não tem prova, tem lugar.** *"Não usou o nome"* não é provado por mensagem
+> nenhuma — a evidência é o que **não** está lá. Nesses casos `trecho_e_prova=false`, o trecho vira
+> a abertura (onde caberia) e a tela avisa. Sem isso eu estaria mostrando uma frase inocente como
+> se fosse a culpada — mentir com fato verdadeiro.
+>
+> **Cart, 1.291 conversas:** cotou e nunca fechou **57%** · morreu esperando **44%** · convite
+> aberto **35%** · não usou o nome **22%** · devolveu a bola **18%**. Lado humano (base 316):
+> pergunta pendurada **38%** · demorou +6h **19%**.
+>
+> ⚠️ E o etiquetador **corrigiu um número meu**: *"prometeu especialista e não chamou"* deu **3** na
+> Cart e **5** na Urban — não os 447 que eu estimei — porque agora exclui as conversas em que o
+> humano de fato apareceu. Ver §3-bis.
+
 
 Comportamentos **já provados** correlacionados, e todos determinísticos. Base:
 `scripts/maju/metricas-semanais.sql` — falta estender pra Instagram e pra Urban.
@@ -331,6 +385,19 @@ mídia e não diz nada.
 ---
 
 ## 5. Camada 3 — juiz LLM (amostra, custo baixo)
+
+> ⚠️ **27/ago: o etiquetador subiu a régua desta seção.** Boa parte do que eu imaginava pro juiz o
+> regex já pega, com a vantagem de ser auditável e de graça. **O que sobra é o que importa:**
+>
+> 1. **Entender ambiguidade.** *"Não quero compra"* era *"não [tenho troca], quero comprar"*, e a
+>    Maju leu como desistência (conversa #28397). Regex nenhum pega.
+> 2. **Informação inventada** — bateria, prazo, disponibilidade chutados. É o item de risco.
+> 3. ⭐ **Achar o que ninguém pensou em procurar.** Esta é a de verdade: **o etiquetador só encontra
+>    o que eu já sei que existe** — cada uma das 10 tags saiu de uma leitura minha. O juiz acha a
+>    falha que não está na minha lista.
+>
+> Continua sendo a última: sem a camada 1 ele não tem contra o que ser comparado.
+
 
 Para o que regex não vê: **ela entendeu?** Um `"Não quero compra"` que era *"não [tenho troca],
 quero comprar"* (conversa #28397) nenhum regex pega.
@@ -430,6 +497,13 @@ Três peças, e **nenhuma precisa de infra nova**:
 ---
 
 ## 9. Ordem de implementação
+
+> ⚠️ **A ordem abaixo é a de 26/ago e está superada.** A de hoje:
+> **1º camada 1** (score do lead — é o gargalo, dá régua pro resto) ·
+> **2º mais etiquetas, por especialista** (extensão barata do que já existe) ·
+> **3º `conversa_estado` com o Dudu** (complementa) ·
+> **4º juiz LLM.** O item 1 da lista original virou complemento; o item 2 e o 3 estão feitos.
+
 
 1. **Pedir pro Dudu ligar `conversa_estado`** nas duas lojas e dois canais. Destrava tudo e não é
    trabalho nosso. *(camada 0)*

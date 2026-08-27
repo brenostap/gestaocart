@@ -316,6 +316,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     6x pra cima (~R$6,2 mil/mês no mix de julho). Detalhe em `docs/REGISTRO-VENDA-2026-08.md`.
 
 ## Caderno de ideias
+- `docs/PLANO-QUALIDADE-IA.md` — **como medir qualidade de lead e da IA.** ⚠️ Começa por um bloco
+  **ESTADO** que diz o que já está pronto — leia esse bloco antes do plano, porque a arquitetura
+  mudou em 27/ago e o corpo do doc ainda descreve a ordem antiga. Instrumentos:
+  `scripts/separa-ia-vendedor.js` (separa IA de vendedor no Instagram),
+  `scripts/camada2-painel.js` (as duas séries por segmento) e **`scripts/tags-atendimento.js`**
+  (etiqueta a falha, com a frase que a gerou e o conserto). ⚠️ **Os três carregam armadilhas de
+  medição no cabeçalho — todas custaram um erro meu. Ler antes de mexer.**
 - `docs/IAS-E-ESPECIALISTAS.md` — **quem é IA e quem é gente no atendimento** (Maju=Cart, Duda=Urban;
   David/Mel/Isa/Maria são os especialistas), a chave que liga conversa→lead→venda, e o mapa de
   **todos** os relatórios das IAs — inclusive as views do Dudu (`dash_transfers`, `dash_vendas_ia`)
