@@ -50,6 +50,17 @@ vm.runInContext(`
     { comportamento:'Pergunta FECHADA', loja:'cart', pct_ia:3, pct_vendedor:12, destaque:true, nota:null, ordem:10 },
     { comportamento:'Pergunta ABERTA',  loja:'cart', pct_ia:36, pct_vendedor:10, destaque:true, nota:null, ordem:20 },
   ];
+  atendTags = [
+    { loja:'cart', tag:'convite_aberto', quem:'ia', rotulo:'Convidou mas mandou o cliente escolher o dia',
+      conserto:'Oferecer um horário concreto', n_conversas:457, n_total:1291,
+      trecho:'Que dia e horário você consegue passar aqui?', conversa_id:39514, trecho_e_prova:true },
+    { loja:'cart', tag:'nao_tentou_fechar', quem:'ia', rotulo:'Cotou preço e nunca tentou fechar',
+      conserto:'Uma pergunta de fechamento depois do preço', n_conversas:738, n_total:1291,
+      trecho:'O modelo 128GB seminovo sai R$ 3.890 à vista.', conversa_id:39690, trecho_e_prova:false },
+    { loja:'urban', tag:'convite_aberto', quem:'ia', rotulo:'Convidou mas mandou escolher o dia',
+      conserto:'Oferecer um horário', n_conversas:402, n_total:1025,
+      trecho:'Que dia e horário você consegue passar aqui na loja?', conversa_id:13545, trecho_e_prova:true },
+  ];
   atendPares = [
     { momento:'Ela separou o aparelho', porque:'Ela pergunta QUAL dia; ele DIZ o dia.',
       fala_ia:'Que dia pode passar pra ver ele de pertinho?',
@@ -149,8 +160,36 @@ ok(htmlAtend.indexOf('Que dia pode passar') < htmlAtend.indexOf('Pergunta FECHAD
 ok(/14,9%[\s\S]{0,40}3,4%/.test(htmlAtend),
    'o rodapé separa o que está provado do que é hipótese');
 
-console.log('\n10. A aba Atendimento não derruba a de Pendências');
-vm.runInContext('atendPadroes = []; atendPares = [];', ctx);
+console.log('\n10. ⚠️ As etiquetas: falha, quanto, conserto e a frase real');
+ok(htmlAtend.includes('Convidou mas mandou o cliente escolher o dia'), 'a falha aparece pelo nome');
+ok(htmlAtend.includes('457'), 'com quantas conversas');
+ok(htmlAtend.includes('Oferecer um horário concreto'),
+   'e com o CONSERTO — tag sem conserto é reclamação');
+ok(!htmlAtend.includes('Que dia e horário você consegue passar aqui?'),
+   'a frase fica escondida até clicar (a tela não vira parede de texto)');
+
+const aberta = vm.runInContext("diarioTagAberta='convite_aberto'; diarioAba='atendimento'; renderDiario()", ctx);
+ok(aberta.includes('Que dia e horário você consegue passar aqui?'), 'clicando, a frase real aparece');
+ok(aberta.includes('39514'), 'com o número da conversa, pra conferir');
+
+console.log('\n10b. ⚠️ Tag de AUSÊNCIA avisa que a frase não é a culpada');
+const ausencia = vm.runInContext("diarioTagAberta='nao_tentou_fechar'; renderDiario()", ctx);
+ok(/ausência/i.test(ausencia) && /onde caberia/i.test(ausencia),
+   'diz que é ausência e que o trecho é onde caberia, não o erro');
+const comProva = vm.runInContext("diarioTagAberta='convite_aberto'; renderDiario()", ctx);
+ok(!/onde caberia/i.test(comProva), 'e NÃO diz isso quando a frase é a prova');
+
+console.log('\n10c. Uma loja por vez — os prompts são diferentes');
+vm.runInContext("diarioTagAberta=null; atendLoja='cart'", ctx);
+const soCart = vm.runInContext('renderDiario()', ctx);
+ok(!soCart.includes('Convidou mas mandou escolher o dia'), 'a Cart não mostra etiqueta da Urban');
+vm.runInContext("atendLoja='urban'", ctx);
+ok(vm.runInContext('renderDiario()', ctx).includes('Convidou mas mandou escolher o dia'),
+   'e trocando pra Urban, aparece a dela');
+vm.runInContext("atendLoja='cart'; diarioAba='pendencias'", ctx);
+
+console.log('\n11. A aba Atendimento não derruba a de Pendências');
+vm.runInContext('atendPadroes = []; atendPares = []; atendTags = [];', ctx);
 const semDados = vm.runInContext("diarioAba='atendimento'; renderDiario()", ctx);
 vm.runInContext("diarioAba='pendencias'", ctx);
 ok(typeof semDados === 'string' && semDados.length > 200, 'sem dado de atendimento, a tela ainda monta');
@@ -158,13 +197,13 @@ ok(vm.runInContext("renderDiario()", ctx).includes('Fazer a Maju anotar') === fa
    vm.runInContext("renderDiario()", ctx).includes('Em aberto'),
    'e a aba de pendências continua de pé');
 
-console.log('\n11. Descartar é diferente de resolver');
+console.log('\n12. Descartar é diferente de resolver');
 const js = fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8');
 ok(/descartado_em/.test(js), 'existe coluna própria pra descarte');
 ok(js.indexOf('descartado_em') !== js.lastIndexOf('descartado_em'),
    'descartar não reaproveita fechado_em — se muito item for descartado, o problema é o que EU escrevo');
 
-console.log('\n12. Fechar guarda a DATA em vez de apagar a linha');
+console.log('\n13. Fechar guarda a DATA em vez de apagar a linha');
 ok(/fechado_em/.test(fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8')),
    'diarioFechar grava fechado_em');
 ok(!/method:\s*'DELETE'/.test(fs.readFileSync(path.join(ROOT,'js','diario.js'),'utf8')),

@@ -28,6 +28,7 @@ let diarioItens    = null;
 let diarioCarregando = false;
 let diarioErro     = null;
 let diarioVerFechados = false;
+let diarioTagAberta = null;
 // ⚠️ Duas abas porque são duas coisas diferentes: PENDÊNCIAS é o que o dono
 // precisa cobrar; ATENDIMENTO é o que a análise descobriu. Misturar as duas foi
 // o primeiro desenho, e o dono pediu pra separar -- ele lê as duas em ritmos
@@ -35,6 +36,8 @@ let diarioVerFechados = false;
 let diarioAba = 'pendencias';
 let atendPadroes = null;
 let atendPares   = null;
+let atendTags    = null;
+let atendLoja    = 'cart';   // a análise é por loja: os prompts são diferentes
 
 // ⚠️ Os tons são os do design system (`css/components.css`), não cor inventada:
 // processo=violeta, marca=tint da loja, alerta=âmbar, critico=vermelho, ok=verde.
@@ -70,7 +73,8 @@ function diarioCarregar(){
     fetch(SB_URL + '/rest/v1/diario_itens?select=*&order=prioridade.asc,aberto_em.asc&limit=300', { headers: h }),
     fetch(SB_URL + '/rest/v1/atendimento_padroes?select=*&order=ordem.asc&limit=200', { headers: h }),
     fetch(SB_URL + '/rest/v1/atendimento_pares?select=*&order=ordem.asc&limit=100', { headers: h }),
-  ]).then(async ([a, b, c, d]) => {
+    fetch(SB_URL + '/rest/v1/atendimento_tags?select=*&order=n_conversas.desc&limit=400', { headers: h }),
+  ]).then(async ([a, b, c, d, e]) => {
     if(!a.ok || !b.ok) throw new Error('HTTP ' + a.status + '/' + b.status);
     diarioEntradas = await a.json();
     diarioItens    = await b.json();
@@ -78,6 +82,7 @@ function diarioCarregar(){
     // fica vazia e o resto da tela continua de pé.
     atendPadroes = c.ok ? await c.json() : [];
     atendPares   = d.ok ? await d.json() : [];
+    atendTags    = e.ok ? await e.json() : [];
     return true;
   }).catch(e => {
     console.error('diarioCarregar', e);
@@ -86,6 +91,7 @@ function diarioCarregar(){
     diarioItens    = diarioItens || [];
     atendPadroes   = atendPadroes || [];
     atendPares     = atendPares || [];
+    atendTags      = atendTags || [];
     return true;
   }).finally(() => { diarioCarregando = false; });
 }
@@ -280,7 +286,53 @@ function diarioAtendimento(){
       </div>`;
   }).join('');
 
+  // ── as etiquetas: o que dá pra CONSERTAR, com a frase que gerou cada uma ──
+  // ⚠️ Uma tag por conversa, produzida por fora da IA (scripts/tags-atendimento.js).
+  // Não depende da Maju marcar nada, e cobre o vendedor também.
+  const tags = (atendTags || []).filter(t => t.loja === atendLoja);
+  const porTag = {};
+  tags.forEach(t => { (porTag[t.tag] = porTag[t.tag] || []).push(t); });
+  const ordenadas = Object.values(porTag)
+    .sort((a, b) => (b[0].n_conversas / b[0].n_total) - (a[0].n_conversas / a[0].n_total));
+
+  const tagsHtml = ordenadas.length ? ordenadas.map(g => {
+    const t = g[0];
+    const pct = t.n_total ? Math.round(100 * t.n_conversas / t.n_total) : 0;
+    const aberta = diarioTagAberta === t.tag;
+    return `
+      <div class="tg${t.quem === 'vendedor' ? ' tg-vend' : ''}">
+        <button class="tg-cab" onclick="diarioTagAberta=${aberta ? 'null' : `'${t.tag}'`};renderContent()">
+          <span class="tg-quem">${t.quem === 'ia' ? 'IA' : 'vendedor'}</span>
+          <span class="tg-rot">${UI.esc(t.rotulo)}</span>
+          <span class="tg-n">${t.n_conversas}<span class="tg-pct">${pct}%</span></span>
+          <span class="tg-seta">${aberta ? '▾' : '▸'}</span>
+        </button>
+        <div class="tg-conserto">→ ${UI.esc(t.conserto)}</div>
+        ${aberta ? `<div class="tg-exemplos">
+          ${!t.trecho_e_prova
+            ? `<div class="tg-aviso">⚠️ Esta falha é uma <b>ausência</b> — nenhuma frase a prova.
+                 O que aparece abaixo é <b>onde caberia</b>, não o erro em si.</div>` : ''}
+          ${g.map(x => `<blockquote class="tg-ex">${UI.esc(x.trecho)}
+            <cite>conversa ${x.conversa_id}</cite></blockquote>`).join('')}
+        </div>` : ''}
+      </div>`;
+  }).join('') : UI.vazio({ titulo: 'Sem etiquetas', texto: 'Rode scripts/tags-atendimento.js.' });
+
+  const seletor = `<div class="tg-lojas">
+    ${['cart', 'urban'].map(l => `<button class="tg-loja${atendLoja === l ? ' ativo' : ''}"
+      onclick="atendLoja='${l}';diarioTagAberta=null;renderContent()">${l === 'cart' ? 'Cart' : 'Urban'}</button>`).join('')}
+  </div>`;
+
   return `
+    ${UI.card({
+      titulo: 'O que dá pra consertar',
+      sub: 'clique pra ver as frases reais',
+      acao: seletor,
+      corpo: `<div class="tgs">${tagsHtml}</div>
+        <div class="at-rodape">
+          Etiquetas geradas por fora da IA, a partir do texto — <b>cada uma carrega a frase que a
+          gerou</b>. Não dependem da Maju marcar nada, e cobrem o vendedor também.
+        </div>` })}
     ${UI.card({
       titulo: 'A mesma frase, dois finais',
       sub: 'falas reais das conversas',
