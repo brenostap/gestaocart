@@ -38,6 +38,11 @@ ao dono** em vez de executar.
 Estas coisas foram medidas em 10/ago/2026 sobre 2.000 conversas. Detalhe em
 `docs/CHATWOOT-ANALISE.md`.
 
+- ⚠️ **CORRIGIDO 27/ago: no INSTAGRAM as especialistas escrevem sim**, no mesmo canal, depois do
+  handoff. O Chatwoot não consegue atribuí-las (tudo da loja vira `external_echo` com
+  `sender: null`). Pra separar IA de vendedor use `scripts/separa-ia-vendedor.js` — e leia as três
+  armadilhas no topo dele antes, porque as três já me pegaram. **No WhatsApp continua invisível**
+  (número pessoal). O item abaixo vale só pro WhatsApp:
 - **Nenhuma vendedora escreve no Chatwoot.** Em 2.000 conversas, as mensagens da loja têm só dois
   remetentes: `id=1 "Eduardo"` e *sem remetente* — **os dois são a IA** (as duas assinaturas falam
   como a Maju). David, Isa, Mel, Maria, Pietra e Denilson: **zero mensagens**, apesar de terem

@@ -176,6 +176,41 @@ Procurando o mecanismo do §3 eu tropecei num padrão **maior e que não é dos 
 - *"Esse modelo está sujeito à disponibilidade. **Um de nossos especialistas vai confirmar.**"* —
   ela promete o especialista e não chama nenhum.
 
+### ⚠️ 27/ago: o dono contestou, e ele estava certo em parte
+
+> *"o que faz você pensar que o especialista não chamou esses leads? no Instagram eles continuam
+> respondendo no mesmo canal."*
+
+**Verdade, e eu não tinha como saber com o que medi.** `vendedorAtribuido IS NULL` diz que **o fluxo
+do n8n não atribuiu**, não que ninguém atendeu. Duas coisas caíram e uma sobreviveu.
+
+**Caiu 1 — o especialista escreve no Instagram, no mesmo canal.** Conv 39778 do Chatwoot:
+*"Prazer, meu nome é Isa!… Vamos la!… Nós temos essas duas opções 👆🩷"*. Esses textos **não existem**
+no `n8n_chat_histories_instagram` da mesma sessão. É gente. A afirmação de `CHATWOOT-ANALISE.md` de
+que **"nenhuma vendedora escreve no Chatwoot" está errada** — no Instagram elas escrevem, e o
+Chatwoot não distingue porque tudo da loja chega como `external_echo: true` com `sender: null`.
+
+**Caiu 2 — meu regex de "marcou dia" pega ela PERGUNTANDO.** Em `agiuliabridi` a última mensagem é
+*"Pra segunda-feira, que horário você prefere?"* e **o cliente nunca respondeu**. Não é visita
+marcada. Os **438** do balde estão inflados por isso — quanto, não medi.
+
+**Sobreviveu — nas conversas que marquei, não há sinal de humano.** Construí o discriminador
+(`scripts/separa-ia-vendedor.js`, §3-ter) e rodei em 44 conversas de Instagram:
+
+| grupo | n | com assinatura de humano |
+|---|---|---|
+| controle: `vendedorAtribuido` preenchido | 4 | **4 (100%)** |
+| as que eu marquei: `vendedorAtribuido` nulo | 40 | **0** |
+
+Nas 40, o resíduo não explicado pela IA é de 1 a 3 mensagens e é **sempre cartão de preço** (ponto
+cego do instrumento). Nas 4 de controle são 5 a 11 mensagens abrindo com saudação
+(*"oii, boa tarde! tudo bem?"*).
+
+**Leitura honesta:** no Instagram, `vendedorAtribuido` **é** um proxy razoável de "humano assumiu" —
+4/4 e 0/40. O balde existe, mas **está menor que 1.201** por causa do erro 2, e **o número do
+WhatsApp continua sem verificação possível** (lá o especialista usa o número pessoal, invisível).
+n=44 é pequeno: rodar o script na janela inteira antes de usar isso pra decidir.
+
 ### Por que este é o melhor primeiro alarme automático
 
 1. **Não precisa de juiz LLM nem de julgamento.** É regex na fala **dela**. Não há ambiguidade: ou
@@ -198,6 +233,42 @@ Três motivos para tratar isso como **teto**: (a) o contrafactual assume que as 
 comportariam como as transferidas; (b) aqueles 15,24% são de WhatsApp/Cart e o Instagram converte
 pior; (c) parte das 438 pode ter sido atendida por fora sem o campo ser gravado. **Um terço disso já
 seria a maior alavanca isolada medida até hoje neste projeto.**
+
+---
+
+## 3-ter. ⭐ O instrumento: separar a IA do vendedor no Instagram
+
+`scripts/separa-ia-vendedor.js`. Nasceu da contestação acima e vale por si — **é a primeira vez que
+dá pra ver a metade humana do funil.**
+
+```
+Chatwoot                      = TUDO que a loja mandou  (IA + vendedor)
+n8n_chat_histories_instagram  = SÓ o que a IA gerou
+──────────────────────────────────────────────────────
+diferença                     = o vendedor
+```
+
+⚠️ **Três armadilhas, todas me pegaram:**
+
+1. **Não subtraia contagem.** A IA quebra a resposta em balões com `|||`: em `ray_pereira58` são
+   9 linhas no n8n = **16 balões** contra 13 mensagens no Chatwoot. Subtrair dá "−3 humanos".
+2. **Não case por prefixo.** O Chatwoot **também** quebra o que o n8n guarda junto — a IA manda
+   *"Justo! Pra eu te passar a melhor avaliação… 🔷 Pré-avaliação Phone Cart…"* como um balão e o
+   Instagram entrega como duas mensagens. Isso inflou o teste de **41% pra 82%**. Case por
+   **contenção** no texto concatenado da sessão.
+3. **Ponto cego: o cartão de preço.** *"iPhone 13 256GB → R$ 1.990 à vista ou 18x de R$ 135,30"*
+   aparece no Chatwoot e **não** no n8n. Vira falso "vendedor", 1 a 3 mensagens por conversa.
+
+⭐ **Por isso a assinatura de humano não é "sobrou mensagem":** é **5+ mensagens não explicadas E
+uma delas é saudação** (*"oii, boa tarde! tudo bem?"*). Validado 4/4 e 0/40.
+
+⚠️ **Só Instagram.** No WhatsApp o especialista usa o número pessoal e não passa por nenhuma das
+duas fontes. Isso só muda com o plano de conectar os números ao Chatwoot (§1).
+
+⚠️ **"Só a IA" não prova abandono** — prova só o contrário: quando bate a assinatura, houve humano.
+
+**O que isso destrava:** tempo até o vendedor entrar, quantas mensagens ele manda, o que ele diz, e
+tudo isso cruzado com venda — por especialista. Era o buraco declarado em `IAS-E-ESPECIALISTAS.md`.
 
 ---
 

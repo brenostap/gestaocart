@@ -4,7 +4,7 @@
 > quem é quem: **Maju é a IA da Cart e Duda a da Urban, as duas nos dois canais**, e as mensagens
 > assinadas *"me chamo David / sou a Isa"* são a **IA fazendo o handoff em nome do especialista** —
 > não persona da IA, não vendedora escrevendo. O resto deste documento continua válido; a seção
-> "Nenhuma vendedora escreve no Chatwoot" continua verdadeira, só estava incompleta.
+> "Nenhuma vendedora escreve no Chatwoot" **está ERRADA** — ver abaixo.
 
 Primeira análise das conversas de atendimento, feita no dia em que o acesso à API foi liberado.
 Amostra: **1.200 conversas da Cart + 800 da Urban**, com todas as mensagens (≈32 mil), janela de
@@ -27,6 +27,14 @@ token que lê também manda mensagem pro cliente** — o `scripts/chatwoot.js` s
 restrição é disciplina nossa, não do token.
 
 ## ⚠️ A descoberta que invalida os relatórios do Chatwoot
+
+> 🚨 **CORRIGIDO em 27/ago/2026 — esta seção está errada no Instagram.** As especialistas
+> **escrevem sim**, no mesmo canal, depois que a IA transfere. O que acontece é que **o Chatwoot não
+> consegue atribuí-las**: tudo que a loja manda no Instagram chega como `external_echo: true` com
+> `sender: null`, então a mensagem da Maju e a da Isa são indistinguíveis lá dentro — e a contagem
+> "por remetente" abaixo mede isso, não a realidade. Prova e instrumento de separação em
+> `docs/PLANO-QUALIDADE-IA.md` §3-ter e `scripts/separa-ia-vendedor.js`.
+> **No WhatsApp a seção continua valendo**: lá o especialista usa o número pessoal.
 
 **Nenhuma vendedora escreve uma única mensagem no Chatwoot.**
 
