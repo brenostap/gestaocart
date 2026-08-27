@@ -70,6 +70,20 @@ Status: 💡 ideia · 🔨 em andamento · ✅ feito · ❄️ pausado · ⭐ = 
 - 💡 Custo por aparelho vendido (custo total ÷ peças) como termômetro de eficiência.
 
 ## Equipe / Metas
+- ⚠️ **Aparelho de CLIENTE entra na assistência sem dono registrado.** `bancada` não tem coluna de
+  cliente: o campo `quem` é o e-mail de quem *registrou* (hoje sempre o Vitinho). Das 168 idas,
+  **13 são `origem='cliente'` e 8 `garantia`** — em nenhuma dá pra dizer de quem é o aparelho, e é
+  a Maria (pós-venda) quem precisa responder isso ao cliente. Duas colunas em `bancada`
+  (`cliente_nome`, `cliente_tel`) resolvem, e a tela de Assistência já é do papel `bancada` —
+  não precisa de RLS novo. **O buraco mais barato das quatro funções documentadas.**
+- 💡 **Não existe controle de CASO de pós-venda** (§8 do documento da Maria): status, data do
+  primeiro contato, último retorno dado, próxima ação, data de finalização. Não está no painel nem
+  no Chatwoot — lá é conversa, não caso com status. É a diferença entre "o aparelho está na RR" e
+  "a cliente está esperando resposta desde terça". Se virar tela, o modelo natural é o mesmo da
+  `bancada`: uma linha por caso, aberta e fechada, com `apple_id`/IMEI ligando ao aparelho.
+- 💡 **Garantia não tem regra cadastrada.** Dá pra derivar "está no prazo?" da data da venda, mas o
+  prazo por tipo de produto não existe em lugar nenhum do sistema. Sem isso o §5 do documento da
+  Maria depende de memória.
 - 🔨 **Isa vira gerente em setembro/2026** (decidido em 26/ago). Documento da função em
   `docs/funcoes/gerente-de-loja.md`. **Agosto fecha pela regra antiga** — ela segue vendedora
   online, comissão por device e `SALARIOS.isa = 1500`; mês pago não muda de valor depois.
