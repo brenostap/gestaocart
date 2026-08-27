@@ -50,6 +50,17 @@ vm.runInContext(`
     { comportamento:'Pergunta FECHADA', loja:'cart', pct_ia:3, pct_vendedor:12, destaque:true, nota:null, ordem:10 },
     { comportamento:'Pergunta ABERTA',  loja:'cart', pct_ia:36, pct_vendedor:10, destaque:true, nota:null, ordem:20 },
   ];
+  leadScore = [
+    { loja:'cart', origem:'Orgânico', canal:'whatsapp', tema:'(sem anuncio)', leads:1086,
+      transferidos:408, vendas:73, ticket_medio:3623, lucro_medio:784, lucro_por_lead:52.68,
+      custo_por_lead:null, nota:'O padrão contra o qual os outros devem ser lidos.' },
+    { loja:'cart', origem:'Meta Ads', canal:'instagram', tema:'aparelho do cliente', leads:824,
+      transferidos:128, vendas:3, ticket_medio:1920, lucro_medio:288, lucro_por_lead:1.04,
+      custo_por_lead:5.54, nota:'O único claramente abaixo do próprio custo.' },
+    { loja:'urban', origem:'Orgânico (não confiável)', canal:'instagram', tema:'(sem anuncio)',
+      leads:2518, transferidos:448, vendas:19, ticket_medio:5163, lucro_medio:678,
+      lucro_por_lead:5.12, custo_por_lead:null, nota:'NÃO USE PRA DECIDIR VERBA.' },
+  ];
   atendTags = [
     { loja:'cart', tag:'convite_aberto', quem:'ia', rotulo:'Convidou mas mandou o cliente escolher o dia',
       conserto:'Oferecer um horário concreto', n_conversas:457, n_total:1291,
@@ -188,8 +199,28 @@ ok(vm.runInContext('renderDiario()', ctx).includes('Convidou mas mandou escolher
    'e trocando pra Urban, aparece a dela');
 vm.runInContext("atendLoja='cart'; diarioAba='pendencias'", ctx);
 
+console.log('\n10d. ⚠️ A régua (camada 1) vem ANTES das etiquetas');
+const at = vm.runInContext("diarioTagAberta=null; atendLoja='cart'; diarioAba='atendimento'; renderDiario()", ctx);
+ok(at.includes('Quanto vale cada tipo de lead'), 'a régua aparece');
+ok(at.indexOf('Quanto vale cada tipo de lead') < at.indexOf('O que dá pra consertar'),
+   'e vem ANTES — sem régua, "57% não tentou fechar" não tem contra o que ser lido');
+ok(/R\$\s?52[.,]68/.test(at), 'mostra o lucro esperado por lead');
+ok(/-?R\$\s?4[.,]50/.test(at) || at.includes('5,54'),
+   'e a sobra contra o custo de mídia, quando existe');
+ok(/08\/jun/.test(at) && /45 dias/.test(at),
+   'declara a janela e a maturação normalizada — sem isso o número não é comparável');
+ok(/67%/.test(at) && /33%/.test(at), 'e avisa do degrau de 08/jun');
+
+console.log('\n10e. ⚠️ Segmento não confiável não pode parecer igual aos outros');
+vm.runInContext("atendLoja='urban'", ctx);
+const urb = vm.runInContext('renderDiario()', ctx);
+ok(urb.includes('não confiável'), 'o rótulo diz que não é confiável');
+ok(/ls-alerta/.test(urb), 'e ganha tratamento visual próprio, não a mesma barra verde');
+ok(urb.includes('NÃO USE PRA DECIDIR VERBA'), 'com o motivo escrito');
+vm.runInContext("atendLoja='cart'", ctx);
+
 console.log('\n11. A aba Atendimento não derruba a de Pendências');
-vm.runInContext('atendPadroes = []; atendPares = []; atendTags = [];', ctx);
+vm.runInContext('atendPadroes = []; atendPares = []; atendTags = []; leadScore = [];', ctx);
 const semDados = vm.runInContext("diarioAba='atendimento'; renderDiario()", ctx);
 vm.runInContext("diarioAba='pendencias'", ctx);
 ok(typeof semDados === 'string' && semDados.length > 200, 'sem dado de atendimento, a tela ainda monta');

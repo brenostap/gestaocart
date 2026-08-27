@@ -37,6 +37,7 @@ let diarioAba = 'pendencias';
 let atendPadroes = null;
 let atendPares   = null;
 let atendTags    = null;
+let leadScore    = null;
 let atendLoja    = 'cart';   // a análise é por loja: os prompts são diferentes
 
 // ⚠️ Os tons são os do design system (`css/components.css`), não cor inventada:
@@ -74,7 +75,8 @@ function diarioCarregar(){
     fetch(SB_URL + '/rest/v1/atendimento_padroes?select=*&order=ordem.asc&limit=200', { headers: h }),
     fetch(SB_URL + '/rest/v1/atendimento_pares?select=*&order=ordem.asc&limit=100', { headers: h }),
     fetch(SB_URL + '/rest/v1/atendimento_tags?select=*&order=n_conversas.desc&limit=400', { headers: h }),
-  ]).then(async ([a, b, c, d, e]) => {
+    fetch(SB_URL + '/rest/v1/lead_score?select=*&order=lucro_por_lead.desc&limit=60', { headers: h }),
+  ]).then(async ([a, b, c, d, e, f]) => {
     if(!a.ok || !b.ok) throw new Error('HTTP ' + a.status + '/' + b.status);
     diarioEntradas = await a.json();
     diarioItens    = await b.json();
@@ -83,6 +85,7 @@ function diarioCarregar(){
     atendPadroes = c.ok ? await c.json() : [];
     atendPares   = d.ok ? await d.json() : [];
     atendTags    = e.ok ? await e.json() : [];
+    leadScore    = f.ok ? await f.json() : [];
     return true;
   }).catch(e => {
     console.error('diarioCarregar', e);
@@ -92,6 +95,7 @@ function diarioCarregar(){
     atendPadroes   = atendPadroes || [];
     atendPares     = atendPares || [];
     atendTags      = atendTags || [];
+    leadScore      = leadScore || [];
     return true;
   }).finally(() => { diarioCarregando = false; });
 }
@@ -318,16 +322,56 @@ function diarioAtendimento(){
       </div>`;
   }).join('') : UI.vazio({ titulo: 'Sem etiquetas', texto: 'Rode scripts/tags-atendimento.js.' });
 
-  const seletor = `<div class="tg-lojas">
+  const seletorTag = `<div class="tg-lojas">
     ${['cart', 'urban'].map(l => `<button class="tg-loja${atendLoja === l ? ' ativo' : ''}"
       onclick="atendLoja='${l}';diarioTagAberta=null;renderContent()">${l === 'cart' ? 'Cart' : 'Urban'}</button>`).join('')}
   </div>`;
 
+  // ── A RÉGUA (camada 1). Vem primeiro de propósito: sem ela, "57% não tentou
+  // fechar" não tem contra o que ser lido -- é ruim, ou é o normal daquele lead?
+  const score = (leadScore || []).filter(s => s.loja === atendLoja);
+  const maxLL = Math.max(...score.map(s => Number(s.lucro_por_lead) || 0), 1);
+  const brl = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const scoreHtml = score.length ? score.map(s => {
+    const ll = Number(s.lucro_por_lead) || 0, cl = s.custo_por_lead == null ? null : Number(s.custo_por_lead);
+    const sobra = cl == null ? null : ll - cl;
+    const alerta = /não confiável|nao confiavel/i.test(s.origem);
+    return `
+      <div class="ls${alerta ? ' ls-alerta' : ''}">
+        <div class="ls-top">
+          <span class="ls-seg">${UI.esc(s.origem)} <span class="ls-canal">${UI.esc(s.canal)}</span>${
+            s.tema && s.tema !== '(sem anuncio)' ? ` <span class="ls-tema">${UI.esc(s.tema)}</span>` : ''}</span>
+          <span class="ls-ll">${brl(ll)}<span class="ls-un">/lead</span></span>
+        </div>
+        <div class="ls-barra"><i style="width:${(100 * ll / maxLL).toFixed(0)}%"></i></div>
+        <div class="ls-pe">
+          ${s.leads} leads · ${Math.round(100 * s.transferidos / s.leads)}% transferidos ·
+          ${s.vendas} venda${s.vendas === 1 ? '' : 's'} · lucro médio ${brl(s.lucro_medio)}
+          ${cl != null ? `<span class="ls-sobra${sobra < 0 ? ' neg' : ''}">custa ${brl(cl)} → ${sobra < 0 ? '' : 'sobra '}${brl(sobra)}</span>` : ''}
+        </div>
+        ${s.nota ? `<div class="ls-nota${alerta ? ' alerta' : ''}">${UI.esc(s.nota)}</div>` : ''}
+      </div>`;
+  }).join('') : UI.vazio({ titulo: 'Sem régua', texto: 'A camada 1 ainda não foi medida para esta loja.' });
+
   return `
+    ${UI.card({
+      titulo: 'Quanto vale cada tipo de lead',
+      sub: 'a régua — leia as etiquetas contra ela',
+      acao: seletorTag,
+      corpo: `<div class="lss">${scoreHtml}</div>
+        <div class="at-rodape">
+          Coorte fechada de <b>08/jun a 12/jul</b>, com <b>maturação normalizada de 45 dias</b> —
+          só conta venda que aconteceu até 45 dias depois do lead, senão quem chegou antes parece
+          melhor só por ter tido mais tempo.<br>
+          ⚠️ A janela começa em 08/jun porque foi ali que a transferência do Instagram caiu de
+          <b>67% para 33% num degrau</b>. Comparar através dessa data mistura dois sistemas.<br>
+          ⚠️ O lucro é <b>bruto</b>: falta carrego, reparo e taxa de cartão — R$ 250 a 600 por aparelho.
+        </div>` })}
     ${UI.card({
       titulo: 'O que dá pra consertar',
       sub: 'clique pra ver as frases reais',
-      acao: seletor,
+      acao: seletorTag,
       corpo: `<div class="tgs">${tagsHtml}</div>
         <div class="at-rodape">
           Etiquetas geradas por fora da IA, a partir do texto — <b>cada uma carrega a frase que a

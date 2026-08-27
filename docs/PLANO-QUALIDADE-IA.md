@@ -16,11 +16,12 @@ resposta é sim. `scripts/tags-atendimento.js` faz de fora o que eu achava que s
 | camada | o que é | estado |
 |---|---|---|
 | **0** — a IA grava o próprio veredito | `conversa_estado` | **contornada.** Sobrou o motivo *declarado*, o julgamento dela (`lead_quente`, `desistiu_em`) e o carimbo ao vivo. Virou complemento, não bloqueio. |
-| **1** — score do lead | origem × canal × tema | ❌ **não construída — é o gargalo.** Sem ela, todo número da camada 2 fica sem régua: "57% não tentou fechar" é ruim ou normal? Depende de que lead era. |
+| **1** — score do lead | origem × canal × tema | ✅ **pronta (27/ago)** para a **Cart**. Tabela `lead_score`, na tela. ⚠️ **A Urban ficou de fora** — ver §3-septies. |
 | **2** — determinístico | painel + etiquetas | ✅ **pronta (27/ago).** `camada2-painel.js` e `tags-atendimento.js`, na tela **Diário → Atendimento**. |
 | **3** — juiz LLM | rubrica de 7 itens | ❌ não construída, e **o etiquetador mudou o que ela vale** — ver §5. |
 
-**Ordem hoje:** camada 1 → mais etiquetas (por especialista) → camada 0 com o Dudu → juiz LLM.
+**Ordem hoje:** ~~camada 1~~ → **destravar a medição da Urban (com o Dudu)** → mais etiquetas
+(por especialista) → camada 0 → juiz LLM.
 
 ⚠️ **Nota de leitura:** as seções `3-bis` a `3-sexies` foram escritas depois e estão fora de ordem
 no arquivo (aparecem entre a §9 e o fim). São os achados; o plano em si é §0 a §9.
@@ -744,3 +745,64 @@ A **Isa sai de vendedora online para a gerência em setembro/2026**
 (`docs/funcoes/gerente-de-loja.md`). Ela recebe **32% dos handoffs da Cart** e tem o roteiro mais
 estruturado dos quatro. **Não existe documento de função do vendedor online** — é a única função do
 time sem um. O roteiro dela está medido aqui; convém virar documento antes de 1º de setembro.
+
+
+---
+
+## 3-septies. ⭐⭐ Camada 1 — quanto vale cada tipo de lead (27/ago)
+
+Tabela `lead_score` no painel, visível em **Diário → Atendimento**, acima das etiquetas de propósito.
+
+### Método, e por que ele é assim
+
+- **Coorte fechada: 08/jun a 12/jul.** ⚠️ A data de início não é arbitrária: **a transferência do
+  Instagram caiu de 67% para 33% de uma semana para a outra** (S23→S24, ~08/jun), com os mesmos três
+  vendedores. É um degrau de sistema, não degradação — e bate com a semana em que `origem`,
+  `atribuicao_clique`, `site_eventos` e o gasto de mídia começaram a existir. **Comparar através
+  dessa data mistura dois sistemas.** Depois disso continuou caindo até 15–16% em julho.
+- **Maturação normalizada de 45 dias.** Só conta venda que aconteceu até 45 dias depois do lead.
+  Sem isso, segmento que chegou antes parece melhor só por ter tido mais tempo — é o mesmo truque
+  que `ANALISE-MAJU-AGO-2026.md` usou com 21 dias.
+- **Ticket e lucro vêm do painel**, não do banco do Dudu. E o `lucro` é **bruto**: falta carrego,
+  reparo e taxa (R$ 250–600 por aparelho, `CONTEXT.md`).
+
+### Cart — 50× entre o melhor e o pior
+
+| segmento | leads | transf. | vendas | lucro/venda | **lucro/lead** | custo | sobra |
+|---|---|---|---|---|---|---|---|
+| Orgânico · WhatsApp | 1.086 | 37,6% | 73 | R$ 784 | **R$ 52,68** | — | — |
+| Instagram Orgânico · WhatsApp | 209 | 36,4% | 15 | R$ 680 | **R$ 52,09** | — | — |
+| Google Ads · WhatsApp | 154 | 24,7% | 4 | R$ 979 | R$ 25,45 | — | — |
+| Meta Ads · WhatsApp | 2.231 | 20,2% | 37 | R$ 589 | R$ 9,78 | R$ 5,54 | +R$ 4,24 |
+| Orgânico · Instagram | 2.634 | 33,7% | 38 | R$ 667 | R$ 9,60 | — | — |
+| Meta Ads · IG preço/produto | 1.032 | 27,8% | 9 | R$ 855 | R$ 7,44 | R$ 5,54 | +R$ 1,90 |
+| **Meta Ads · IG aparelho do cliente** | **824** | **15,5%** | **3** | R$ 288 | **R$ 1,04** | R$ 5,54 | **−R$ 4,50** |
+
+**Duas leituras:**
+
+1. **O canal vale mais que a origem.** O mesmo lead orgânico vale **R$ 52,68 se chega no WhatsApp e
+   R$ 9,60 se fica no Instagram** — 5,5×. Não é o público, é onde a conversa acontece.
+2. **O criativo "aparelho do cliente" é o único claramente abaixo do próprio custo.** ⚠️ **n=3
+   vendas** — o que dá pra afirmar é a **posição** (é o último, com folga), não o valor. Com o lucro
+   bruto ainda por descontar, a posição só piora.
+
+### ⚠️ A Urban ficou sem score de origem — e o motivo é grave
+
+**Dois problemas, os dois do lado do Dudu:**
+
+1. 🚨 **A Urban não rastreia anúncio no Instagram.** Na janela, **100% dos leads de IG da Urban vêm
+   marcados `Orgânico` e NENHUM tem `atribuicao_id`** — enquanto os mesmos criativos geraram 1.856
+   leads rastreados na Cart. Então `Orgânico` ali quer dizer *"não sabemos"*, e o balde mistura
+   tráfego pago com orgânico de verdade. **Sem isso não dá pra saber quanto dos R$ 8,7 mil/mês de
+   Meta da Urban volta.**
+2. 🚨 **O cruzamento lead→venda não tem trava de loja.** Das 78 vendas que a base da Urban reivindica
+   na janela madura, **44 são vendas da Cart**. Sem filtrar por loja o valor do lead da Urban sai
+   **2× inflado**. Vale para qualquer conta de ROAS que use esse dado — inclusive as anteriores.
+
+O que sobrou publicável da Urban: `Meta Ads · WhatsApp`, com as 14 vendas que são realmente dela.
+
+### Como usar
+
+**A régua não é pra escolher lead.** É pra ler as etiquetas da camada 2 **dentro do segmento**:
+"57% não tentou fechar" é ruim num lead de R$ 52/lead e quase irrelevante num de R$ 1,04.
+Recalcular **mensal**, sempre com janela fechada e maturação normalizada.

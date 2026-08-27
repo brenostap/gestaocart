@@ -1567,3 +1567,36 @@ html:not([data-theme="light"]) .tpr-dot{ border-color:rgba(255,255,255,.18); }
   .tg-quem{ display:none; }
   .tg-conserto, .tg-exemplos{ padding-left:0; }
 }
+
+/* -- Camada 1: a régua (quanto vale cada tipo de lead) -- */
+/* ⚠️ Vem antes das etiquetas de propósito: sem régua, "57% não tentou fechar"
+   não tem contra o que ser lido. */
+.lss{ display:flex; flex-direction:column; gap:15px; }
+.ls{ display:flex; flex-direction:column; gap:5px; }
+.ls-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+.ls-seg{ font-size:13.5px; font-weight:600; line-height:1.35; }
+.ls-canal, .ls-tema{
+  font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--text4); margin-left:5px;
+}
+.ls-ll{
+  font-family:var(--font-mono); font-size:15px; font-weight:600;
+  color:var(--green); white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+.ls-un{ font-size:10px; color:var(--text4); margin-left:2px; font-weight:400; }
+.ls-barra{ height:6px; background:var(--bg4); border-radius:var(--radius-pill); overflow:hidden; }
+.ls-barra i{ display:block; height:100%; background:var(--green); border-radius:var(--radius-pill); }
+.ls-pe{ font-size:12px; color:var(--text4); line-height:1.5; }
+.ls-sobra{
+  display:inline-block; margin-left:8px; padding:1px 7px; border-radius:var(--radius-pill);
+  border:1px solid var(--green); color:var(--green); font-size:11px; font-weight:600;
+}
+.ls-sobra.neg{ border-color:var(--danger); color:var(--danger); }
+.ls-nota{ font-size:12.5px; color:var(--text2); line-height:1.55; }
+/* Segmento que não é confiável não pode parecer igual aos outros. */
+.ls-alerta .ls-ll, .ls-alerta .ls-barra i{ background:var(--text4); color:var(--text4); }
+.ls-alerta .ls-seg{ color:var(--text2); }
+.ls-nota.alerta{
+  color:var(--danger); background:var(--bg3); border-left:2px solid var(--danger);
+  border-radius:0 var(--radius-sm) var(--radius-sm) 0; padding:8px 11px;
+}
