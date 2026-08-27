@@ -62,7 +62,9 @@ const path = require('path');
 
 const LOJAS = {
   cart:  { base: 'https://n8n-chatwoot.3tclbj.easypanel.host', env: 'CHATWOOT_CART_TOKEN',  igInbox: 3, sufixo: '-cart' },
-  urban: { base: 'https://chatwoot-chatwoot.3tclbj.easypanel.host', env: 'CHATWOOT_URBAN_TOKEN', igInbox: 2, sufixo: '-urban' },
+  // ⚠️ sufixo '-cart' nas DUAS: o fluxo da Duda foi copiado do da Maju e o sufixo
+  // do session_id veio junto. Usar '-urban' aqui devolve zero linha, calado.
+  urban: { base: 'https://chatwoot-chatwoot.3tclbj.easypanel.host', env: 'CHATWOOT_URBAN_TOKEN', igInbox: 2, sufixo: '-cart' },
 };
 
 const CACHE = path.join(__dirname, '..', '.scratch', 'chatwoot');
@@ -133,15 +135,30 @@ async function colher(nome, paginas) {
 ) t;`);
 }
 
-/** Saudação de abertura — é o especialista se apresentando, a IA nunca abre assim no meio. */
-const SAUDACAO = /\b(oi+|ol[áa]|bo[am] (dia|tarde|noite))\b.{0,30}\b(tudo bem|tudo bom)\b/i;
-
-/** ⭐ Assinatura de humano. Ver o ponto cego do cartão de preço no topo do arquivo. */
-const MIN_MSGS_HUMANO = 5;
+// ⚠️ Saudação NÃO serve de assinatura — foi o primeiro atalho que tentei e falha:
+// o cartão de handoff da IA começa exatamente com "Oii, tudo bem?".
+/**
+ * ⭐ Assinatura de humano, calibrada em 378 conversas (27/ago): **3+ mensagens que não estão no
+ * n8n E não são template**. Template = texto que se repete em 5+ conversas do corpus — é assim que
+ * se descarta o cartão de handoff ("Oii, tudo bem? Sou a Mel, especialista da Phone Urban…", que
+ * aparece 71 vezes **idêntico**, espaço duplo incluso). Sem esse filtro o handoff da IA vira
+ * "humano" e o número dobra.
+ */
+const MIN_MSGS_HUMANO = 3;
+const MIN_CONVS_TEMPLATE = 5;
 
 function comparar(nome) {
   const cw = JSON.parse(fs.readFileSync(path.join(CACHE, `chatwoot-ig-${nome}.json`), 'utf8'));
   const iaTexto = JSON.parse(fs.readFileSync(path.join(CACHE, `ia-texto-${nome}.json`), 'utf8'));
+
+  // Frequência de cada texto no corpus inteiro — é o que separa template de fala.
+  const freq = {};
+  for (const info of Object.values(cw))
+    for (const m of info.loja_msgs || []) {
+      const k = norm(m.txt).slice(0, 80);
+      if (k.length > 25) freq[k] = (freq[k] || 0) + 1;
+    }
+  const ehTemplate = t => (freq[norm(t).slice(0, 80)] || 0) >= MIN_CONVS_TEMPLATE;
 
   let comVendedor = 0, soIA = 0, semHistorico = 0;
   const linhas = [];
@@ -150,9 +167,9 @@ function comparar(nome) {
     const texto = norm(iaTexto[arroba] || '');
     if (!texto) { semHistorico++; continue; }         // lead sem histórico no n8n: não dá pra decidir
 
-    const msgs = (info.loja_msgs || []).filter(m => norm(m.txt).length >= 12);  // "ok"/emoji não decide nada
-    const doVendedor = msgs.filter(m => !texto.includes(norm(m.txt).slice(0, 45)));
-    const temHumano = doVendedor.length >= MIN_MSGS_HUMANO && doVendedor.some(m => SAUDACAO.test(m.txt));
+    const msgs = (info.loja_msgs || []).filter(m => norm(m.txt).length >= 15);  // "ok"/emoji não decide nada
+    const doVendedor = msgs.filter(m => !texto.includes(norm(m.txt).slice(0, 45)) && !ehTemplate(m.txt));
+    const temHumano = doVendedor.length >= MIN_MSGS_HUMANO;
     if (temHumano) comVendedor++; else soIA++;
 
     linhas.push({

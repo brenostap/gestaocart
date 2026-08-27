@@ -366,6 +366,19 @@ proporções). É coisa da Urban.
 **13 das 21 vendas casadas da Urban**. **Perguntar pro Dudu antes de usar atribuição da Urban pra
 decidir dinheiro.**
 
+**✅ Medido em 27/ago — o culpado é o Chatwoot, não o n8n.** Separando IA de humano nas 2.677
+conversas de Instagram (`PLANO-QUALIDADE-IA.md` §3-ter):
+
+| recall do `meta.assignee` | Cart | Urban |
+|---|---|---|
+| conversas com humano (estimado) | 487 | 302 |
+| que o `assignee` marca | 430 | 130 |
+| **recall** | **88%** | **43%** |
+
+**Na Urban o Chatwoot deixa de atribuir 57% dos atendimentos humanos.** O `vendedorAtribuido` do
+n8n, esse, bate (21,2% de transferência contra 26,1% de humano medido — ordens compatíveis).
+**Conclusão: use o n8n; o `meta.assignee` da Urban não serve.**
+
 ### 6.4 O que ainda NÃO conecta
 
 | buraco | tamanho |

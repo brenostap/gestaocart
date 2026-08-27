@@ -267,6 +267,41 @@ duas fontes. Isso só muda com o plano de conectar os números ao Chatwoot (§1)
 
 ⚠️ **"Só a IA" não prova abandono** — prova só o contrário: quando bate a assinatura, houve humano.
 
+### ⭐ Rodado na janela inteira (27/ago) — 2.677 conversas de Instagram
+
+Amostra estratificada de ~190 por loja, com o join completo contra o n8n, extrapolada pela
+proporção real de cada estrato:
+
+| | Cart | Urban |
+|---|---|---|
+| conversas de Instagram na janela | 1.520 | 1.157 |
+| **com HUMANO escrevendo (estimado)** | **487 · 32,0%** | **302 · 26,1%** |
+| com `meta.assignee` no Chatwoot | 502 | 150 |
+| **recall do `meta.assignee`** | **88%** | **43%** |
+| taxa de humano *dentro* dos atribuídos | 85,7% | 86,7% |
+| taxa de humano *fora* dos atribuídos | 5,6% | **17,1%** |
+
+**Duas leituras:**
+
+1. **O humano atende ~1 em cada 3 conversas de Instagram, nas duas lojas.** Muito mais do que
+   qualquer fonte dizia — e nada disso era visível antes.
+2. ⚠️ **Na Urban o Chatwoot perde 57% dos atendimentos humanos.** É a mesma doença do §6.3 de
+   `IAS-E-ESPECIALISTAS.md`, agora quantificada. **Não use `meta.assignee` da Urban pra nada.**
+   Na Cart ele é confiável (88%).
+
+**Ordem de confiança da fonte, para "houve humano" no Instagram:**
+`contatos*.vendedorAtribuido` > `meta.assignee` da Cart >>> `meta.assignee` da Urban.
+
+⚠️ **Duas armadilhas novas descobertas aqui:**
+
+- **O `session_id` do Instagram da Urban também termina em `-cart`.** O fluxo da Duda foi copiado do
+  da Maju e o sufixo veio junto. Filtrar por `-urban` devolve **zero linha, calado**. Já mordeu o
+  script uma vez.
+- **Saudação não serve de assinatura de humano.** Foi o meu primeiro atalho e ele dobra o número: o
+  cartão de handoff da IA começa exatamente com *"Oii, tudo bem? Sou a Mel, especialista da Phone
+  Urban…"* — que aparece **71 vezes idêntico**, espaço duplo incluso. Por isso o filtro de template
+  (texto que se repete em 5+ conversas) é obrigatório.
+
 **O que isso destrava:** tempo até o vendedor entrar, quantas mensagens ele manda, o que ele diz, e
 tudo isso cruzado com venda — por especialista. Era o buraco declarado em `IAS-E-ESPECIALISTAS.md`.
 
