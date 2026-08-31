@@ -26,11 +26,11 @@ function getVendasIncompletas(){
     );
 
     const vendIsVO = matchNome(vend, VO_KEYS);
-    const vendIsAT = matchNome(vend, AT_KEYS); // atendente pode vender device (R$25/un)
+    const vendIsAT = matchNome(vend, atKeysVigentes()); // atendente pode vender device (R$25/un)
     const vendIsLoja = !vend || SOCIOS_LOJA.includes(vend);
     const vendIsKnown = vendIsVO || vendIsAT || vendIsLoja;
 
-    const atendIsAT = matchNome(atend, AT_KEYS);
+    const atendIsAT = matchNome(atend, atKeysVigentes());
     const atendIsKnown = atendIsAT || !atend || SOCIOS_LOJA.includes(atend);
 
     const tipos = [];

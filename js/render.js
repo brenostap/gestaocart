@@ -92,7 +92,7 @@ function calc(){
   });
 
   // Atendentes -- destaque no bruto de acessorios
-  const AT=AT_KEYS; // atendentes presenciais oficiais
+  const AT=atKeysVigentes(); // atendentes do periodo (inclui VO que atende direto, ago/2026+)
   const atMap={};AT.forEach(k=>atMap[k]={la:0,qt:0,brutoAcess:0,linhas:[]});
   const vAtend={},vendaPorId={};
   v.forEach(x=>{vendaPorId[x.id]=x;const {atendente}=getVendaInfo(x);const m=matchNome(atendente,AT);if(m)vAtend[x.id]=m;});
@@ -680,7 +680,7 @@ function resumoDiaHTML(dia, diaRows, COLS){
     bruto += r.valor; lucro += r.lucro; acB += r.acessBruto; acL += r.acessLucro;
     const vk = matchNome(r.vendedor, VO_KEYS);
     if(vk){ (vendMap[vk] = vendMap[vk] || {v:0, ap:0}); vendMap[vk].v++; vendMap[vk].ap += r.nPrincipais; }
-    const ak = matchNome(r.atendente, AT_KEYS);
+    const ak = matchNome(r.atendente, atKeysVigentes());
     if(ak){ (atMap[ak] = atMap[ak] || {ab:0, al:0, qt:0}); atMap[ak].ab += r.acessBruto; atMap[ak].al += r.acessLucro; atMap[ak].qt++; }
     (r.pagamentos||[]).forEach(p => {
       const [k,label] = pagFormaInfo(p.forma);

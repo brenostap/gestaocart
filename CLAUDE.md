@@ -50,6 +50,12 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   principal/acessório/cancelado existe em **dois lugares** (`js/equipe.js` e as funções
   `eh_*` no Postgres) porque o sócio calcula no navegador e o colaborador **não pode receber os
   itens** (`valor_estoque` é custo). Divergir ali não quebra tela: **paga comissão errada, calada.**
+- **Teste do VO que atende**: `node test/atendente-vigencia.test.js`. Desde **31/ago/2026** o
+  vendedor online que fecha a venda direto **é o atendente dela** e leva os 25% do lucro de
+  acessório (`VO_ATENDE_KEYS` em `core.js`, espelho `at_key_vigente()` no Postgres). ⚠️ **Tem
+  data**: abr–jul já foram pagos, e regra de comissão sem vigência reescreve mês pago em silêncio.
+  Todo lugar que pergunta "esta chave é de atendente?" passa por `atKeysVigentes(ref)` — `AT_KEYS`
+  cru só responde pelo regime antigo.
 - **Teste da origem da venda**: `node test/venda-origem.test.js`. Monta o dashboard e prova que a
   seção "De onde vieram as vendas" **não soma o `provavel`** no dinheiro (o nível 5 erra 1 em 5) e
   que a **cobertura aparece na tela** — o número é piso, não total, e esconder o denominador seria

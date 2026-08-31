@@ -36,7 +36,7 @@ function confChave(nome, lista){
   // Novais" -> "leonardo" -> alias -> "leo").
   return matchNome(limpo, lista) || matchNome(limpo.split(/\s+/)[0], lista);
 }
-function confChaveAtendente(nome){ return confChave(nome, AT_KEYS); }
+function confChaveAtendente(nome){ return confChave(nome, atKeysVigentes()); }
 function confChaveVendedor(nome){  return confChave(nome, VO_KEYS); }
 
 // Compara as fontes venda a venda no periodo/loja atual.

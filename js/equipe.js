@@ -130,7 +130,7 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
   // enquanto a folha pagava os 25% certinhos. Tela e folha tem que dizer o mesmo
   // numero; era so questao de a Maria vender acessorio pra divergencia aparecer.
   const ehVo = !!(f.voKey && VO_KEYS.includes(f.voKey));
-  const ehAt = !!(f.atKey && AT_KEYS.includes(f.atKey));
+  const ehAt = !!(f.atKey && atKeysVigentes().includes(f.atKey));
 
   // -- Lado vendedor ---------------------------------------------------------
   // Vendedor oficial segue a curva de 80 un (fonte unica em core.js). Atendente
@@ -192,7 +192,7 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
 function fechamentoPessoas(){
   return FUNC.filter(f =>
     !saiuDaEquipe(f) &&
-    ((f.voKey && VO_KEYS.includes(f.voKey)) || (f.atKey && AT_KEYS.includes(f.atKey)))
+    ((f.voKey && VO_KEYS.includes(f.voKey)) || (f.atKey && atKeysVigentes().includes(f.atKey)))
   );
 }
 
@@ -262,7 +262,7 @@ function fechamentoEquipe(){
 
   const pessoas = fechamentoPessoas().map(f => {
     const vo = (f.voKey && VO_KEYS.includes(f.voKey)) ? (m.voMap[f.voKey] || null) : null;
-    const at = (f.atKey && AT_KEYS.includes(f.atKey)) ? (m.atMap[f.atKey] || null) : null;
+    const at = (f.atKey && atKeysVigentes().includes(f.atKey)) ? (m.atMap[f.atKey] || null) : null;
 
     const units      = vo ? vo.units : 0;
     const pedidos    = vo ? vo.vendas : 0;
@@ -1198,7 +1198,17 @@ function cadastradorAT(venda){
             || venda._cadastrador?.nome;
   if(!nome) return null;
   const n = String(nome).toLowerCase().trim();
-  return matchNome(n, AT_KEYS) || matchNome(n.split(/\s+/)[0], AT_KEYS) || null;
+  // A lista vale pelo MES DA VENDA, nao pelo periodo da tela: o dashboard monta
+  // meses diferentes de uma vez, e quem passou a ser atendente em ago/2026
+  // (VO_ATENDE_KEYS) nao pode virar atendente de uma venda de julho.
+  const ats = atKeysVigentes(mesDaVenda(venda));
+  return matchNome(n, ats) || matchNome(n.split(/\s+/)[0], ats) || null;
+}
+// 'YYYY-MM' da venda em BRT (o banco grava data_saida em UTC).
+function mesDaVenda(venda){
+  if(!venda || !venda.data_saida) return null;
+  const c = brtComponents(venda.data_saida);
+  return c.year + '-' + String(c.month).padStart(2,'0');
 }
 function isAcess(m){return !m.imei_1&&!m.apple_id&&parseFloat(m.valor_estoque||0)<200;}
 // Helper para normalizar ultimo_fornecedor (string no Supabase, objeto no FoneNinja)

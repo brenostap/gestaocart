@@ -25,6 +25,7 @@ const ALIASES={
   // -- Vendedores online ----------------------------------
   'isabella':'isa',                              // isa
   'melissa':'mel','mell':'mel',                  // mel
+  'devid':'david',                               // david (typo, ago/2026)
   'pe':'pietra',                                 // pietra (abreviacao)
   // xavier era funcionario antigo -- nao mapear mais
 
@@ -50,7 +51,9 @@ const ALIASES={
 // ⚠️ A FONTE da normalizacao e a tabela `apelidos` no Postgres (17/ago/2026);
 // esta lista continua porque telas como a Conferencia perguntam "isso e nome de
 // loja?" sem ir ao banco. 'malu' e typo de 'maju' (confirmado pelo dono).
-const SOCIOS_LOJA = ['breno','gustavo','marcella','marcela','marcelo','maju','malu','duda','cart','urban','online','loja','pessoal'];
+// 'gu' e apelido do Gustavo -- ja estava na tabela `apelidos` e faltava aqui,
+// entao a venda dele caia como "vendedor desconhecido" na tela de incompletas.
+const SOCIOS_LOJA = ['breno','gustavo','gu','marcella','marcela','marcelo','maju','malu','duda','cart','urban','online','loja','pessoal'];
 
 // Vendedores online OFICIAIS -- so esses recebem comissao por device
 // maria: SAC/online (entrou jun/2026) -- device com curva 80
@@ -60,6 +63,28 @@ const VO_KEYS = ['david','isa','mel','pietra','maria'];
 // leo (jun/2026), luana (saiu jun/2026 -- mantida para historico), gabi (entrou no
 // lugar da luana), maria (hibrida: atende acess quando e a atendente)
 const AT_KEYS = ['vitinho','davi','anne','denilson','pietra','leo','luana','gabi','maria'];
+
+// VENDEDOR ONLINE QUE ATENDE DIRETO tambem e atendente da venda, e leva os 25%
+// do lucro de acessorio dela. Decisao do dono em 31/08/2026: as vendas com Isa
+// ou Mel no campo atendente sao venda direta -- elas atenderam. Antes disso o
+// nome nao casava com AT_KEYS e o lucro de acessorio dessas vendas nao ia pra
+// ninguem (7 vendas em ago/2026, ~R$33 mil em valor).
+// A Maria ja era assim desde jun/2026 (atKey + voKey no FUNC); isto so estende
+// a mesma regra pros outros tres.
+//
+// ⚠️ VIGENCIA, mesma licao de BRINDE_ISENTO_DESDE e metaAtFaixas: abr–jul ja
+// foram pagos. Aplicar pra tras mexeria em fechamento fechado (medido em
+// 31/08: +R$130 em abr, +R$35 em jun, −R$7 em jul).
+const VO_ATENDE_KEYS = ['david','isa','mel'];
+const VO_ATENDE_DESDE = '2026-08';
+
+// A lista de atendentes QUE VALE no periodo. Todo lugar que pergunta "esta
+// chave e de atendente?" tem que passar por aqui -- AT_KEYS cru so responde
+// pelo regime antigo.
+function atKeysVigentes(ref){
+  const p = _refAnoMes(ref);
+  return (!p || p >= VO_ATENDE_DESDE) ? AT_KEYS.concat(VO_ATENDE_KEYS) : AT_KEYS;
+}
 
 // Listas [rotulo, chave] para RANKING e BONUS -- derivadas do cadastro (FUNC em config.js).
 // NUNCA escrever nomes a mao nas telas: em jul/2026 o Leo (top 1 do mes) e a Gabi ficaram
@@ -88,7 +113,7 @@ function saiuDaEquipe(f, ref){
 // contexto. Eram `const` avaliado uma vez na carga -- quem saiu em agosto ficaria
 // no ranking de agosto ou sumiria de julho, dependendo da ordem dos scripts.
 function atLabelsAll(ref){
-  return FUNC.filter(f => f.atKey && AT_KEYS.includes(f.atKey) && !saiuDaEquipe(f, ref))
+  return FUNC.filter(f => f.atKey && atKeysVigentes(ref).includes(f.atKey) && !saiuDaEquipe(f, ref))
              .map(f => [f.ap, f.atKey]);
 }
 function voLabelsAll(ref){
