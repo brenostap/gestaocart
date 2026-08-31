@@ -131,5 +131,45 @@ const brinde = { apple_id:null, imei_1:null, valor_estoque:11.63, preco:0 };
 if (js.isAcess(brinde)) ok('brinde continua classificado como acessório');
 else bad('brinde deixou de ser acessório — isso mexeria no attach rate, que ninguém pediu');
 
+// ---------------------------------------------------------------------------
+// QUAL VENDA ENTRA NA CONTA — o terceiro espelho, achado em 31/ago/2026
+//
+// `filterByPeriod()` (js/render.js) nunca conta venda `canceled` e, por padrão,
+// também não conta `pending`. As views do banco não filtravam status NENHUM, e
+// por isso a MESMA meta coletiva aparecia com dois números: 359 aparelhos no
+// dashboard do sócio e 373 no "Meu dia" do colaborador (14 vendas pendentes).
+//
+// Espelho no Postgres: `venda_conta(status)`
+// (supabase/migrations/20260831b_views_da_comissao_filtram_status.sql).
+// ---------------------------------------------------------------------------
+console.log('\nqual venda entra na conta (espelho de venda_conta no SQL)\n');
+
+// Carrega render.js só agora: é dele que vem filterByPeriod.
+vm.runInContext(fs.readFileSync(path.join(ROOT,'js','render.js'),'utf8'), ctx, {filename:'render.js'});
+vm.runInContext(`currentPeriod='2026-08'; currentStore='ambas';`, ctx);
+
+const v = (id, status) => ({ id, status, data_saida:'2026-08-12T15:00:00Z', _produtos:[] });
+ctx.__vs = [v(1,'completed'), v(2,'pending'), v(3,'canceled')];
+
+// O SQL diz: not in ('canceled','pending'). O JS tem que dizer o mesmo.
+const CONTRATO_STATUS = [
+  { status:'completed', conta:true  },
+  { status:'pending',   conta:false },
+  { status:'canceled',  conta:false },
+];
+const passou = vm.runInContext('filterByPeriod(__vs).map(x=>x.status)', ctx);
+for (const c of CONTRATO_STATUS) {
+  const temJs = passou.includes(c.status);
+  if (temJs === c.conta) ok(`${c.status}: JS ${c.conta ? 'conta' : 'não conta'} (igual ao SQL)`);
+  else bad(`${c.status}: JS diz ${temJs}, SQL diz ${c.conta} — a folha e a tela da pessoa vão divergir`);
+}
+
+// `incluirPending` é o único jeito de a pendente entrar, e ela existe de
+// propósito: a tela de vendas incompletas cobra a obs antes de a venda fechar.
+const comPend = vm.runInContext('filterByPeriod(__vs, true).map(x=>x.status)', ctx);
+if (comPend.includes('pending') && !comPend.includes('canceled'))
+  ok('incluirPending traz a pendente e continua sem a cancelada');
+else bad('incluirPending: ' + JSON.stringify(comPend));
+
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);
