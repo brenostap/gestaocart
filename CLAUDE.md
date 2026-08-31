@@ -140,7 +140,23 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 
 ## Dados
 - **Fonte:** Supabase (projeto `pfsfsibgmtbifypuyyqf`). O app **só lê**.
-- **Sync FoneNinja→Supabase:** repo separado `brenostap/phonecar-sync` (`sync.js`), GitHub Action **de hora em hora**. Grava vendas, produtos, **pagamentos**, **contas a receber**, estoque, clientes, compras.
+- **Sync FoneNinja→Supabase:** repo separado `brenostap/phonecar-sync` (`sync.js`), GitHub Action.
+  Grava vendas, produtos, **pagamentos**, **contas a receber**, estoque, clientes, compras.
+  - ⚠️ **O cron diz `0 * * * *`, mas o GitHub NÃO roda de hora em hora.** Medido em 31/ago/2026:
+    as rodadas saem a cada **2–5h**, com vãos de 8h de madrugada — GitHub atrasa e pula cron
+    agendado. As 2.049 execuções estão **todas verdes**: não é o job falhando, é o agendador.
+    ⚠️ **`synced_at` engana pra baixo** — ele só muda quando a linha muda, então parece um vão de
+    12h onde houve 4 rodadas. Pra saber se o sync rodou, olhe **Actions**, não `synced_at`.
+  - ⚠️ **A rodada normal só relê os últimos 7 dias.** Correção feita na FoneNinja em venda mais
+    velha que isso **nunca chega sozinha** — nem status, nem obs. É o que aconteceu em 31/ago: o
+    dono concluiu 14 vendas pendentes de 03 a 29/08 e só as 4 da última semana entraram.
+  - **No dia do fechamento, use o RUN FUNDO**: Actions → *Sync FoneNinja → Supabase* →
+    **Run workflow** com **`resync_produtos = true`**. Ele abre a janela longa (~45 dias) e leva
+    ~7min. ⚠️ **O rótulo do input mente**: fala em "produtos/acessórios", mas o mesmo `true`
+    é o que abre a janela longa **das vendas** — que é o efeito que importa no fechamento.
+    Rodar com `false` (o padrão) é a rodada normal, e não alcança o mês inteiro.
+  - Por que não roda fundo sempre: ~7min × 24 × 30 = 5.000min/mês e o plano free dá 2.000.
+    O `sync.js` já resolve isso — a rodada das 05h UTC abre a janela longa 1×/dia.
 - **Preços** vêm do Google Sheets (fonte oficial); FoneNinja ao vivo via Edge Function proxy `fn`.
   - ⚠️ **O `fn` tem lista branca de rota+método e exige papel `socio`** (fechado em 13/ago/2026 —
     antes repassava qualquer método, ou seja, qualquer login escrevia e apagava no ERP). Código em
