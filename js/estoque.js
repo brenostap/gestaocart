@@ -384,7 +384,12 @@ function renderEstoque(){
       <div>
         <div class="pg-kicker">Operações</div>
         <h1 class="pg-title">Estoque</h1>
-        <div class="pg-desc">Aparelhos disponíveis, com custo, preço de tabela e margem por unidade.</div>
+        ${/* A frase tem que descrever a tela DESTE papel: pra bancada, custo e
+             margem sao escondidos por money(), e prometer os dois no subtitulo
+             faz a pessoa procurar coluna que nao existe. */ ''}
+        <div class="pg-desc">${podeVerMargem()
+          ? 'Aparelhos disponíveis, com custo, preço de tabela e margem por unidade.'
+          : 'Aparelhos disponíveis, com modelo, cor, bateria e estado de cada um.'}</div>
       </div>
       <div class="pg-acoes">
         ${/* exportar a lista inteira e ato comercial, nao de bancada */ ''}
