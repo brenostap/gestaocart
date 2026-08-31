@@ -340,11 +340,23 @@ function renderDashV2(){
     : `<div class="d2-grid-2">${gaugeDev}${gaugeAc||''}</div>`;
 
   // -- Ranking: Vendedores | Atendentes ------------------------------------
-  const calcCommVo=comissaoVendedor; // fonte unica em core.js
-  const vends=voLabelsAll().map(([n,k])=>{
-    const u=m.voMap[k]?.units||0;
-    return {nome:n, u, res:`${u} un`, com: verM?brl(calcCommVo(u)):'—'};
-  }).sort((a,b)=>b.u-a.u);
+  // Quem vendeu APARELHO no periodo -- as duas regras juntas, porque as duas
+  // pagam: vendedor online segue a curva de 80 un, atendente que vendeu leva
+  // R$25/un flat. Quem decide qual e comissaoDeAparelho() (core.js), fonte
+  // unica; aqui a tela so pergunta.
+  //
+  // ⚠️ O atendente ficava FORA deste card. Em ago/2026 os 3 aparelhos do
+  // Vitinho e 1 do Davi nao apareciam em linha nenhuma: nao caem em "Loja
+  // (casa)" porque sao gente da equipe, e o ranking listava so VO. O card
+  // somava 370 num mes de 373. Ele so entra se vendeu (u > 0) -- atendente
+  // zerado aqui e ruido, o lugar dele e o card ao lado.
+  const jaNoRank = new Set(voLabelsAll().map(([,k]) => k));
+  const vends = voLabelsAll()
+    .concat(atLabelsAll().filter(([,k]) => !jaNoRank.has(k) && (m.voMap[k]?.units||0) > 0))
+    .map(([n,k]) => {
+      const u = m.voMap[k]?.units || 0;
+      return {nome:n, u, res:`${u} un`, com: verM ? brl(comissaoDeAparelho(k, u)) : '—'};
+    }).sort((a,b) => b.u - a.u);
   // A IA entra como linha propria, nao dentro de "Loja (casa)": ela nao recebe
   // comissao, mas quantas vendas o atendimento automatico fechou e o numero que
   // cruza com o lead depois (Maju = Cart, Duda = Urban). Ver ehIA em core.js.

@@ -152,5 +152,24 @@ const linhas = ago.folha.vitinho?.linhasVo || [];
 eq('ago: a soma da coluna bate com o total',
   linhas.reduce((a,l) => a + l.comissao, 0), ago.folha.vitinho?.commVo);
 
+// O card "Vendedores" do dashboard tem que mostrar quem vendeu aparelho, e não
+// só os vendedores online. Em ago/2026 os 3 aparelhos do Vitinho não caíam em
+// linha nenhuma: fora do ranking (que listava só VO) e fora de "Loja (casa)"
+// (que é pra quem não é da equipe). O card somava 370 num mês de 373.
+const htmlAgo = R('renderDashV2()');
+const linhaVit = /d2-rank-name">Vitinho<\/div>[\s\S]{0,200}?d2-rank-res">([^<]*)/.exec(htmlAgo);
+eq('ago: o atendente que vendeu aparece no ranking com as 3 un',
+  linhaVit && linhaVit[1].trim(), '3 un');
+
+// E some quando não vendeu — atendente zerado ali é ruído, o lugar dele é o
+// card ao lado.
+ctx.__fx = { vendas:[ mkVenda(2,'mel',2,'2026-08') ] };
+vm.runInContext(`allVendas=__fx.vendas; currentPeriod='2026-08';`, ctx);
+const semVit = R('renderDashV2()');
+const posVit = semVit.indexOf('d2-rank-name">Vitinho');
+const posAcess = semVit.indexOf('Atendentes');
+eq('atendente que não vendeu aparelho não vira linha no card de vendedores',
+  posVit === -1 || posVit > posAcess, true);
+
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);
