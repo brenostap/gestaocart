@@ -165,6 +165,51 @@ const htmlTel = R(`cnsTelHtml('00000000000')`);
 if (/inválido/.test(htmlTel) && !/wa\.me/.test(htmlTel)) ok('inválido aparece como texto, dizendo que é inválido');
 else bad('o inválido virou link mesmo assim');
 
+// -- 4d. a query que a busca monta ------------------------------------------
+// ⚠️ ESTE É O TESTE QUE FALTAVA. O bug que quebrava a busca -- colar
+// "(11) 97777-1234" fechava o `or=(...)` do PostgREST no meio e a API devolvia
+// 400 -- passou por 14 baterias verdes porque NENHUM teste do projeto monta uma
+// query. O cálculo e a tela eram provados; a fronteira com o banco, não.
+console.log('\na query que vai pro banco\n');
+
+// Tira o que está entre aspas: o que sobra é a SINTAXE, e nela vírgula e
+// parêntese têm significado. Se um termo vazar pra fora das aspas, aparece aqui.
+const soSintaxe = f => f.replace(/"[^"]*"/g, '""');
+const hostis = [
+  '(11) 97777-1234',            // o caso real: telefone colado do WhatsApp
+  'Silva, João',                // vírgula separa condições no `or`
+  'Maria (mãe da Ana)',         // parêntese fecha o grupo
+  'a,b)or=(id.eq.1',            // tentativa de emendar outro filtro
+  'José "Zé" da Silva',         // aspas fechariam o valor
+  'C:\\Users\\x',               // barra invertida escaparia a aspa
+  '50% de desconto',            // % é curinga do LIKE
+  '   ',                        // só espaço
+];
+let sintaxeOk = true, aspasOk = true;
+for(const q of hostis){
+  for(const f of [R(`cnsFiltroItens(${JSON.stringify(q)})`), R(`cnsFiltroGente(${JSON.stringify(q)})`)]){
+    const nu = soSintaxe(f);
+    // Fora das aspas só pode existir a estrutura: or=(campo.op."",campo.op."")
+    if(!/^(or=\(\w+\.\w+\.""(,\w+\.\w+\."")*\)|\w+=\w+\.""|\w+=\w+\."")$/.test(nu)){
+      sintaxeOk = false; console.log('         quebrou com ' + JSON.stringify(q) + ' -> ' + nu);
+    }
+    // e o número de aspas tem que ser par: ímpar = valor não fechado
+    if((f.match(/"/g) || []).length % 2 !== 0) aspasOk = false;
+  }
+}
+if(sintaxeOk) ok('nenhum termo hostil vaza pra fora das aspas');
+else bad('um termo quebrou a sintaxe do filtro');
+if(aspasOk) ok('as aspas sempre fecham');
+else bad('sobrou aspa aberta — o valor vazaria');
+
+// O telefone entra por dígitos, sem máscara: o banco guarda 11 dígitos limpos.
+if (/cliente_tel\.like\."\*11977771234\*"/.test(R(`cnsFiltroGente('(11) 97777-1234')`)))
+  ok('telefone com máscara vira dígitos no filtro');
+else bad('a máscara do telefone foi pro filtro');
+// Busca curta não vai pro campo de telefone (todo mundo tem "12" no número).
+if (!/cliente_tel/.test(R(`cnsFiltroGente('ana')`))) ok('termo curto não procura em telefone');
+else bad('termo de texto foi parar no filtro de telefone');
+
 // -- 5. o menu --------------------------------------------------------------
 console.log('\nquem alcança a tela\n');
 if (R(`podeVer('consulta')`)) ok('comercial alcança o Pós-venda');
