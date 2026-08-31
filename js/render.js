@@ -76,10 +76,15 @@ function calc(){
 
   // Vendedores online -- por numero de VENDAS (nao unidades)
   const VO=VO_KEYS; // ['isa','mel','david','pietra'] -- vendedores online oficiais
-  const voMap={};VO.forEach(k=>voMap[k]={vendas:0,units:0,linhas:[]});
+  // ⚠️ O mapa cobre TAMBEM os atendentes, porque atendente tambem vende aparelho
+  // (R$25/un flat, ver comissaoDeAparelho em core.js). Sem a chave dele aqui o
+  // fechamento nao tinha de onde tirar o numero e pagava R$0 enquanto a tela de
+  // Equipe mostrava a comissao -- divergencia calada, achada em 31/ago/2026.
+  const VO_MAPA=[...new Set([...VO, ...atKeysVigentes()])];
+  const voMap={};VO_MAPA.forEach(k=>voMap[k]={vendas:0,units:0,linhas:[]});
   v.forEach(x=>{
     const {vendedor}=getVendaInfo(x);
-    const m=matchNome(vendedor,VO);
+    const m=matchNome(vendedor,VO_MAPA);
     if(m){
       voMap[m].vendas++;
       // Usar _produtos se disponivel (apple_id = iPhone), senao qtd_produtos como fallback
@@ -137,7 +142,7 @@ function calc(){
   });
 
   // Comissao do vendedor: fonte unica em core.js (curva de 80 un -> R$35)
-  const voTot=VO.reduce((a,k)=>a+comissaoVendedor(voMap[k].units),0);
+  const voTot=VO_MAPA.reduce((a,k)=>a+comissaoDeAparelho(k,voMap[k].units),0);
   const lojaTot=0; // loja nao tem comissao
   const atTot=AT.reduce((a,k)=>a+atMap[k].la*0.25,0); // 25% lucro acess. por atendente
   // 5% da Anne incide sobre o lucro de acessorio DA REDE -- e tambem e comissao,

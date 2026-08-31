@@ -141,7 +141,7 @@ function calcComissaoFunc(f, vendas, movs, lAcessTotal){
     const {vendedor}=getVendaInfo(x);
     if(matchNome(vendedor,[kVend])){ vendCount++; unitsVo+=contarIphones(x); }
   });
-  const commVo = ehVo ? comissaoVendedor(unitsVo) : unitsVo*VO_CURVA.base;
+  const commVo = comissaoDeAparelho(ehVo ? f.voKey : f.atKey, unitsVo);
 
   // -- Lado atendente --------------------------------------------------------
   let la=0, qt=0, bruto=0;
@@ -261,12 +261,17 @@ function fechamentoEquipe(){
     'Contexto da loja está em "'+currentStore+'" — a folha só considera as vendas dessa loja.');
 
   const pessoas = fechamentoPessoas().map(f => {
-    const vo = (f.voKey && VO_KEYS.includes(f.voKey)) ? (m.voMap[f.voKey] || null) : null;
+    // A chave de VENDEDOR da pessoa: o voKey quando ela e vendedora online, o
+    // atKey quando e atendente que tambem vende (R$25/un). Procurar so em
+    // VO_KEYS era o que fazia a folha pagar R$0 e a tela mostrar a comissao.
+    const kVend = (f.voKey && VO_KEYS.includes(f.voKey)) ? f.voKey
+                : (f.atKey && atKeysVigentes().includes(f.atKey)) ? f.atKey : null;
+    const vo = kVend ? (m.voMap[kVend] || null) : null;
     const at = (f.atKey && atKeysVigentes().includes(f.atKey)) ? (m.atMap[f.atKey] || null) : null;
 
     const units      = vo ? vo.units : 0;
     const pedidos    = vo ? vo.vendas : 0;
-    const commVo     = comissaoVendedor(units);
+    const commVo     = comissaoDeAparelho(kVend, units);
     const la         = at ? at.la : 0;
     const brutoAcess = at ? at.brutoAcess : 0;
     const qtAcess    = at ? at.qt : 0;
@@ -290,7 +295,7 @@ function fechamentoEquipe(){
     let acum = 0;
     linhasVo.forEach(l => {
       const antes = acum; acum += l.units;
-      l.comissao = comissaoVendedor(acum) - comissaoVendedor(antes);
+      l.comissao = comissaoDeAparelho(kVend, acum) - comissaoDeAparelho(kVend, antes);
       l.taxa = l.units > 0 ? l.comissao / l.units : 0;
     });
 

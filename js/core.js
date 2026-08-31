@@ -287,6 +287,26 @@ function comissaoVendedor(units){
     : VO_CURVA.corte*VO_CURVA.base + (u-VO_CURVA.corte)*VO_CURVA.bonus;
 }
 
+// A comissao de APARELHO de uma chave, seja quem for.
+//
+// Vendedor online segue a curva de 80 un. ATENDENTE que vende aparelho ganha
+// R$25/un flat, sem curva -- e este e o unico lugar que decide isso: a tela de
+// Equipe (calcComissaoFunc) pagava e o fechamento exportado NAO, porque
+// procurava a pessoa so em VO_KEYS. Divergiam calados: em ago/2026 a tela
+// mostrava R$75 pro Vitinho e R$25 pro Davi, e a planilha que paga dizia R$0.
+//
+// ⚠️ VIGENCIA: ate jul/2026 quem mandou foi o fechamento -- foi ele que pagou.
+// Corrigir pra tras mudaria mes ja pago (R$225 em abr, R$200 mai, R$150 jun,
+// R$50 jul, medidos no banco em 31/08). Antes da data, os dois lados dizem R$0,
+// que e o que de fato saiu.
+const AT_VENDE_DESDE = '2026-08';
+function comissaoDeAparelho(chave, units, ref){
+  if(chave && VO_KEYS.includes(chave)) return comissaoVendedor(units);
+  const p = _refAnoMes(ref);
+  if(p && p < AT_VENDE_DESDE) return 0;
+  return (parseInt(units||0) || 0) * VO_CURVA.base;
+}
+
 // Socios -- aparecem nas vendas como vendedor mas NAO sao comissionados
 const SOCIOS = ['breno','gustavo','marcella','marcela','marcelo'];
 

@@ -14,6 +14,12 @@
 //
 // Por isso o teste fixa os dois lados — a chave vale em agosto e NÃO vale em
 // julho — em vez de só conferir que a lista tem o nome dentro.
+//
+// A segunda metade cobre o caminho inverso, achado no mesmo dia: **atendente
+// que VENDE aparelho**. A regra (R$25/un flat, sem curva) estava só na tela de
+// Equipe; o fechamento exportado — o documento que paga — procurava a pessoa
+// apenas em VO_KEYS e pagava R$0. Em ago/2026 a tela dizia R$75 pro Vitinho e
+// a planilha dizia R$0. Hoje as duas passam por comissaoDeAparelho().
 // ===========================================================================
 const fs = require('fs'), vm = require('vm'), path = require('path');
 const ROOT = path.join(__dirname, '..');
@@ -90,6 +96,61 @@ eq('venda de julho não ganha atendente novo pelo login',
   R('getVendaInfo(__j).atendente'), null);
 eq('venda de agosto ganha',
   R('getVendaInfo(__a).atendente'), 'isa');
+
+// ---------------------------------------------------------------------------
+// Atendente que vende aparelho: R$25/un flat, e a TELA e a FOLHA dizem o mesmo
+// ---------------------------------------------------------------------------
+console.log('\natendente que vende aparelho — tela e folha nao podem divergir\n');
+
+// Carrega o resto da cadeia (calc/fechamentoEquipe moram em render.js e equipe.js,
+// mas fechamento.js e custos.js entram na conta da folha).
+for (const f of ['render.js','custos.js','ui.js','vendas-extra.js','dash-v2.js','fechamento.js'])
+  vm.runInContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'), ctx, {filename:f});
+vm.runInContext(`
+  function escapeHtml(s){ return String(s==null?'':s); }
+  function money(v){ return brl(v); }
+  function podeVerValor(){ return true; } function podeVerMargem(){ return true; }
+  function podeVerDinheiro(){ return true; } function papelAtual(){ return 'socio'; }
+  function getPendentes(){ return []; }
+`, ctx);
+
+// Um mes minimo: Vitinho (atendente) vendeu 3 aparelhos; Mel (VO) vendeu 2.
+const prods = n => Array.from({length:n}, (_,i) => (
+  { apple_id:'A'+i, imei_1:'35'+i, titulo:'iPhone', preco:4000, valor_estoque:3000 }));
+const mkVenda = (id, vendedor, n, mes) => ({
+  id, status:'completed', data_saida: mes+'-12T15:00:00Z',
+  valor_total: n*4000, lucro: n*1000, observacoes:'',
+  vendedor_obs: vendedor, atendente_obs:'anne',
+  cliente:{nome:'C'+id}, _produtos: prods(n),
+});
+function rodar(mes){
+  ctx.__fx = { vendas:[ mkVenda(1,'vitinho',3,mes), mkVenda(2,'mel',2,mes) ] };
+  vm.runInContext(`allVendas=__fx.vendas; allMovs=[]; ajustesAcessorios=[]; _custosCache=[];
+                   currentPeriod='${mes}'; currentStore='ambas';`, ctx);
+  const fech = R('fechamentoEquipe()');
+  const lA   = R('calc().lAcess');
+  const tela = {};
+  R('FUNC').forEach(f => { ctx.__f = f; ctx.__lA = lA;
+    tela[f.id] = R('calcComissaoFunc(__f, allVendas, allMovs, __lA)'); });
+  const folha = Object.fromEntries(fech.pessoas.map(p => [p.id, p]));
+  return { tela, folha };
+}
+
+const ago = rodar('2026-08');
+eq('ago: a folha paga os 3 aparelhos do Vitinho a R$25', ago.folha.vitinho?.commVo, 75);
+eq('ago: a tela diz o mesmo',                            ago.tela.vitinho?.commVo,  75);
+eq('ago: o VO continua na curva (2 un x R$25)',          ago.folha.mel?.commVo,     50);
+
+const jul = rodar('2026-07');
+eq('jul: nao paga pra tras — a folha exportada disse R$0', jul.folha.vitinho?.commVo, 0);
+eq('jul: e a tela concorda com ela',                       jul.tela.vitinho?.commVo,  0);
+eq('jul: o VO nao muda',                                   jul.folha.mel?.commVo,     50);
+
+// O detalhe por venda tem que somar o agregado — e o que faz a planilha valer
+// como prova. Era aqui que a divergencia aparecia: coluna cheia, total zerado.
+const linhas = ago.folha.vitinho?.linhasVo || [];
+eq('ago: a soma da coluna bate com o total',
+  linhas.reduce((a,l) => a + l.comissao, 0), ago.folha.vitinho?.commVo);
 
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);
