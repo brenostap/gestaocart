@@ -217,14 +217,25 @@ ok(fech.totais.bonusCol === comCol * fech.bonusCol,
    `bônus coletivo pago cheio para cada pessoa do rateio (${comCol})`);
 ok(comCol === fech.pessoas.length, 'em jul/2026 ninguém está fora do rateio');
 
-// Ferias/afastamento tiram a pessoa do rateio -- mas NUNCA retroativo. Anne esteve
+// Mes inteiro fora tira a pessoa do rateio -- mas NUNCA retroativo. Anne esteve
 // de ferias em jun/2026 e recebeu o coletivo; mexer nisso mudaria folha ja paga.
-ok(R('entraNoBonusColetivo("davi", "2026-08")') === false,
-   'Davi fica fora do rateio em ago/2026 (férias o mês inteiro)');
+//
+// ⚠️ O teste injeta o nome em vez de ler quem esta na lista de verdade. Quem
+// esta la muda com a vida real -- o Davi entrou em ago/2026 e saiu no dia 31,
+// quando se viu que ele voltou das ferias no dia 26 e atendeu 4 dias. O que
+// tem que continuar valendo e o MECANISMO, nao o nome de quem esta dentro.
+R('SEM_BONUS_COLETIVO["2026-08"] = ["__fulano"]; SEM_BONUS_COLETIVO["2026-07"] = undefined;');
+ok(R('entraNoBonusColetivo("__fulano", "2026-08")') === false,
+   'quem está na lista do mês fica fora do rateio');
 ok(R('entraNoBonusColetivo("leo", "2026-08")') === true, 'quem trabalhou continua no rateio');
+ok(R('entraNoBonusColetivo("__fulano", "2026-07")') === true,
+   'mês anterior, já pago, não muda de valor');
+// A lista so passa a valer de ago/2026: antes disso ninguem sai, nem se estiver
+// nela. E o que protegeu as ferias da Anne em jun/2026.
+R('SEM_BONUS_COLETIVO["2026-06"] = ["anne"];');
 ok(R('entraNoBonusColetivo("anne", "2026-06")') === true,
    'regra não é retroativa: jun/2026 (férias da Anne) não muda');
-ok(R('entraNoBonusColetivo("davi", "2026-07")') === true, 'julho fechado não muda');
+R('delete SEM_BONUS_COLETIVO["2026-06"]; delete SEM_BONUS_COLETIVO["2026-08"];');
 
 // -- 8. mes anterior nao vaza o contexto ------------------------------------
 sec('comparação com o mês anterior não vaza o contexto global');
