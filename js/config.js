@@ -130,8 +130,12 @@ const SALARIOS = {
 // entraNoBonusColetivo em core.js). Anne esteve de ferias em jun/2026 e recebeu
 // o bonus coletivo daquele mes -- fechamento pago nao muda de valor depois.
 //
-//   ago/2026: Davi de ferias o mes inteiro (R$3.000, sem trabalhar nenhum dia).
+// ⚠️ A lista responde "passou o mes INTEIRO fora?", nao "tirou ferias?". O Davi
+// esteve aqui por isso e saiu em 31/ago/2026: ele voltou das ferias no dia 26 e
+// atendeu 26, 27, 28 e 29 (8 vendas, 6 acessorios). Como o bonus e pago cheio e
+// nao rateado, quem trabalhou recebe igual -- decisao do dono no mesmo dia.
+// Antes de incluir alguem aqui, confira `vendas.atendente_key` no periodo: se
+// aparecer venda dele, ele trabalhou.
 const SEM_BONUS_COLETIVO = {
-  '2026-08': ['davi'],
 };
 
