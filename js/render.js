@@ -55,13 +55,35 @@ function calc(){
     const {vendedor}=getVendaInfo(x);
     if(!vendedor) return true;
     const vl=vendedor.toLowerCase().trim();
+    // ⚠️ A IA sai daqui ANTES de tudo: ela nao recebe comissao (igual a loja),
+    // mas contar as duas juntas apaga quantas vendas o atendimento automatico
+    // fechou -- que e o numero que cruza com o lead. Ver ehIA em core.js.
+    if(ehIA(vl)) return false;
     if(SOCIOS_KEYS.some(s=>vl.includes(s))) return true;
     if(['cart','urban','loja'].includes(vl)) return true;
     if(!EQUIPE_KEYS.some(e=>vl.includes(e))) return true;   // VO_KEYS ja esta dentro de EQUIPE_KEYS
     return false;
   };
-  let lojaVendas=0,lojaUnits=0;
-  v.forEach(x=>{ if(isVendaLoja(x)){lojaVendas++;if(x._produtos&&x._produtos.length>0)lojaUnits+=x._produtos.filter(p=>isPrincipal(p)).length;else lojaUnits+=prPeriod.filter(p=>p.parent_id===x.id).length;} });
+  // Unidades principais da venda -- mesma conta dos dois baldes (loja e IA).
+  const unDaVenda=(x)=> (x._produtos&&x._produtos.length>0)
+    ? x._produtos.filter(p=>isPrincipal(p)).length
+    : prPeriod.filter(p=>p.parent_id===x.id).length;
+  // `iaMap` e por chave, nao um total: a Maju e da Cart e a Duda e da Urban, e
+  // e essa separacao que serve pro cruzamento com os leads de cada projeto.
+  const iaMap={}; IA_KEYS.forEach(k=>iaMap[k]={vendas:0,units:0,bruto:0,linhas:[]});
+  let iaVendas=0,iaUnits=0,lojaVendas=0,lojaUnits=0;
+  v.forEach(x=>{
+    const un=unDaVenda(x);
+    const k=ehIA(getVendaInfo(x).vendedor);
+    if(k){
+      iaVendas++; iaUnits+=un;
+      iaMap[k].vendas++; iaMap[k].units+=un;
+      iaMap[k].bruto+=parseFloat(x.valor_total||0);
+      iaMap[k].linhas.push({id:x.id, data:x.data_saida, units:un});
+      return;
+    }
+    if(isVendaLoja(x)){ lojaVendas++; lojaUnits+=un; }
+  });
 
   // -- Detalhe por venda ----------------------------------------------------
   // voMap[k].linhas / atMap[k].linhas guardam a MESMA soma que o agregado, venda
@@ -149,7 +171,7 @@ function calc(){
   // entao tambem ignora brinde.
   const anneBonus=lAcessCom*0.05;
 
-  return{bruto,lucro,units,unPrincipal,unAcess,vendaAcess,lAcess,lAcessCom,voMap,atMap,voTot,atTot,anneBonus,liq:lucro-voTot-atTot,cnt:v.length,acCnt:ac.length,lojaVendas,lojaUnits};
+  return{bruto,lucro,units,unPrincipal,unAcess,vendaAcess,lAcess,lAcessCom,voMap,atMap,voTot,atTot,anneBonus,liq:lucro-voTot-atTot,cnt:v.length,acCnt:ac.length,lojaVendas,lojaUnits,iaVendas,iaUnits,iaMap};
 }
 
 // RENDER

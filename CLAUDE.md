@@ -271,6 +271,14 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   - A cobertura é parcial de propósito (só o período já processado) e **a tela mostra isso**. O
     número é piso, não total, e a falta pesa mais no Instagram — dá pra comparar canais, não pra
     afirmar quanto o Meta Ads devolveu.
+- ⚠️ **Venda da IA não é venda da loja** (31/ago/2026). `maju` e `duda` fecham venda sozinhas
+  (16 em jun/2026, 17 em jul, 9 em ago) e **não recebem comissão** — nisso são iguais à casa.
+  Mas o balde é separado: `IA_KEYS`/`ehIA()` em `core.js`, `calc().iaMap` por chave em
+  `render.js`, e linha própria no dashboard (*Maju (IA · Cart)*, *Duda (IA · Urban)*).
+  Juntar com "Loja (casa)" apagava **quantas vendas o atendimento automático fechou e de qual
+  loja** — que é o número que cruza com o lead depois. Espelho no banco: `apelidos.tipo='ia'`,
+  e `vendas.vendedor_key` já grava `maju`/`duda` desde 17/ago (o dado existia, ninguém lia).
+  Teste: a seção 5 de `node test/venda-origem.test.js`.
 - ⚠️ **Quatro interruptores de dinheiro, não um.** `podeVerValor()` (valor da venda) ·
   `podeVerMargem()` (custo/lucro/margem) · **`podeVerCustoServico()`** (o que a assistência cobra —
   sócio e bancada) · **`podeVerBaseComissao()`** (a base da *própria* comissão — quem tem `at_key`).

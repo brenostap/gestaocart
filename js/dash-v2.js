@@ -126,10 +126,16 @@ function _d2SerieDiaria(){
 
 // -- Ranking: monta as linhas -----------------------------------------------
 function _d2Iniciais(nome){ return (nome||'?').trim().slice(0,2).toUpperCase(); }
+// A IA tem nome proprio na tela: "Maju (IA)" diz de qual loja veio a venda --
+// Maju atende pela Cart, Duda pela Urban.
+function _d2NomeIA(k){
+  return ({maju:'Maju (IA · Cart)', duda:'Duda (IA · Urban)'})[k] || (k+' (IA)');
+}
+
 function _d2RankRows(items){
-  return items.map((it,i)=>`<div class="d2-rank-row${it.loja?' d2-rank-loja':''}">
-    <div class="d2-rank-pos">${it.loja?'🏪':(i+1)}</div>
-    <div class="d2-rank-who"><div class="d2-av">${it.loja?'🏪':_d2Iniciais(it.nome)}</div><div class="d2-rank-name">${UI.esc(it.nome)}</div></div>
+  return items.map((it,i)=>`<div class="d2-rank-row${(it.loja||it.ia)?' d2-rank-loja':''}">
+    <div class="d2-rank-pos">${it.loja?'🏪':it.ia?'🤖':(i+1)}</div>
+    <div class="d2-rank-who"><div class="d2-av">${it.loja?'🏪':it.ia?'🤖':_d2Iniciais(it.nome)}</div><div class="d2-rank-name">${UI.esc(it.nome)}</div></div>
     <div class="d2-rank-res">${it.res}</div>
     <div class="d2-rank-com">${it.com}</div>
   </div>`).join('');
@@ -339,7 +345,15 @@ function renderDashV2(){
     const u=m.voMap[k]?.units||0;
     return {nome:n, u, res:`${u} un`, com: verM?brl(calcCommVo(u)):'—'};
   }).sort((a,b)=>b.u-a.u);
-  const vendItems=vends.concat([{nome:'Loja (casa)', loja:true, res:`${m.lojaUnits||0} un`, com:'—'}]);
+  // A IA entra como linha propria, nao dentro de "Loja (casa)": ela nao recebe
+  // comissao, mas quantas vendas o atendimento automatico fechou e o numero que
+  // cruza com o lead depois (Maju = Cart, Duda = Urban). Ver ehIA em core.js.
+  // So aparece quem vendeu no periodo -- linha zerada so polui.
+  const ias=IA_KEYS.map(k=>({k, u:m.iaMap?.[k]?.units||0}))
+                   .filter(x=>x.u>0)
+                   .sort((a,b)=>b.u-a.u)
+                   .map(x=>({nome:_d2NomeIA(x.k), ia:true, res:`${x.u} un`, com:'—'}));
+  const vendItems=vends.concat(ias, [{nome:'Loja (casa)', loja:true, res:`${m.lojaUnits||0} un`, com:'—'}]);
   const atends=atLabelsAll().map(([n,k])=>{
     const b=m.atMap[k]?.brutoAcess||0, com=(m.atMap[k]?.la||0)*0.25;
     return {nome:n, b, res: verV?brl(b):'—', com: verM?brl(com):'—'};

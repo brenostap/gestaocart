@@ -55,6 +55,30 @@ const ALIASES={
 // entao a venda dele caia como "vendedor desconhecido" na tela de incompletas.
 const SOCIOS_LOJA = ['breno','gustavo','gu','marcella','marcela','marcelo','maju','malu','duda','cart','urban','online','loja','pessoal'];
 
+// AS IAs. Maju atende pela Cart, Duda pela Urban. Elas FECHAM venda sozinhas --
+// 16 em jun/2026, 17 em jul, 9 em ago -- e continuam sem comissao nenhuma
+// (estao em SOCIOS_LOJA, entao matchNome devolve null pros dois lados).
+//
+// ⚠️ Mas venda da IA NAO e venda da loja, e juntar as duas apaga o dado que o
+// cruzamento com lead precisa: quantas vendas o atendimento automatico fechou,
+// e de qual loja. Decisao do dono em 31/ago/2026 -- nao paga comissao, mas
+// aparece separado.
+//
+// Espelho no Postgres: `apelidos.tipo = 'ia'` (e por isso que a trigger
+// resolve_venda_keys ja grava vendedor_key='maju'/'duda' -- o dado esta la
+// desde 17/ago, so nao era lido).
+const IA_KEYS = ['maju','duda'];
+
+// Devolve a chave da IA ('maju'/'duda') ou null. Resolve alias antes: 'malu' e
+// typo de 'maju' e aparece na obs.
+function ehIA(nome){
+  if(!nome) return null;
+  let n = String(nome).toLowerCase().trim();
+  if(ALIASES[n]) n = ALIASES[n];
+  if(n === 'malu') n = 'maju';
+  return IA_KEYS.includes(n) ? n : null;
+}
+
 // Vendedores online OFICIAIS -- so esses recebem comissao por device
 // maria: SAC/online (entrou jun/2026) -- device com curva 80
 const VO_KEYS = ['david','isa','mel','pietra','maria'];

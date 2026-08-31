@@ -15,6 +15,11 @@
 //     essa diferença que permite medir cobertura sem chutar o denominador.
 //  4. Sem nenhuma venda avaliada no período a seção some, em vez de desenhar
 //     uma tabela de zeros.
+//  5. **Venda da IA não é venda da loja.** Maju e Duda fecham venda sozinhas
+//     (16 em jun/2026, 17 em jul, 9 em ago) e não recebem comissão — igual à
+//     loja. Mas somar as duas no mesmo balde apaga quantas vendas o
+//     atendimento automático fechou, que é justamente o número que cruza com
+//     o lead depois. Decisão do dono, 31/ago/2026.
 //
 // Sem browser e sem rede: carrega os js/ reais num contexto com stubs.
 // ===========================================================================
@@ -138,6 +143,44 @@ ok(semMargem.includes('De onde vieram as vendas'), 'a seção continua aparecend
 const cardSemMargem = R('d2CardOrigem(_d2VendasDoPeriodo())');
 ok(!/>Lucro</.test(cardSemMargem) && !/>Margem</.test(cardSemMargem),
    'no card da origem, as colunas de lucro e margem somem');
+
+// ---------------------------------------------------------------------------
+// 5. A IA tem balde próprio — não cai em "Loja (casa)"
+// ---------------------------------------------------------------------------
+console.log('\nvenda da IA aparece separada da venda da loja\n');
+
+const vIA = (vendedor) => ({ ...venda(3000, null), vendedor_obs: vendedor });
+ctx.__fx.ia = [
+  vIA('maju'), vIA('maju'),
+  vIA('duda'),
+  vIA('malu'),      // typo real de 'maju' -- tem que cair na Maju, não na loja
+  vIA('cart'),      // venda da casa de verdade
+  vIA('breno'),     // sócio: casa também
+  vIA('david'),     // vendedor de gente: nenhum dos dois baldes
+];
+R('allVendas = __fx.ia;');
+const mIA = R('calc()');
+
+ok(mIA.iaMap.maju.units === 3, `Maju: 3 un (2 + o typo "malu") — deu ${mIA.iaMap.maju.units}`);
+ok(mIA.iaMap.duda.units === 1, `Duda: 1 un — deu ${mIA.iaMap.duda.units}`);
+ok(mIA.iaUnits === 4,          `IA no total: 4 un — deu ${mIA.iaUnits}`);
+ok(mIA.lojaUnits === 2,        `Loja (casa): 2 un, sem a IA junto — deu ${mIA.lojaUnits}`);
+
+// A IA continua SEM comissão: é o que a separação não pode ter mexido.
+ok(R("matchNome('maju', VO_KEYS)") === null && R("matchNome('duda', VO_KEYS)") === null,
+   'a IA continua sem comissão de vendedor');
+ok(R("matchNome('maju', atKeysVigentes())") === null,
+   'a IA continua sem comissão de atendente');
+
+// E aparece na tela, com a loja dela — é o que serve pro cruzamento.
+const htmlIA = R('renderDashV2()');
+ok(htmlIA.includes('Maju (IA · Cart)'),  'o dashboard mostra "Maju (IA · Cart)"');
+ok(htmlIA.includes('Duda (IA · Urban)'), 'o dashboard mostra "Duda (IA · Urban)"');
+ok(htmlIA.includes('Loja (casa)'),       'e a linha da loja continua existindo, separada');
+
+// IA sem venda no período não vira linha zerada.
+R('allVendas = __fx.ia.filter(v => v.vendedor_obs !== "duda");');
+ok(!R('renderDashV2()').includes('Duda (IA'), 'IA sem venda no período não aparece');
 
 console.log('\n' + (falhas ? `### ${falhas} FALHA(S)` : '### tudo verde'));
 process.exit(falhas ? 1 : 0);
