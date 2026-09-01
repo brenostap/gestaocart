@@ -244,17 +244,24 @@ function renderDashV2(){
     },0);
   })();
 
-  // -- metas + bônus (idêntico a renderDash) --------------------------------
+  // Faixas da meta -- aqui SO para os medidores (gaugeDev/gaugeAc mais abaixo).
   const metasDevList=metasColetivas().dev, metasAcList=metasColetivas().acess;
-  const metaDevBatida=metasDevList.filter(x=>m.unPrincipal>=x.qt).pop()||null;
-  const metaAcBatida=metasAcList.filter(x=>m.vendaAcess>=x.val).pop()||null;
-  const bonusMetaColetiva=(metaDevBatida?.bonus||0)+(metaAcBatida?.bonus||0);
-  const calcBonusMetaAt=bonusMetaAtendente; // fonte unica em core.js
-  let totalBonusMetaAt=0;
-  atLabelsAll().forEach(([,k])=>{ totalBonusMetaAt+=calcBonusMetaAt(m.atMap[k]?.brutoAcess||0); });
-  const totalBonusMetas=bonusMetaColetiva+totalBonusMetaAt;
-  const liqReal=m.liq-m.anneBonus-custosMes;
-  const liqComMetas=liqReal-totalBonusMetas;
+  // ⚠️ OS BONUS JA ESTAO DENTRO DE `custosMes` -- NAO SUBTRAIA DE NOVO.
+  // Ate 01/set/2026 esta linha era `m.liq - m.anneBonus - custosMes` e a de baixo
+  // tirava `totalBonusMetas` outra vez. Mas a pratica da casa (jul/2026 e ago/2026)
+  // e lancar os bonus como custo da area Funcionarios -- em 31/07 sao tres linhas:
+  // "Bonus meta coletiva", "Bonus meta individual" e "Bonus 5% acessorios Anne".
+  // Resultado: o lucro liquido de julho aparecia ~R$4.000 MENOR do que e.
+  //
+  // A conciliacao do fechamento (equipe.js) ja cobra esses lancamentos em Custos --
+  // ela e quem manda. Aqui so somamos o que esta lancado.
+  //
+  // ⚠️ E tinha um segundo erro junto: o coletivo era descontado pelo valor da FAIXA
+  // (R$400) -- mas ele e pago CHEIO PRA CADA PESSOA. Em ago/2026 eram R$400 x 9 =
+  // R$3.600. Descontar a faixa uma vez subestimava o custo em R$3.200. Os dois erros
+  // andavam em direcoes opostas e se escondiam parcialmente. Quem paga e a folha
+  // (equipe.js); o dashboard so soma o que esta lancado em `custos`.
+  const liqReal=m.liq-custosMes;
 
   // -- HEADER + sino --------------------------------------------------------
   const nPend=getPendentes().length;
@@ -287,7 +294,7 @@ function renderDashV2(){
   if(verV) listaKpi.push({rotulo:'Venda bruta', valor:money(m.bruto), sub:verM?`${mg}% margem bruta`:`ticket ${money(ticket)}`});
   if(verM) listaKpi.push(
     {rotulo:'Lucro bruto', valor:brl(m.lucro), tom:'ok', sub:'após custo da mercadoria'},
-    {rotulo:'Lucro líquido', valor:brl(liqComMetas), tom:liqComMetas>0?'ok':'critico', sub:'após comissões e custos'}
+    {rotulo:'Lucro líquido', valor:brl(liqReal), tom:liqReal>0?'ok':'critico', sub:'após comissões e custos'}
   );
   const kpis=UI.kpis(listaKpi);
 
@@ -387,10 +394,8 @@ function renderDashV2(){
     ${resRow('Lucro bruto (após custo merc.)', brl(m.lucro))}
     ${resRow('Comissões vendedores', brl(m.voTot), true)}
     ${resRow('Comissões atendentes', brl(m.atTot), true)}
-    ${resRow('Bônus Anne (5% acessórios)', brl(m.anneBonus), true)}
-    ${custosMes>0?resRow('Custos operacionais', brl(custosMes), true):''}
-    ${totalBonusMetas>0?resRow('Bônus metas', brl(totalBonusMetas), true):''}
-    <div class="d2-res-row total"><span class="k">Lucro líquido real</span><span class="v">${brl(liqComMetas)}</span></div>
+    ${custosMes>0?resRow('Custos operacionais (inclui salários e bônus)', brl(custosMes), true):''}
+    <div class="d2-res-row total"><span class="k">Lucro líquido real</span><span class="v">${brl(liqReal)}</span></div>
   </details>`}) : '';
 
   // -- Vendas recentes (tabela) --------------------------------------------
