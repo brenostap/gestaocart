@@ -324,6 +324,12 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
       ("R$1.025 de acessório sem dono") só não foi pra frente porque o dono desconfiou.
       **Pra saber de quem é a venda, rode o `getVendaInfo()` real** (`scripts/folha-snapshot.js`
       mostra como carregar os `js/*.js` num vm), nunca a coluna.
+      - ✅ **Consertado em 01/set/2026** no `sync.js` (repo `phonecar-sync`): os dois parsers
+        agora batem em **1.000/1.000** vendas. Mas seguem sendo **espelho em repos
+        diferentes** — mexeu num, mexa no outro e rode
+        `node scripts/compara-parsers.js ../phonecar-sync/sync.js`, que tem que dar
+        **DIVERGEM 0**. ⚠️ As colunas só ficam certas nas vendas **re-sincronizadas depois
+        disso**: pro passado é preciso um RUN FUNDO.
     - **Ter chave ≠ receber comissão.** Sócios e as IAs (`maju` da Cart, `duda` da Urban) têm
       chave e não entram em `VO_KEYS`/`AT_KEYS`. Quem paga continua sendo o `core.js`.
     - `NULL` é resposta legítima: nome de loja no campo de gente, sobra de parsing, ou não

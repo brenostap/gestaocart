@@ -1113,6 +1113,12 @@ const ini=n=>n.split(' ').filter((_,i,a)=>i===0||i===a.length-1).map(w=>w[0]?.to
 // linha da loja vinha DEPOIS: "Atendente Gabi vendedor David venda cart" virava
 // vendedor="cart", que cai em SOCIOS_LOJA e vira ninguem -- o David perdia a
 // comissao em silencio (venda 40585050, R$2.880, jul/2026).
+// ⚠️ ESTE PARSER TEM UM ESPELHO EM OUTRO REPO: parseObs() no sync.js de
+// brenostap/phonecar-sync. Ele preenche vendas.vendedor_obs/atendente_obs, de
+// onde nasce a chave e de onde as views do "Meu dia" leem. Mexeu aqui, mexe la
+// -- e confira com `node scripts/compara-parsers.js ../phonecar-sync/sync.js`,
+// que roda os dois contra as vendas reais e tem que dar DIVERGEM 0.
+// Em 01/set/2026 eram 47 divergencias: o sync nao lia "Atendente. Anne".
 const NOME_E_LOJA = ['cart','urban','loja','online'];
 
 function parseObs(obs){
