@@ -334,10 +334,15 @@ function fechLinhasPagamento(p, fech){
   if(p.sal > 0) L.push(['Salário', p.sal,
     p.salOrigem === 'custos' ? p.salDesc : '⚠ sem lançamento em Custos — valor da tabela']);
   p.extras.forEach(e => L.push([e.desc, e.valor, e.obs || 'lançamento em Custos']));
-  if(p.commVo > 0) L.push(['Comissão de vendedor', p.commVo,
+  // ⚠️ `|| ehVendedor/ehAtendente` de proposito: a linha aparece MESMO ZERADA,
+  // igual a aba da planilha. Ate 01/set/2026 o PDF omitia a linha de valor zero
+  // -- o David e atendente desde ago/2026 (VO_ATENDE) e atendeu com R$0 de lucro
+  // de acessorio: no PDF a linha sumia, e sumir parece esquecimento. R$0 com a
+  // explicacao do lado e resposta; a ausencia da linha e pergunta.
+  if(p.commVo > 0 || p.ehVendedor) L.push(['Comissão de vendedor', p.commVo,
     p.units + ' aparelhos · ' + brl(VO_CURVA.base) + '/un até ' + VO_CURVA.corte
     + ' un, ' + brl(VO_CURVA.bonus) + '/un acima']);
-  if(p.commAt > 0) L.push(['Comissão de atendente', p.commAt,
+  if(p.commAt > 0 || p.ehAtendente) L.push(['Comissão de atendente', p.commAt,
     '25% do lucro dos acessórios que atendeu']);
   if(p.bonus5 > 0) L.push(['Bônus 5% acessórios', p.bonus5,
     '5% do lucro de acessórios da loja (' + brl(fech.base.acessLucro) + ')']);

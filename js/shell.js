@@ -113,7 +113,11 @@ function navMobile(){
 const MATRIZ_ACESSO = {
   socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento','diario'],
   // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
-  bancada:   ['estoque','bancada','tabela'],
+  // `consulta` entrou em 01/set/2026, mesmo motivo do comercial: ele ATENDE no
+  // balcao (86 vendas em ago/2026, mais que a Gabi) e precisa achar a venda de
+  // quem esta na frente dele. As views ja liberam SELECT pra `authenticated`,
+  // entao aqui e so cortina -- nao houve mudanca de RLS.
+  bancada:   ['estoque','bancada','tabela','consulta'],
   // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta
   // aqui -- esta nas chaves vo_key/at_key do perfil. Ver docs/PERFIS-E-ACESSO.md.
   // `tabela` entrou em 20/ago a pedido do dono: quem atende precisa do preco

@@ -67,8 +67,9 @@ eq('perfilSoBancada() só é true no papel bancada',
 
 console.log('\nmenu do papel bancada\n');
 
-eq('vê Estoque, Assistência e Tabela de preços',
-   ['estoque','bancada','tabela'].map(s => comoPapel('bancada', `podeVer('${s}')`)), [true, true, true]);
+eq('vê Estoque, Assistência, Tabela de preços e Pós-venda',
+   ['estoque','bancada','tabela','consulta'].map(s => comoPapel('bancada', `podeVer('${s}')`)),
+   [true, true, true, true]);
 eq('NÃO vê dash, vendas, compras, movs, equipe, contas, custos, fechamento',
    ['dash','vendas','compras','movs','equipe','contas','custos','fechamento']
      .map(s => comoPapel('bancada', `podeVer('${s}')`)),
@@ -117,8 +118,8 @@ ok('sócio continua vendo o capital parado', /Capital parado/.test(bncSocio));
 
 console.log('\nbarra de baixo do celular (o bug de 13/ago)\n');
 
-eq('papel bancada vê as TRÊS telas na barra do celular',
-   comoPapel('bancada','navMobile().fixas'), ['estoque','bancada','tabela']);
+eq('papel bancada vê as QUATRO telas na barra do celular',
+   comoPapel('bancada','navMobile().fixas'), ['estoque','bancada','tabela','consulta']);
 eq('papel que cabe na barra não precisa de "Mais"',
    comoPapel('bancada','navMobile().mais'), []);
 // O socio tem 12 telas: 4 ficam fixas e as outras 8 vao pro "Mais". Antes de

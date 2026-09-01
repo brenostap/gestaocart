@@ -214,8 +214,15 @@ else bad('termo de texto foi parar no filtro de telefone');
 console.log('\nquem alcança a tela\n');
 if (R(`podeVer('consulta')`)) ok('comercial alcança o Pós-venda');
 else bad('comercial não alcança o Pós-venda');
+// ⚠️ A regra NAO e "bancada nao alcanca a tela" -- e "bancada nao ve VALOR DE
+// VENDA". Ate 01/set/2026 este teste fixava a lista, e a lista estava errada: o
+// Vitinho ATENDE no balcao (86 vendas em ago/2026, mais que a Gabi) e precisa
+// achar a venda de quem esta na frente dele. Ele ganhou a tela; o que protege o
+// dinheiro e o money(), que segue mudo pra quem nao tem VE_VALOR.
 R(`meuPerfil = { papel:'bancada', nome:'Vitinho', at_key:'vitinho', ativo:true };`);
-if (R(`podeVer('consulta')`) === false) ok('bancada NÃO alcança (valor de venda não é do papel dele)');
+if (R(`podeVer('consulta')`)) ok('bancada alcança o Pós-venda (ela atende no balcão)');
+else bad('bancada não alcança o Pós-venda');
+if (R(`money(2782)`) === '—') ok('...e o valor da venda continua mudo pra ela');
 else bad('a bancada ganhou acesso a valor de venda');
 R(`meuPerfil = { papel:'socio', nome:'Breno', ativo:true }; usuarioEmail='breno@phonestp.com';`);
 if (R(`podeVer('consulta')`) === false) ok('sócio não vê tela duplicada (ele tem Vendas inteira)');
