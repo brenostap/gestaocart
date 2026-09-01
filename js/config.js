@@ -66,12 +66,12 @@ const FUNC=[
   {id:'anne',   ap:'Anne',    nome:'Alauany Ramos de Campos',     cargo:'Atendente',          pix:'(11) 95143-9933',          tipo:'presencial',email:'alauanyramosdecampos@gmail.com',     atKey:'anne',  bonus:true},
   {id:'pietra', ap:'Pietra',  nome:'Pietra Castro',               cargo:'Atendente / Gerente (saiu)',pix:'pietracassttro@gmail.com', tipo:'presencial',email:'pietraurban@gmail.com',              atKey:'pietra', voKey:'pietra' },
   {id:'denilson',ap:'Denilson',nome:'Denilson Henrique Campos',   cargo:'Atendente (saiu)',   pix:'47362104863',              tipo:'presencial',email:'denilson.h.c2708@gmail.com',         atKey:'denilson', saiuEm:'2026-08'},
-  {id:'leo',    ap:'Leo',     nome:'Leo',                         cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'leo'    },
+  {id:'leo',    ap:'Leo',     nome:'Leo',                         cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'leo.j.novais23@gmail.com',            atKey:'leo'    },
   {id:'maria',  ap:'Maria',   nome:'Maria',                       cargo:'SAC / Vendedora',    pix:'',                         tipo:'online',    email:'mariaaveloso28@gmail.com',            atKey:'maria', voKey:'maria' },
   {id:'luana',  ap:'Luana',   nome:'Luana',                       cargo:'Atendente (saiu)',   pix:'',                         tipo:'presencial',email:'',                                   atKey:'luana'  },
-  {id:'gabi',   ap:'Gabi',    nome:'Gabi',                        cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'',                                   atKey:'gabi'   },
+  {id:'gabi',   ap:'Gabi',    nome:'Gabi',                        cargo:'Atendente',          pix:'',                         tipo:'presencial',email:'gabriellisantos.bst@gmail.com',       atKey:'gabi'   },
   {id:'gustavo',   ap:'Gustavo',   nome:'Gustavo',   cargo:'Vendedor / Sócio',  pix:'', tipo:'online', email:'', voKey:'gustavo'},
-  {id:'marcella',  ap:'Marcella',  nome:'Marcella',  cargo:'Sócia',             pix:'', tipo:'socio',  email:''},
+  {id:'marcella',  ap:'Marcella',  nome:'Marcella',  cargo:'Sócia',             pix:'', tipo:'socio',  email:'Marcellastap1@gmail.com'},
 ];
 const COLORS=['#1d4ed8','#0f766e','#7c3aed','#b45309','#be123c','#0369a1','#15803d','#9333ea','#0e7490','#166534'];
 

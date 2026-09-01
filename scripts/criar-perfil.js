@@ -68,6 +68,11 @@ function carregarCadastro() {
 // (vo ou at) e `comercial`. `bancada` e `socio` sao decisao do dono, nao
 // derivacao -- por isso este script recusa criar os dois (ver `criar`).
 function papelDe(f, cad) {
+  // Socio vem do CARGO, nao de chave: Marcella e Gustavo nao vendem no balcao e
+  // por isso nao tem vo_key/at_key -- ate 01/set/2026 este script simplesmente
+  // os ignorava, e a Marcella ficou sem login mesmo estando no cadastro.
+  // ⚠️ Ordem importa: quem e socio E tem chave (Gustavo tem voKey) e socio.
+  if (/s[oó]ci[oa]/i.test(f.cargo || '')) return 'socio';
   const temVo = f.voKey && cad.VO_KEYS.includes(f.voKey);
   const temAt = f.atKey && cad.AT_KEYS.includes(f.atKey);
   return (temVo || temAt) ? 'comercial' : null;
