@@ -438,5 +438,58 @@ comPerfil({papel:'bancada', nome:'Vitor', at_key:'vitinho', ativo:true}, () => {
   run(`mdErro='';`);
 });
 
+// -- 6. navegar por mes: fechado vem da FOLHA, nunca da view ----------------
+// A armadilha aqui e sutil e cara: as views recalculam com as regras de hoje.
+// Se o mes fechado lesse delas, a tela discordaria do extrato da pessoa. Por
+// isso o teste poe a view MENTINDO de proposito e exige que a folha vença.
+console.log('\nmes fechado vem congelado da folha\n');
+
+const FOLHA_AGO = { mes:'2026-08', func_id:'leo', nome:'Leo', aparelhos:0, acess_bruto:'13695.00',
+  acess_lucro:'10509.48', vendas_atendidas:74, acess_qtd:199, comissao_vendedor:'0',
+  comissao_atendente:'2683', bonus_meta:'1000', bonus_coletivo:'400', bonus_extra:'0',
+  total_variavel:'4083', fechado_em:'2026-09-01T00:00:00+00:00' };
+// A view diz OUTRA COISA -- e nao pode ganhar.
+const VIEW_MENTIROSA = { mes:'2026-08', vendas_vendidas:0, aparelhos_vendidos:0,
+  vendas_atendidas:95, vendas_com_acessorio:70, acess_qtd:199,
+  acess_bruto:'13295.00', acess_lucro:'10100.00' };
+
+comPerfil({papel:'comercial', nome:'Leo', at_key:'leo', ativo:true}, () => {
+  run(`mdMes = '2026-08'; mdResumo = ${JSON.stringify(VIEW_MENTIROSA)};
+       mdFolha = [${JSON.stringify(FOLHA_AGO)}]; mdVendas = []; mdDias = []; mdRede = null;
+       mdCarregado = true; mdErro=''; mdFiltroLoja='todas'; mdFiltroDia='todos';`);
+  const html = run(`renderMeuDia()`);
+  if (html.includes('13.695')) ok('mês fechado mostra o acessório CONGELADO (R$13.695)');
+  else bad('mês fechado não usou a folha congelada');
+  if (!html.includes('13.295')) ok('...e não o número recalculado pela view (R$13.295)');
+  else bad('a view recalculada venceu a folha congelada');
+  if (html.includes('2.683')) ok('a comissão também vem da folha');
+  else bad('a comissão não veio da folha');
+  if (html.includes('fechado')) ok('a tela diz que o mês está fechado');
+  else bad('mês fechado não se identifica');
+  if (/mdDocumento\(\)/.test(html)) ok('mês fechado oferece o documento pra baixar');
+  else bad('faltou o botão de baixar o fechamento');
+});
+
+// Mes corrente NAO oferece documento: numero que ainda muda vira discussao.
+comPerfil({papel:'comercial', nome:'Leo', at_key:'leo', ativo:true}, () => {
+  run(`mdMes = null; mdResumo = ${JSON.stringify(VIEW_MENTIROSA)}; mdFolha = [];
+       mdVendas = []; mdDias = []; mdRede = null; mdCarregado = true; mdErro='';`);
+  const html = run(`renderMeuDia()`);
+  if (!/mdDocumento\(\)/.test(html)) ok('mês corrente NÃO oferece documento');
+  else bad('mês corrente ofereceu documento de número que ainda muda');
+  if (html.includes('13.295')) ok('...e aí sim o número vem da view, que é a previsão');
+  else bad('mês corrente não usou a view');
+});
+
+// Mes antigo SEM congelamento nao inventa numero.
+comPerfil({papel:'comercial', nome:'Leo', at_key:'leo', ativo:true}, () => {
+  run(`mdMes = '2026-05'; mdResumo = ${JSON.stringify(VIEW_MENTIROSA)}; mdFolha = [];
+       mdVendas = []; mdDias = []; mdRede = null; mdCarregado = true; mdErro='';`);
+  const html = run(`renderMeuDia()`);
+  if (html.includes('não foi fechado')) ok('mês sem congelamento diz isso, em vez de reconstruir');
+  else bad('mês não congelado mostrou número reconstruído');
+  run(`mdMes = null;`);
+});
+
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);

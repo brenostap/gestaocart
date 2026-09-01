@@ -1615,3 +1615,14 @@ table.esp td.num, table.esp th.num{
 table.esp tr.esp-base td{ font-weight:600; color:var(--text2); }
 table.esp tr.esp-sep td{ border-top:2px solid var(--border2); }
 table.esp tbody tr:last-child td{ border-bottom:none; }
+
+/* Navegacao de mes do "Meu dia" (01/set/2026). A seta desligada continua
+   ocupando o lugar -- barra que muda de largura ao trocar de mes pisca. */
+.md-mes-nav{ display:flex; align-items:center; gap:2px; }
+.md-seta{
+  background:none; border:0; cursor:pointer; padding:2px 8px; border-radius:var(--r-sm);
+  color:var(--text2); font-size:var(--fs-title); line-height:1;
+}
+.md-seta:hover{ background:var(--bg3); color:var(--text); }
+.md-seta.off{ color:var(--text5); cursor:default; padding:2px 8px; font-size:var(--fs-title); line-height:1; }
+.md-selo-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 10px; }

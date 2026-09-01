@@ -15,10 +15,20 @@
 // Quem classifica item como acessorio ali e `eh_acessorio()` no Postgres, que e
 // o espelho de isAcess() daqui. Os dois andam juntos -- test/regra-acessorio.test.js.
 //
-// ⚠️ SO O MES CORRENTE, de proposito. O mapa de apelidos de 17/ago resgatou
-// atendimentos que o codigo antigo perdia (typos de "vitinho"), entao mes
-// fechado recalculado por aqui daria um numero diferente do que a folha pagou.
-// Historico so depois do snapshot da folha (docs/PLANO-UPGRADE-2026-08.md §2.2).
+// ⚠️ MES FECHADO NAO SE RECALCULA AQUI -- ele vem de `folha_mensal`.
+// Ate 01/set/2026 esta tela mostrava SO o mes corrente, porque recalcular mes
+// pago daria numero diferente do que a folha pagou (o mapa de apelidos de
+// 17/ago resgatou atendimentos que o codigo antigo perdia). A condicao que
+// faltava era o snapshot da folha, e ele existe desde 01/set: ago/2026 e
+// jul/2026 estao congelados.
+//
+// Entao a navegacao por mes segue DUAS fontes, e a diferenca importa:
+//   mes corrente  -> views (v_minha_comissao_mes/dia). Recalcula, e tudo bem:
+//                    o mes ainda esta correndo e o numero e uma previsao.
+//   mes FECHADO   -> folha_mensal, congelado. NUNCA a view -- ela recalcularia
+//                    com as regras de hoje e discordaria do extrato da pessoa.
+// Mes antigo SEM linha em folha_mensal nao mostra comissao nenhuma: dizer "nao
+// foi congelado" e honesto; mostrar um numero reconstruido nao e.
 // ============================================================================
 
 let mdResumo = null;      // linha de v_minha_comissao_mes do mes corrente
@@ -28,6 +38,7 @@ let mdRede   = null;      // linha de v_meta_rede_mes -- total da rede, sem nome
 let mdFolha  = [];        // folha_mensal -- meses JA FECHADOS, congelados
 let mdCarregado = false;
 let mdErro = '';
+let mdMes = null;         // mes sendo olhado; null = o corrente
 
 // 'YYYY-MM' do mes corrente em BRT. Nao usa currentPeriod: esta tela e sempre
 // "o meu mes", e o seletor de periodo nem aparece pra quem so tem esta aba.
@@ -37,12 +48,35 @@ function mdMesCorrente(){
   return brt.getUTCFullYear() + '-' + String(brt.getUTCMonth()+1).padStart(2,'0');
 }
 
+// O mes na tela. `mdMes` so muda pelas setas; o padrao e sempre o corrente.
+function mdMesVisto(){ return mdMes || mdMesCorrente(); }
+function mdEhCorrente(){ return mdMesVisto() === mdMesCorrente(); }
+// A linha congelada deste mes, se houver. E ela quem manda em mes fechado.
+function mdFolhaDoMes(ym){ return (mdFolha || []).find(f => f.mes === ym) || null; }
+// Meses que a pessoa pode abrir: os congelados dela + o corrente. Sem inventar
+// mes vazio -- se nao ha folha nem e o corrente, nao ha o que mostrar.
+function mdMesesDisponiveis(){
+  const ms = new Set((mdFolha || []).map(f => f.mes));
+  ms.add(mdMesCorrente());
+  return [...ms].sort();
+}
+function mdMesVizinho(dir){
+  const ms = mdMesesDisponiveis();
+  const i = ms.indexOf(mdMesVisto());
+  return ms[i + dir] || null;
+}
+async function mdVerMes(ym){
+  if(!ym || ym === mdMesVisto()) return;
+  mdMes = ym; mdFiltroLoja = 'todas'; mdFiltroDia = 'todos';
+  await recarregarMeuDia();
+}
+
 function mdTemVo(){ return !!(meuPerfil && meuPerfil.vo_key); }
 function mdTemAt(){ return !!(meuPerfil && meuPerfil.at_key); }
 
 async function carregarMeuDia(){
   mdErro = '';
-  const mes = mdMesCorrente();
+  const mes = mdMesVisto();
   try{
     const [resumo, dias, vendas, rede, folha] = await Promise.all([
       sbGet('v_minha_comissao_mes', `mes=eq.${mes}`, 1),
@@ -54,7 +88,9 @@ async function carregarMeuDia(){
       sbGet('v_meta_rede_mes', `mes=eq.${mes}`, 1),
       // Mes fechado NAO se recalcula: vem congelado de folha_mensal, gravado
       // por scripts/folha-snapshot.js rodando o fechamentoEquipe() real.
-      sbGet('folha_mensal', `mes=lt.${mes}&order=mes.desc`, 12),
+      // ⚠️ SEM filtro de mes: a lista inteira alimenta a navegacao (que meses
+      // existem) e o proprio mes olhado, quando ele ja estiver fechado.
+      sbGet('folha_mensal', `order=mes.desc`, 36),
     ]);
     mdResumo = (resumo && resumo[0]) || null;
     mdDias   = dias || [];
@@ -121,19 +157,27 @@ function renderMeuDia(){
   }
 
   const r    = mdResumo || {};
-  const mes  = mdMesCorrente();
+  const mes  = mdMesVisto();
   const nome = (meuPerfil && meuPerfil.nome) || '';
+  const cong = mdEhCorrente() ? null : mdFolhaDoMes(mes);
 
-  const aparelhos  = Number(r.aparelhos_vendidos || 0);
-  const atendidas  = Number(r.vendas_atendidas   || 0);
-  const comAcess   = Number(r.vendas_com_acessorio || 0);
-  const acessBruto = Number(r.acess_bruto || 0);
-  const acessLucro = Number(r.acess_lucro || 0);
+  // ⚠️ A FONTE MUDA COM O MES. Corrente vem da view (previsao, recalcula);
+  // fechado vem de folha_mensal (congelado, e o que foi pago). Nunca o
+  // contrario -- ver o comentario do topo do arquivo.
+  const aparelhos  = cong ? Number(cong.aparelhos   || 0) : Number(r.aparelhos_vendidos || 0);
+  const acessBruto = cong ? Number(cong.acess_bruto || 0) : Number(r.acess_bruto || 0);
+  const acessLucro = cong ? Number(cong.acess_lucro || 0) : Number(r.acess_lucro || 0);
+  // Attach: no mes fechado a folha nao guarda "quantas atendi ao todo", entao
+  // sai da propria lista de vendas, que e fato e nao conta.
+  const atendidas  = cong ? (mdVendas || []).filter(v => v.fui_atendente).length
+                          : Number(r.vendas_atendidas || 0);
+  const comAcess   = cong ? (mdVendas || []).filter(v => v.fui_atendente && Number(v.acess_bruto || 0) > 0).length
+                          : Number(r.vendas_com_acessorio || 0);
 
-  const commVo = mdTemVo() ? mdComissaoVendedor(aparelhos) : 0;
-  const commAt = mdTemAt() ? acessLucro * 0.25 : 0;
+  const commVo = cong ? Number(cong.comissao_vendedor  || 0) : (mdTemVo() ? mdComissaoVendedor(aparelhos) : 0);
+  const commAt = cong ? Number(cong.comissao_atendente || 0) : (mdTemAt() ? acessLucro * 0.25 : 0);
   const rede   = mdMetaRede();
-  const bonusCol = rede ? rede.bonus : 0;
+  const bonusCol = cong ? Number(cong.bonus_coletivo || 0) : (rede ? rede.bonus : 0);
   // O herói de comissão saiu a pedido do dono (17/ago): repetia o que os cards
   // de baixo já dizem. Cada parcela mora onde ela nasce -- aparelho no card de
   // aparelhos, acessório no de acessórios, meta do time no card da meta.
@@ -158,7 +202,7 @@ function renderMeuDia(){
   // -- Lado atendente
   let blocoAt = '';
   if(mdTemAt()){
-    const meta   = metaAtendente(acessBruto);
+    const meta   = metaAtendente(acessBruto, mes);
     const attach = atendidas > 0 ? Math.round(comAcess / atendidas * 100) : 0;
     blocoAt = UI.card({
       titulo:'Acessórios',
@@ -181,13 +225,41 @@ function renderMeuDia(){
 
   const tabela = mdCardVendas();
 
+  const ant = mdMesVizinho(-1), prox = mdMesVizinho(1);
+  const seta = (ym, txt, titulo) => ym
+    ? `<button class="md-seta" onclick="mdVerMes('${ym}')" title="${titulo}">${txt}</button>`
+    : `<span class="md-seta off">${txt}</span>`;
+
+  // Mes fechado ganha selo e botao de documento. O corrente nao tem documento:
+  // ele ainda vai mudar, e papel com numero que muda vira discussao depois.
+  const selo = cong
+    ? UI.badge('fechado · já pago', 'ok')
+    : UI.badge('em andamento', 'marca');
+  const baixar = cong
+    ? UI.btn('📄 Baixar meu fechamento', {onclick:'mdDocumento()', variante:'primario', sm:true})
+    : '';
+
+  const avisoNaoCongelado = (!cong && !mdEhCorrente())
+    ? UI.card({ corpo: UI.vazio({ titulo:'Este mês não foi fechado',
+        texto:'Os números só aparecem depois que o fechamento é congelado. Fale com o Breno.' }) })
+    : '';
+
   return `<div class="md-tela">
     <div class="md-cabecalho">
       <span class="md-ola">Olá${nome ? ', '+UI.esc(nome.split(' ')[0]) : ''}</span>
-      <span class="md-mes">${mdRotuloMes(mes)}</span>
+      <span class="md-mes-nav">
+        ${seta(ant, '‹', ant ? 'Ver '+mdRotuloMes(ant) : '')}
+        <span class="md-mes">${mdRotuloMes(mes)}</span>
+        ${seta(prox, '›', prox ? 'Ver '+mdRotuloMes(prox) : '')}
+      </span>
     </div>
-    ${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${mdCardFechados()}${tabela}
-    <div class="md-rodape">Fecha no fim do mês. Número da folha é o do Breno — se não bater, fale com ele.</div>
+    <div class="md-selo-linha">${selo}${baixar}</div>
+    ${avisoNaoCongelado}
+    ${(cong || mdEhCorrente()) ? `${blocoVo}${blocoAt}${mdCardMetaRede(rede)}${tabela}` : ''}
+    ${mdCardFechados()}
+    <div class="md-rodape">${cong
+      ? 'Mês fechado não muda de valor. Estes são os números do fechamento que foi pago.'
+      : 'Fecha no fim do mês. Número da folha é o do Breno — se não bater, fale com ele.'}</div>
   </div>`;
 }
 
@@ -402,7 +474,7 @@ function mdCardFechados(){
     if(Number(f.bonus_coletivo))     partes.push(`${brl(f.bonus_coletivo)} time`);
     if(Number(f.bonus_extra))        partes.push(`${brl(f.bonus_extra)} extra`);
     return [
-      mdRotuloMes(f.mes),
+      { v:`<a href="#" onclick="mdVerMes('${f.mes}');return false">${mdRotuloMes(f.mes)}</a>` },
       partes.join(' · ') || '—',
       { v: brl(f.total_variavel), num:true },
     ];
@@ -415,7 +487,7 @@ function mdCardFechados(){
       colunas:[{titulo:'Mês'},{titulo:'Composição'},{titulo:'Total', num:true}],
       linhas,
     }) + `<div class="md-rodape" style="text-align:left;padding:10px 14px 4px">
-      Mês fechado não muda de valor. Estes números são os do fechamento que foi pago.
+      Mês fechado não muda de valor. Clique no mês para abrir o detalhe e baixar o documento.
     </div>`
   });
 }
@@ -516,6 +588,90 @@ function mdRotuloMes(ym){
   const [a,m] = String(ym).split('-');
   return MD_MESES[Number(m)-1] + '/' + a;
 }
+
+// ---------------------------------------------------------------------------
+// MEU FECHAMENTO — o documento que a pessoa baixa
+//
+// ⚠️ NAO e o PDF do socio (fechamento.js). Aquele nasce de fechamentoEquipe(),
+// que precisa de custo e lucro de TODAS as vendas -- dado que nunca chega no
+// navegador do colaborador, e nem deve. Este aqui e montado com o que ela ja
+// tem na tela: a linha congelada dela em folha_mensal mais as proprias vendas.
+//
+// Mesmo caminho do PDF do socio: sem biblioteca, e o window.print() do
+// navegador que vira arquivo. No iPhone sai pelo share sheet. O estilo do papel
+// e o mesmo css/print.css -- por isso as classes fp-*.
+//
+// So existe pra MES FECHADO. Documento de mes que ainda muda vira discussao
+// depois ("mas no papel estava outro numero").
+// ---------------------------------------------------------------------------
+function mdDocumento(){
+  const mes = mdMesVisto();
+  const f = mdFolhaDoMes(mes);
+  if(!f) return;
+  const nome = (meuPerfil && meuPerfil.nome) || f.nome || '';
+
+  const linhas = [];
+  const add = (rot, val, de) => { if(Number(val)) linhas.push([rot, Number(val), de]); };
+  add('Comissão de vendedor', f.comissao_vendedor,
+      `${f.aparelhos} aparelho${Number(f.aparelhos)===1?'':'s'} vendidos no mês`);
+  add('Comissão de atendente', f.comissao_atendente,
+      `25% do lucro dos acessórios das vendas que você atendeu`);
+  add('Bônus de meta individual', f.bonus_meta,
+      `${brl(f.acess_bruto)} de acessório no mês`);
+  add('Bônus de meta coletiva', f.bonus_coletivo, 'metas da loja, pago cheio para cada pessoa');
+  add('Bônus extra', f.bonus_extra, '5% do lucro de acessórios da loja no mês');
+
+  const resumo = UI.tabela({
+    colunas:[{titulo:'Item'},{titulo:'Valor', num:true, largura:'110px'},{titulo:'De onde vem'}],
+    linhas: linhas.map(([rot,val,de]) =>
+      [rot, {v:brl(val), num:true}, {v:`<span class="fp-nota">${UI.esc(de)}</span>`}]),
+  });
+
+  const minhas = (mdVendas || []).slice()
+    .sort((a,b) => String(b.data_saida).localeCompare(String(a.data_saida)));
+  const comissao = mdComissaoPorVenda();
+  const vendas = minhas.length ? UI.tabela({
+    colunas:[{titulo:'Data'},{titulo:'Cliente'},{titulo:'Loja'},{titulo:'Meu papel'},
+             {titulo:'Acessórios', num:true},{titulo:'Comissão', num:true}],
+    linhas: minhas.map(v => [
+      mdDia(v.data_saida), UI.esc(v.cliente_nome || '—'),
+      v.loja === 'urban' ? 'Urban' : 'Cart', mdPapelNaVenda(v),
+      {v: mdAcessDaVenda(v) ? brl(mdAcessDaVenda(v)) : '—', num:true},
+      {v: comissao[v.id] ? brl(comissao[v.id]) : '—', num:true},
+    ]),
+  }) + `<div class="fp-nota">A comissão de atendente não cabe por venda — ela é 25% do lucro
+        do acessório, e o lucro fecha no mês. Por isso a coluna Comissão só tem número nas
+        vendas em que você foi o vendedor.</div>` : '<div class="fp-nota">Sem vendas no mês.</div>';
+
+  const doc = `<div class="fp-overlay">
+    <div class="fp-bar">
+      <span class="fp-bar-tit">Meu fechamento de ${mdRotuloMes(mes)} — use Imprimir para salvar em PDF</span>
+      <span class="fp-bar-acoes">
+        ${UI.btn('🖨 Imprimir / PDF', {onclick:'window.print()', variante:'primario', sm:true})}
+        ${UI.btn('Fechar', {onclick:'mdFecharDoc()', sm:true})}
+      </span>
+    </div>
+    <div class="fp-doc"><div class="fp-pagina">
+      <div class="fp-cab">
+        <div>
+          <div class="fp-cab-nome">${UI.esc(nome)}</div>
+          <div class="fp-cab-sub">Fechamento de ${mdRotuloMes(mes)} · congelado em ${mdDia(f.fechado_em)}</div>
+        </div>
+        <div class="fp-cab-mes">Phone Cart · Urban<br>documento do colaborador</div>
+      </div>
+      <div class="fp-total">
+        <span class="fp-total-rot">Total variável</span>
+        <span class="fp-total-val">${brl(f.total_variavel)}</span>
+      </div>
+      <div class="fp-sec"><div class="fp-sec-tit">O que entra nesse valor</div>${resumo}</div>
+      <div class="fp-sec"><div class="fp-sec-tit">Minhas vendas do mês — ${minhas.length}</div>${vendas}</div>
+      <div class="fp-rodape">Este é o fechamento congelado: ele não muda de valor depois de pago.
+        O salário fixo não entra aqui — este documento é só a parte variável.</div>
+    </div></div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', doc);
+}
+function mdFecharDoc(){ document.querySelector('.fp-overlay')?.remove(); }
 
 async function recarregarMeuDia(){
   mdCarregado = false;
