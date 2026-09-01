@@ -170,9 +170,19 @@ async function criar(ids, opts) {
     // tela de Pós-venda entrou no papel `comercial` em 26/ago/2026 e leva junto
     // nome e telefone de QUALQUER cliente. Quem cria o perfil precisa ver isso
     // na hora, não descobrir depois.
-    console.log('      vai enxergar: Meu dia (a própria comissão) · Estoque/Vitrine (preço e');
-    console.log('      dia de prateleira) · Tabela de preços · Pós-venda (QUALQUER venda:');
-    console.log('      cliente, telefone, itens e valor — sem custo, lucro ou margem)');
+    // ⚠️ O TEXTO E POR PAPEL. Ate 01/set/2026 ele era chumbado no do `comercial`
+    // e saia igual pra todo mundo -- a Marcella foi criada como SOCIO lendo
+    // "sem custo, lucro ou margem", que e o oposto do que ela enxerga. Descrever
+    // um socio como se fosse colaborador e o tipo de erro que so aparece quando
+    // alguem ja viu o que nao devia.
+    (papel === 'socio'
+      ? ['      vai enxergar: TUDO — as 12 telas, incluindo Dashboard, Vendas,',
+         '      Custos, Equipe/Folha e Fechamento, COM custo, lucro e margem.',
+         '      ⚠️ Acesso de dono: so crie assim para socio de verdade.']
+      : ['      vai enxergar: Meu dia (a própria comissão) · Estoque/Vitrine (preço e',
+         '      dia de prateleira) · Tabela de preços · Pós-venda (QUALQUER venda:',
+         '      cliente, telefone, itens e valor — sem custo, lucro ou margem)']
+    ).forEach(l => console.log(l));
     if (opts.seco) { console.log('      (--seco: não gravei nada)'); continue; }
 
     let user = await acharUsuario(email);
