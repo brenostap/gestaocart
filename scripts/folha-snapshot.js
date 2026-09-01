@@ -130,9 +130,32 @@ async function carregarMes(mes) {
   const custos = await get('custos', `limit=5000`);
   const funcConfig = await get('funcionarios_config', `limit=200`).catch(() => []);
 
+  // ⚠️ AS DUAS CARGAS ABAIXO NAO SAO OPCIONAIS -- sao o fallback do ATENDENTE.
+  // `cadastradorAT()` (equipe.js) traduz cadastrador_id -> nome por `funcionariosFN`
+  // (tabela `funcionarios`) e por `venda._cadastrador` (recorte de contas.raw). O
+  // data.js carrega os dois; ate 01/set/2026 este script nao carregava NENHUM, entao
+  // toda venda SEM OBS ficava sem atendente aqui e COM atendente na tela.
+  // Medido em ago/2026: Leo perdia R$400 de acessorio, Gabi R$120, Vitinho R$20 --
+  // R$112 a menos de comissao numa folha que a tela mostrava certa. Congelar assim
+  // gravaria um numero que ninguem consegue reproduzir no painel.
+  const funcFN = await get('funcionarios', 'select=id,nome,ativo').catch(() => []);
+  let contasCad = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const lote = ids.slice(i, i + 100);
+    contasCad = contasCad.concat(await get('contas',
+      `select=venda_id,cad_id:raw->cadastrador->>id,cad_nome:raw->cadastrador->>nome&venda_id=in.(${lote.join(',')})`
+    ).catch(() => []));
+  }
+  const cadMap = {};
+  contasCad.forEach(c => {
+    if (c.venda_id && c.cad_nome && !cadMap[c.venda_id])
+      cadMap[c.venda_id] = { id: parseInt(c.cad_id) || null, nome: c.cad_nome };
+  });
+
   return {
-    vendas: vendas.map(v => ({ ...v, _produtos: porVenda[v.id] || [], _pagamentos: [], _trocas: [] })),
-    custos, funcConfig,
+    vendas: vendas.map(v => ({ ...v, _produtos: porVenda[v.id] || [], _pagamentos: [], _trocas: [],
+                               _cadastrador: cadMap[v.id] || null })),
+    custos, funcConfig, funcFN,
   };
 }
 
@@ -149,6 +172,7 @@ async function carregarMes(mes) {
     _custosCache = ${JSON.stringify(dados.custos)};
     _funcConfigCache = ${JSON.stringify(
       Object.fromEntries((dados.funcConfig || []).map(f => [f.id, f])))};
+    funcionariosFN = ${JSON.stringify(dados.funcFN || [])};
     currentStore = 'ambas';
     currentPeriod = '${MES}';
   `, ctx);
