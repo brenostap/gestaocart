@@ -22,6 +22,12 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - **Teste do fechamento** (sem browser, sem rede): `node test/fechamento.test.js`. Carrega os
   `js/*.js` reais com stubs e prova que tela e exportação saem do **mesmo** `fechamentoEquipe()`.
   Rodar depois de mexer em comissão, meta, folha ou `calc()`.
+- **Congelar o mês (fechamento pago)**: `node scripts/folha-snapshot.js YYYY-MM` confere e
+  `--gravar` escreve em `folha_mensal`, uma linha por pessoa. Precisa de `SUPABASE_SERVICE_ROLE_KEY`
+  no ambiente (nunca no repo, e **nunca num arquivo na raiz** — a Netlify publica a raiz).
+  Ele carrega os `js/*.js` REAIS e chama `fechamentoEquipe()`, então é também a única forma de
+  perguntar "de quem é esta venda?" fora do browser. ⚠️ Em 01/set/2026 `folha_mensal` ainda estava
+  **vazia**: nenhum mês foi congelado, e o painel recalcula o passado com as regras de hoje.
 - **Teste do registro da venda**: `node test/registro-venda.test.js`. Prova que **a obs manda** e
   que os campos estruturados da FoneNinja (vendedor/origem/cadastrador) só tapam buraco — e que
   atendente no campo vendedor **nunca** vira vendedor. Rodar depois de mexer em `getVendaInfo()`.
@@ -152,8 +158,8 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     dono concluiu 14 vendas pendentes de 03 a 29/08 e só as 4 da última semana entraram.
   - **No dia do fechamento, use o RUN FUNDO**: Actions → *Sync FoneNinja → Supabase* →
     **Run workflow** com **`resync_produtos = true`**. Ele abre a janela longa (~45 dias) e leva
-    ~7min. ⚠️ **O rótulo do input mente**: fala em "produtos/acessórios", mas o mesmo `true`
-    é o que abre a janela longa **das vendas** — que é o efeito que importa no fechamento.
+    ~7min. O rótulo do input já diz isso certo ("abre a janela longa das VENDAS e dos produtos");
+    até 01/set/2026 ele falava só em "produtos/acessórios" e escondia o efeito que importa.
     Rodar com `false` (o padrão) é a rodada normal, e não alcança o mês inteiro.
   - Por que não roda fundo sempre: ~7min × 24 × 30 = 5.000min/mês e o plano free dá 2.000.
     O `sync.js` já resolve isso — a rodada das 05h UTC abre a janela longa 1×/dia.
@@ -173,9 +179,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   `auth_all` como já foi: `custos`, `metas_mensais`, `funcionarios_config` e `tabela_precos` pedem
   `eh_socio()`; `bancada`, `estoque_correcoes` e `estoque_estado` pedem `pode_operar()` (sócio ou
   bancada), e **apagar de `bancada` é só do sócio**. Detalhe em `docs/PERFIS-E-ACESSO.md`.
+  - ⚠️ **`metas_mensais` é tabela MORTA — não cadastre meta ali achando que muda algo.** Ela tem
+    uma única linha (2026-04) e **nenhum `js/*.js` lê ela**: as faixas da meta coletiva e da meta
+    individual vivem em `metasColetivas()` e `metaAtFaixas()` no `core.js`, com vigência por mês.
+    Medido em 01/set/2026. Mudar meta = editar o `core.js` e criar um degrau novo, nunca retroagir.
 - **`reparos`** — serviços de bancada por aparelho, carregados das notas das assistências por
-  `node scripts/reparos.js` (único **script** do repo que escreve no Supabase; usa `service_role` do
-  ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
+  `node scripts/reparos.js` (um dos dois **scripts** do repo que escrevem no Supabase — o outro é
+  `scripts/folha-snapshot.js`; ambos usam `service_role` do ambiente, nunca do repo). É **camada analítica, não contábil**: o P&L continua lendo `custos`,
   somar as duas conta o mesmo dinheiro duas vezes. Ler `docs/REPAROS-ATRIBUICAO.md`.
   - As notas ficam em `RR/` e `notas/`, **ambas no `.gitignore`** — têm IMEI de cliente e preço de
     fornecedor, e a Netlify publica a raiz do repo.
@@ -306,6 +316,14 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     precisa valer também pro RLS e pro sync, e mapa de gente duplicado já custou R$1.000 na folha
     em jul/2026. `vendas.vendedor_key`/`atendente_key` são preenchidas por **trigger no banco**
     (`resolve_venda_keys`), então valem pra qualquer caminho de escrita.
+    - ⚠️ **Mas o parser do trigger é MAIS FRACO que o do painel — não confira comissão por essas
+      colunas.** Ele não resolve `Atendente. Anne` (ponto), `Atendente; Vitinho` (ponto e vírgula)
+      nem `atendendo - mel`, que o `getVendaInfo()`/`parseObs()` (equipe.js) resolvem sem esforço.
+      Em ago/2026 eram **16 vendas** com `atendente_key` NULL que a tela atribui normalmente. Quem
+      lê a coluna acha venda órfã que não existe: aconteceu em 01/set/2026, e o número errado
+      ("R$1.025 de acessório sem dono") só não foi pra frente porque o dono desconfiou.
+      **Pra saber de quem é a venda, rode o `getVendaInfo()` real** (`scripts/folha-snapshot.js`
+      mostra como carregar os `js/*.js` num vm), nunca a coluna.
     - **Ter chave ≠ receber comissão.** Sócios e as IAs (`maju` da Cart, `duda` da Urban) têm
       chave e não entram em `VO_KEYS`/`AT_KEYS`. Quem paga continua sendo o `core.js`.
     - `NULL` é resposta legítima: nome de loja no campo de gente, sobra de parsing, ou não
