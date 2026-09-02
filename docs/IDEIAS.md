@@ -467,6 +467,13 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 Mapa de quem é quem e como conversa vira venda: **`docs/IAS-E-ESPECIALISTAS.md`** (ler primeiro).
 Como medir qualidade de lead e da IA: **`docs/PLANO-QUALIDADE-IA.md`**.
 Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026.md` · `scripts/chatwoot.js` · `scripts/maju/` · agente `analista-conversas`.
+- 💡 ⭐⭐⭐ **O portão da transferência, pelas duas pontas (01/set/2026).** O Dudu mediu o outro lado
+  da ideia abaixo: lead que diz *"bora agendar"* **sem** dar dia e hora não vira nada, porque a
+  transferência só dispara com dia+hora+nome fechados (ADR 0011 dele) — **7 em 30 no WhatsApp, 9 em
+  30 no Instagram**. Junto com as 438 nossas em que **o dia e a hora existem** e mesmo assim ninguém
+  foi chamado, a pergunta deixa de ser "o portão é exigente demais?" e vira **"o portão está
+  funcionando?"**. Próximo passo pedido a ele: rodar nos 30 dias cheios, por loja e canal.
+  Ver `docs/RESPOSTA-DUDU-LABELS-V2.md` §4.
 - 🔨 ⭐⭐⭐ **A IA promete um humano e não chama.** Cart, jul+ago, conversas que chegaram a preço:
   **1.201 com compromisso assumido e ninguém avisado** (~600/mês) — 734 em que ela disse *"um
   especialista vai confirmar"*, **438 em que marcou dia e hora**, 166 em que disse que separou o

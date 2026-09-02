@@ -8,6 +8,27 @@ está como número aqui foi medido, não estimado — o método está junto de c
 
 ---
 
+## ⚡ ESTADO EM 01/SET/2026 — leia antes do corpo do documento
+
+⚠️ **O Dudu verificou isto e a parte central caiu.** Resposta e o que sobrou de pé:
+**`docs/RESPOSTA-DUDU-LABELS-V2.md`**. O que muda:
+
+| aqui neste doc | depois da verificação |
+|---|---|
+| *"a IA já classifica no cartão — parsing, conferível, custo zero"* | ❌ **O cartão é string que o modelo escreveu**, parseada por regex no `setDados` do n8n. **Só nome e telefone são apurados** (vêm do `BuscaLead`). O cartão já mentiu caro: retorno de upgrade **inventado em 39%** das conversas, cor do 16e errada em 52 sessões, cabeçalho errado por 10 semanas. Regex em cima de texto do modelo **não vira fato**. |
+| famílias `etapa:` `q:` `perda:` **com cor** | ❌ **`:` não passa.** O model `Label` valida `\A[\p{L}\p{N}]+[\p{L}\p{N}_-]+\z` e faz `downcase` — e é justamente esse model que carrega `color`, `description` e `show_on_sidebar`. **Separador é `_`.** |
+| **contrato de escrita** (Nós A, B, C no n8n) | ❌ Cai por reprocessabilidade: recalcular uma view é uma query, recalcular 18.432 conversas é um projeto. **A verdade fica nos `tool_calls` no Supabase; a label no Chatwoot é espelho pro humano.** Nosso pedido virou **de leitura** (uma view + `select`). |
+| `q:deu-data` com **8,7× de transferência** | ⚠️ Contaminado: a transferência **só dispara** com dia, hora e nome fechados (ADR 0011 do Dudu), então o número mede o próprio portão. Os 14,9% × 3,4% de **conversão** seguem de pé, mais fracos. |
+| *"conversão ~1%"* · *"`resolutions_count` = 0 nas duas"* | ⚠️ Atalhos. Conversão varia por canal (WhatsApp 3–5%, Instagram 1–1,6%); o `resolutions_count` vale 30 dias — a Urban resolveu 4 vezes em mai–jun. |
+
+✅ **O que ele confirmou por caminho independente:** `lead-qualificado` é cópia da transferência
+(20/20, mediana 0s) · Urban sem label nenhuma · `custom_attributes` vazio (e também nos **contatos**,
+que eu não tinha olhado) · a amostra é representativa.
+
+**O maior número da troca não é de nenhum dos dois documentos:** o lead que sinaliza visita sem dar
+dia e hora **não vira nada** — 7 em 30 no WhatsApp, 9 em 30 no Instagram. Não é etiqueta, é
+vazamento. Ver §4 da resposta.
+
 ## 1. O que a gente quer conseguir responder
 
 Hoje o Chatwoot guarda **conversa**, e o painel guarda **venda**. Falta a camada do meio: *o que
