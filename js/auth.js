@@ -145,20 +145,43 @@ function sessaoExpirou(){
   if(btn){ btn.disabled=false; btn.textContent='Entrar'; }
 }
 
+// ⚠️ DUAS ARMADILHAS DO POSTGREST NUM LUGAR SO. Medidas em 02/set/2026.
+//
+// 1. ELE CORTA EM 1.000 LINHAS E O `limit=` NAO MUDA ISSO. O Supabase configura
+//    db-max-rows=1000 no servidor; pedir limit=2000 ou 5000 devolve
+//    `content-range: 0-999/1992` do mesmo jeito. Ate hoje isto era um
+//    console.warn que ninguem lia -- e o painel carregava 1.000 das 1.992
+//    vendas dos ultimos 6 meses. Setembro, agosto e julho vinham inteiros;
+//    JUNHO vinha pela metade e maio/abril nao vinham. Quem escolhesse um mes
+//    antigo via faturamento e lucro MENORES que a verdade, sem aviso na tela.
+//
+// 2. `Prefer: count=exact` MAIS QUE DOBRA O TEMPO. Ele obriga um COUNT completo
+//    a cada request: 363ms contra 166ms no mesmo lote de venda_produtos. Estava
+//    em TODAS as chamadas, so pra alimentar um aviso de truncagem.
+//
+// Por isso a paginacao aqui NAO usa count: pagina cheia (1.000) significa "pode
+// ter mais", pagina curta significa "acabou". Custa um request extra quando o
+// total e multiplo exato de 1.000 -- barato perto de contar tudo toda vez.
+//
+// `limit` continua sendo o TETO de seguranca: existe pra uma query mal filtrada
+// nao arrastar a tabela inteira, e ele avisa quando bate.
+const SB_PAGINA = 1000;   // db-max-rows do projeto
 async function sbGet(table, params='', limit=2000){
   const token=await sbAuthToken();
-  const url=`${SB_URL}/rest/v1/${table}?${params}&limit=${limit}`;
-  const r=await fetch(url,{headers:{'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json','Prefer':'count=exact'}});
-  if(r.status===401){ sessaoExpirou(); throw new Error('Sessão expirada'); }
-  if(!r.ok) throw new Error(`Supabase ${table}: ${r.status}`);
-  const json=await r.json();
-  // count=exact -> Content-Range "inicio-fim/total". Se o total passar do limit, a
-  // resposta veio truncada em silencio (o dashboard subconta faturamento/lucro). Avisa.
-  const range=r.headers.get('content-range');
-  const total=range&&range.includes('/')?parseInt(range.split('/')[1],10):null;
-  if(total!=null&&Array.isArray(json)&&total>json.length){
-    console.warn(`sbGet(${table}): ${json.length} de ${total} linhas — limite de ${limit} atingido, dados TRUNCADOS. Aumente o limit ou pagine.`);
+  const H={'apikey':SB_KEY,'Authorization':'Bearer '+token,'Accept':'application/json'};
+  let json=[];
+  while(json.length < limit){
+    const de=json.length, ate=Math.min(limit, de+SB_PAGINA)-1;
+    const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,
+      {headers:{...H,'Range-Unit':'items','Range':`${de}-${ate}`}});
+    if(r.status===401){ sessaoExpirou(); throw new Error('Sessão expirada'); }
+    if(!r.ok && r.status!==206) throw new Error(`Supabase ${table}: ${r.status}`);
+    const p=await r.json();
+    if(!Array.isArray(p)) return p;          // erro/objeto: devolve como veio
+    json=json.concat(p);
+    if(p.length < ate-de+1) return json;      // pagina curta = acabou
   }
+  console.warn(`sbGet(${table}): parei no teto de ${limit} linhas. Pode haver mais — aumente o limit.`);
   return json;
 }
 

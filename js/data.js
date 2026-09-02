@@ -12,7 +12,7 @@
 // uma tela de erro nao e conserto.
 // ---------------------------------------------------------------------------
 async function sbEmLotes(ids, buscaLote, opts = {}){
-  const tam = opts.tam || 100, paralelo = opts.paralelo || 6;
+  const tam = opts.tam || 100, paralelo = opts.paralelo || 8;
   const lotes = [];
   for(let i = 0; i < ids.length; i += tam) lotes.push(ids.slice(i, i + tam));
   const saida = [];
