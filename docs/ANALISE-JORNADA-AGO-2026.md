@@ -67,6 +67,27 @@ depende mais do Instagram, que casa por @ e nome. A base inteira já mostrava is
 ⚠️ **Entre 149 e 251 vendas do mês não têm lead.** Balcão, indicação, cliente que voltou — ou o
 rastro se perdeu. É a maior fatia cega, e ela vale de R$534 mil a R$1,03 milhão.
 
+### Quantas vendas dá pra puxar dos leads, afinal
+
+A resposta é uma escada, e cada degrau tem uma certeza diferente:
+
+| nível | vendas | % das 384 | valor |
+|---|---:|---:|---:|
+| **as duas fontes curadas concordam** | **80** | 21% | R$ 318.040 |
+| pelo menos uma confirmou (a união) | **174** | **45%** | R$ 773.436 |
+| algum lead reivindica (inclui write-back) | 235 | 61% | — |
+| **nenhum lead, em fonte nenhuma** | **149** | 39% | R$ 534.667 |
+
+⚠️ **As duas fontes curadas concordam em só 60% dos casos.** O `match_resultado` do Dudu confirma
+133, o `venda_origem` do painel confirma 121, e a interseção é **80**. Sobram 53 que o Dudu confirmou
+e o painel não tem, e 41 que o painel tem e o Dudu não confirmou.
+
+Não é uma delas estar errada — são cascatas diferentes rodadas em momentos diferentes. Mas significa
+que **"venda atribuída" não é uma coisa só nesta casa**, e qualquer relatório precisa dizer de qual
+está falando. Reconciliar as duas é trabalho pequeno e devolve ~40 vendas de cobertura.
+
+---
+
 ## 2. De onde vieram — as 121 vendas confirmadas
 
 | canal | origem | vendas | valor |
