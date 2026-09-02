@@ -153,8 +153,15 @@ async function carregarMes(mes) {
   });
 
   return {
+    // ⚠️ `cliente` ANINHADO, igual data.js:137 faz. dadosVenda() em render.js le
+    // `x.cliente.nome` -- sem isto o nome do cliente sai VAZIO em linhasVo/linhasAt,
+    // que e o que alimenta a relacao por pessoa do .xlsx e do PDF. Nao muda numero
+    // nenhum (por isso passou despercebido ate 02/set/2026), mas transforma o
+    // documento de prova numa lista de tracinhos.
     vendas: vendas.map(v => ({ ...v, _produtos: porVenda[v.id] || [], _pagamentos: [], _trocas: [],
-                               _cadastrador: cadMap[v.id] || null })),
+                               _cadastrador: cadMap[v.id] || null,
+                               cliente: { nome: v.cliente_nome, telefone: v.cliente_tel,
+                                          instagram: v.cliente_insta, cidade: v.cliente_cidade } })),
     custos, funcConfig, funcFN,
   };
 }
