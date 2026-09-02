@@ -316,6 +316,18 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     precisa valer também pro RLS e pro sync, e mapa de gente duplicado já custou R$1.000 na folha
     em jul/2026. `vendas.vendedor_key`/`atendente_key` são preenchidas por **trigger no banco**
     (`resolve_venda_keys`), então valem pra qualquer caminho de escrita.
+    - ✅ **Desde 02/set/2026 o trigger faz os MESMOS DOIS FALLBACKS do painel**: obs sem vendedor
+      cai no campo `vendedor_nome` (só se for VO de verdade), obs sem atendente cai no
+      `cadastrador_id`, respeitando `at_key_vigente()`. Antes disso, venda **sem obs** ficava com
+      as duas chaves nulas e **sumia da lista "Minhas vendas" da pessoa, embora ela recebesse por
+      ela** — 13 vendas em ago/2026, a maior de R$4.850 da Mel. Total certo, lista errada, que é
+      pior: a pessoa soma o que vê e não bate. Migration
+      `supabase/migrations/20260902_resolve_venda_keys_com_fallback.sql`.
+      - ⚠️ `eh_vo_key()`/`eh_at_key()` são **espelho de `VO_KEYS`/`AT_KEYS`+`VO_ATENDE_KEYS`** do
+        `core.js`. Mexeu num, mexe no outro — `node test/chaves-espelho.test.js` compara os dois.
+      - ⚠️ O trigger lê `vendedor_obs`/`atendente_obs`, que o **sync** preenche. Obs de mês velho
+        mal parseada pelo sync antigo **não se conserta sozinha**: só quando a linha for re-lida da
+        FoneNinja. Em 02/set sobravam 6 assim em mai/jun, fora da janela de 45 dias.
     - ⚠️ **Mas o parser do trigger é MAIS FRACO que o do painel — não confira comissão por essas
       colunas.** Ele não resolve `Atendente. Anne` (ponto), `Atendente; Vitinho` (ponto e vírgula)
       nem `atendendo - mel`, que o `getVendaInfo()`/`parseObs()` (equipe.js) resolvem sem esforço.
