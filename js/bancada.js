@@ -556,6 +556,73 @@ async function bncDesfazerBaixa(id){
   if(currentTab === 'bancada') renderContent();
 }
 
+// EXCLUIR A IDA -- para registro feito errado, nao para "ja resolveu".
+//
+// ⚠️ APAGAR AQUI ERA SO DO SOCIO, DE PROPOSITO. A linha e o registro de que o
+// aparelho saiu da loja, e some-la calada e exatamente o buraco que a tabela
+// nasceu pra fechar: em 12/ago/2026 eram 43 aparelhos e R$87 mil marcados
+// `available` estando fisicamente na assistencia. O dono liberou pro papel
+// bancada em 02/set/2026 -- quem registra errado e o Vitinho, e e ele quem
+// percebe na hora; mandar o erro pro dono resolver deixa a lista errada no
+// meio-tempo, que e pior.
+//
+// ⚠️ `valor_cobrado` NAO serve de trava: esta nulo nas 187 linhas. O dinheiro
+// mora em `reparos`, casado por contencao. Por isso o aviso diz quando existe
+// nota casada -- apagar a ida nao apaga a nota, ela reaparece na Conferencia
+// como "na nota sem registro". Isso e o certo: fica visivel, nao some.
+//
+// ⚠️ O AVISO DE NOTA SO APARECE PRO SOCIO. `reparos` tem policy `reparos_socio`
+// e `_reparosCache` nem e carregado pro papel bancada (bncCarregarReparos()
+// checa podeVerMargem()) -- entao pro Vitinho a lista de notas vem sempre vazia
+// e o texto sai sem essa parte. Nao e bug: ele nao pode ver o que a assistencia
+// cobra. Quem confere a nota depois e a Conferencia, que e do socio.
+function bncNotasDaIda(l){
+  if(!l || !l.apple_id) return [];
+  return (_reparosCache || []).filter(r =>
+    String(r.apple_id) === String(l.apple_id) &&
+    r.fornecedor === l.fornecedor &&
+    r.data_servico >= l.saiu_em &&
+    (!l.voltou_em || r.data_servico <= l.voltou_em));
+}
+
+async function bncExcluir(id){
+  const l = (_bancadaCache || []).find(x => String(x.id) === String(id));
+  if(!l) return;
+  const notas = bncNotasDaIda(l);
+  const oque = (l.modelo_txt || l.etiqueta || 'aparelho')
+             + (l.imei4 && l.imei4 !== '0000' ? ' · ' + l.imei4 : '');
+  const aviso = notas.length
+    ? `\n\n⚠️ Esta ida tem ${notas.length} serviço(s) na nota da ${bncFornLabel(l.fornecedor)}.`
+      + ' Apagar aqui NÃO apaga a nota — ela vai aparecer na Conferência como'
+      + ' "na nota sem registro".'
+    : '';
+  const texto = `Excluir de vez o registro de ${oque}?\n\n`
+    + `Saiu em ${bncFmtData(l.saiu_em)}${l.voltou_em ? ', voltou em ' + bncFmtData(l.voltou_em) : ''}`
+    + ` · ${bncFornCompleto(l.fornecedor)}.\n\n`
+    + 'Isto some com o histórico desta ida e não dá pra desfazer. Use só quando'
+    + ' o registro foi feito por engano.' + aviso;
+  if(typeof confirm === 'function' && !confirm(texto)) return;
+  try{
+    const r = await fetch(SB_URL + '/rest/v1/bancada?id=eq.' + id,
+                          { method:'DELETE', headers: bncHeaders() });
+    if(!r.ok && r.status !== 204){
+      const txt = await r.text().catch(() => '');
+      throw new Error('HTTP ' + r.status + (txt ? ' — ' + txt.slice(0,180) : ''));
+    }
+    _bancadaCache = (_bancadaCache || []).filter(x => String(x.id) !== String(id));
+    _bncErro = '';
+  }catch(e){
+    _bncErro = 'Não consegui excluir: ' + e.message;
+  }
+  if(currentTab === 'bancada') renderContent();
+}
+// Espelho de `pode_operar()` no banco -- a MESMA regra que guarda
+// estoque_correcoes e estoque_estado. Mudou uma, muda a outra: senao a tela
+// oferece o botao e a API recusa (CLAUDE.md).
+function bncPodeExcluir(){
+  return typeof podeCorrigirEstoque === 'function' ? podeCorrigirEstoque() : false;
+}
+
 // O valor vem na nota de segunda, sempre DEPOIS do aparelho voltar -- por isso
 // e editavel nas duas abas, e nao um campo do formulario de saida.
 async function bncSalvarValor(id, el){
@@ -955,7 +1022,7 @@ function bncListaHtml(){
 
 function bncCorpoModal(){
   const chipsForn = ['RR','ACCESS']
-    .map(f => UI.chip(bncFornLabel(f), _bncForn === f, `bncSetForn('${f}')`)).join('');
+    .map(f => UI.chip(bncFornCompleto(f), _bncForn === f, `bncSetForn('${f}')`)).join('');
 
   const manual = _bncManual ? `
     <div class="bnc-manual">
@@ -1108,14 +1175,37 @@ function limparBancadaFiltro(){
   if(currentTab === 'bancada') renderContent();
 }
 
-// O rotulo do fornecedor estava escrito na mao em 5 lugares, cada um com o seu
-// ternario `=== 'RR' ? ... : 'Access'` -- o que significa que uma assistencia
-// nova apareceria como "Access" em todos eles, calada. Aqui e o unico lugar.
+// AS ASSISTENCIAS, E O NOME DE QUEM ATENDE EM CADA UMA.
+//
+// ⚠️ NA LOJA ELAS TEM DOIS NOMES, E OS DOIS SAO USADOS. O Vitinho fala "esta com
+// o Thiago" e "mandei pro Lucas"; o sistema so conhecia "Access" e "RR". Em
+// 02/set/2026 ele pediu "um filtro pra saber quais pecas estao no Thiago e quais
+// na RR" -- e eu procurei "Thiago" no banco inteiro, nao achei em lugar nenhum,
+// e quase abri uma terceira assistencia que nao existe. Thiago e o dono da
+// Access; Lucas, o da RR / Legacy.
+//
+// Por isso o dono nao e enfeite: ele entra na BUSCA e nos chips. Quem digita
+// "thiago" tem que achar os aparelhos da Access, senao a tela responde "nada
+// encontrado" pra uma pergunta que tem resposta.
+const BNC_ASSIST = {
+  RR:     { label:'RR / Legacy', dono:'Lucas'  },
+  ACCESS: { label:'Access',      dono:'Thiago' },
+};
+// O rotulo estava escrito na mao em 5 lugares, cada um com o seu ternario
+// `=== 'RR' ? ... : 'Access'` -- assistencia nova apareceria como "Access" em
+// todos eles, calada. Aqui e o unico lugar.
 function bncFornLabel(f){
   const k = String(f || '').toUpperCase();
-  if(k === 'RR') return 'RR / Legacy';
-  if(k === 'ACCESS') return 'Access';
-  return f || '—';
+  return (BNC_ASSIST[k] && BNC_ASSIST[k].label) || f || '—';
+}
+function bncFornDono(f){
+  const k = String(f || '').toUpperCase();
+  return (BNC_ASSIST[k] && BNC_ASSIST[k].dono) || '';
+}
+// Como ela aparece pra quem escolhe: os DOIS nomes, porque os dois sao ditos.
+function bncFornCompleto(f){
+  const d = bncFornDono(f);
+  return d ? `${bncFornLabel(f)} · ${d}` : bncFornLabel(f);
 }
 // As assistencias QUE EXISTEM no livro, na ordem de quem tem mais aparelho fora.
 function bncFornecedores(){
@@ -1151,7 +1241,7 @@ function bncFiltrar(linhas){
     // O nome do cliente entra na busca porque e assim que a pergunta chega:
     // "cade o aparelho da Fernanda?" -- ninguem liga com o IMEI na mao.
     const txt = [l.modelo_txt, l.etiqueta, l.servico, l.obs, l.cliente_nome,
-                 bncFornLabel(l.fornecedor)].join(' ').toLowerCase();
+                 bncFornCompleto(l.fornecedor)].join(' ').toLowerCase();
     return txt.includes(q)
         || (dig.length >= 2 && String(l.imei4 || '').includes(dig))
         || (dig.length >= 2 && String(l.imei_1 || '').includes(dig))
@@ -1183,7 +1273,7 @@ function bncChipsForn(){
   if(fs.length < 2) return '';   // uma assistencia so: o filtro nao decide nada
   return `<div class="c-toolbar bnc-forn-chips">
     ${UI.chip('Todas', !_bncForFiltro, "setBancadaForn('')")}
-    ${fs.map(x => UI.chip(`${bncFornLabel(x.f)} (${x.fora})`,
+    ${fs.map(x => UI.chip(`${bncFornCompleto(x.f)} (${x.fora})`,
         _bncForFiltro === x.f, `setBancadaForn('${x.f}')`)).join('')}
   </div>`;
 }
@@ -1231,7 +1321,7 @@ function bncTextoWhatsApp(){
   const blocos = Object.keys(porForn)
     .sort((a,b) => porForn[b].length - porForn[a].length
                 || bncFornLabel(a).localeCompare(bncFornLabel(b),'pt-BR'))
-    .map(f => `\n${bncFornLabel(f)} (${porForn[f].length}):\n` + porForn[f].map(linha).join('\n'));
+    .map(f => `\n${bncFornCompleto(f)} (${porForn[f].length}):\n` + porForn[f].map(linha).join('\n'));
 
   return '🔧 NA ASSISTÊNCIA — ' + hoje + '\n'
        + 'Não vender, estão fora da loja (' + doEstoque.length + '):\n'
@@ -1532,7 +1622,9 @@ function bncTabelaAbertas(abertas){
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Dias" data-campo="dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
       ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
-      <td data-rot="" data-campo="acao" class="num">${UI.btn('Voltou', {onclick:`bncBaixa(${l.id})`, sm:true})}</td>
+      <td data-rot="" data-campo="acao" class="num">${UI.btn('Voltou', {onclick:`bncBaixa(${l.id})`, sm:true})}${
+        bncPodeExcluir() ? UI.btn('✕', {onclick:`bncExcluir(${l.id})`, variante:'sutil', sm:true,
+          titulo:'Excluir este registro — só para saída lançada por engano'}) : ''}</td>
     </tr>`;
   }).join('');
 
@@ -1584,7 +1676,9 @@ function bncTabelaFechadas(){
       <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
       <td data-rot="Ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
       ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
-      <td data-rot="" data-campo="acao" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}</td>
+      <td data-rot="" data-campo="acao" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}${
+        bncPodeExcluir() ? UI.btn('✕', {onclick:`bncExcluir(${l.id})`, variante:'sutil', sm:true,
+          titulo:'Excluir este registro — só para saída lançada por engano'}) : ''}</td>
     </tr>`;
   }).join('');
 

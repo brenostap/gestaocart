@@ -31,8 +31,13 @@ const ctx = {
 };
 ctx.globalThis = ctx; vm.createContext(ctx);
 
+// ⚠️ `shell.js` entrou em 02/set/2026 porque `bncPodeExcluir()` é espelho de
+// `podeCorrigirEstoque()`, que mora lá. Sem ele a função vinha `undefined`, o
+// teste dizia "ninguém pode excluir" e passaria verde por não existir a regra —
+// exatamente o tipo de verde vazio que este arquivo existe pra evitar. Os stubs
+// abaixo são carregados DEPOIS e continuam mandando no que precisa ser fingido.
 for (const f of ['config.js','equipe.js','core.js','render.js','custos.js','estoque.js',
-                 'ui.js','bancada.js'])
+                 'ui.js','bancada.js','shell.js'])
   vm.runInContext(fs.readFileSync(path.join(ROOT,'js',f),'utf8'), ctx, {filename:f});
 
 vm.runInContext(`
@@ -157,6 +162,62 @@ ok('linha do que está fora ganha a classe na-bancada',
 ok('KPI "Na assistência" mostra 2', /Na assistência[\s\S]{0,200}>2</.test(est));
 ok('o que voltou NÃO ganha selo', !/SP1030[\s\S]{0,200}bnc-selo/.test(est));
 
+console.log('\nexcluir uma ida — a ação que não desfaz\n');
+// ⚠️ Apagar da bancada era SÓ DO SÓCIO, de propósito: a linha é o registro de
+// que o aparelho saiu da loja, e sumir com ela calada é o buraco que a tabela
+// nasceu pra fechar (43 aparelhos "available" estando fora, ago/2026). O dono
+// liberou pro papel bancada em 02/set/2026 — quem registra errado é o Vitinho e
+// é ele quem percebe na hora. O espelho no banco é `pode_operar()`.
+eq('sócio pode excluir',   R("(function(){ papelAtual = () => 'socio';   return bncPodeExcluir(); })()"), true);
+eq('bancada pode excluir', R("(function(){ papelAtual = () => 'bancada'; return bncPodeExcluir(); })()"), true);
+eq('comercial NÃO pode',   R("(function(){ papelAtual = () => 'comercial'; return bncPodeExcluir(); })()"), false);
+R("papelAtual = () => 'socio';");
+
+// ⚠️ O botão só aparece pra quem a API aceita. Oferecer e a API recusar é a
+// armadilha que o CLAUDE.md registra: a tela oferece o botão e volta 403.
+{
+  const comBotao = R("(function(){ papelAtual = () => 'socio'; _bncAba='fechadas'; return renderBancada(); })()");
+  ok('a aba Voltaram mostra o ✕ pra quem pode', /bncExcluir\(/.test(comBotao));
+  const semBotao = R("(function(){ papelAtual = () => 'comercial'; _bncAba='fechadas'; return renderBancada(); })()");
+  ok('e não mostra pra quem não pode', !/bncExcluir\(/.test(semBotao));
+  R("papelAtual = () => 'socio'; _bncAba='abertas';");
+}
+
+console.log('\nos dois nomes de cada assistência\n');
+// ⚠️ NA LOJA CADA ASSISTENCIA TEM DOIS NOMES E OS DOIS SAO USADOS. O Vitinho
+// fala "está com o Thiago" e "mandei pro Lucas"; o sistema só conhecia "Access"
+// e "RR". Em 02/set/2026 ele pediu um filtro "pra saber o que está no Thiago" e
+// eu procurei Thiago no banco inteiro, não achei em lugar nenhum, e quase abri
+// uma terceira assistência que não existe. Thiago é o dono da Access, Lucas o
+// da RR. Quem digita o nome do dono TEM que achar os aparelhos.
+eq('Access é o Thiago',        R("bncFornDono('ACCESS')"), 'Thiago');
+eq('RR / Legacy é o Lucas',    R("bncFornDono('RR')"),     'Lucas');
+eq('e os dois nomes aparecem juntos', R("bncFornCompleto('ACCESS')"), 'Access · Thiago');
+eq('assistência que não conhecemos não inventa dono', R("bncFornDono('XPTO')"), '');
+eq('e ainda assim tem rótulo',  R("bncFornLabel('XPTO')"), 'XPTO');
+
+// A busca da tela: digitar o nome do dono acha os aparelhos dele.
+R("_bncFiltro = 'thiago'; _bncForFiltro = '';");
+eq('buscar "thiago" acha os aparelhos da Access',
+   R("bncFiltrar(_bancadaCache).map(l => l.fornecedor)"), ['ACCESS','ACCESS']);
+R("_bncFiltro = 'lucas';");
+eq('buscar "lucas" acha os da RR',
+   R("bncFiltrar(_bancadaCache).map(l => l.fornecedor)"), ['RR','RR']);
+R("_bncFiltro = 'access';");
+eq('e o nome da loja continua funcionando',
+   R("bncFiltrar(_bancadaCache).length"), 2);
+R("_bncFiltro = '';");
+
+// O filtro por assistência é outra pergunta que a busca por texto: ele não
+// depende de digitar nada certo.
+R("_bncForFiltro = 'RR';");
+eq('filtro por assistência traz só a dela', R("bncFiltrar(_bancadaCache).length"), 2);
+// Ordenado por quem tem MAIS aparelho fora -- na fixture a Access tem 2 e a RR
+// 1, ao contrario da loja de verdade. E o certo: a ordem vem do dado.
+eq('e o chip conta quantos estão FORA, não o histórico',
+   R("bncFornecedores().map(x => [x.f, x.fora])"), [['ACCESS',2],['RR',1]]);
+R("_bncForFiltro = '';");
+
 console.log('\nexportar pra WhatsApp — a lista de "não vender"\n');
 
 const wa = R('bncTextoWhatsApp()');
@@ -167,7 +228,11 @@ ok('a palavra iPhone não aparece', !/iPhone/i.test(wa));
 ok('traz os 4 últimos do IMEI, sem a palavra "final"',
    wa.includes('8580') && wa.includes('3324') && !/final/i.test(wa));
 // quem cobra, cobra uma assistência de cada vez
-ok('separa por fornecedor', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test(wa));
+// ⚠️ O bloco leva o NOME DO DONO junto: quem cobra, cobra de uma pessoa. O
+// Vitinho diz "está com o Thiago", e a lista colada no grupo tem que falar a
+// mesma língua que ele.
+ok('separa por assistência, com o nome do dono',
+   /RR \/ Legacy · Lucas \(1\)/.test(wa) && /Access · Thiago \(1\)/.test(wa));
 // ⚠️ A ORDEM DOS BLOCOS É REGRA, NÃO UMA DUPLA FIXA. Até 02/set/2026 os blocos
 // eram `[['RR / Legacy','RR'], ['Access','ACCESS']]` escritos na mão, e este
 // teste fixava "RR antes de Access" — o que passava verde pelo motivo errado,
@@ -186,13 +251,15 @@ ok('separa por fornecedor', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test
   R('_bancadaCache = ' + JSON.stringify(antes));
   ok('quem tem mais aparelho fora vem primeiro',
      t.indexOf('RR / Legacy') < t.indexOf('Access'));
+  ok('e o dono aparece no bloco', /Access · Thiago/.test(t));
   // ⚠️ ESTE É O PONTO: assistência que o código nunca viu ganha bloco COM NOME.
   ok('assistência desconhecida ganha bloco próprio, com o nome dela',
      /THIAGO \(1\)/.test(t) && !/Outros/.test(t));
   ok('e o empate desempata pelo nome, não pela ordem do banco',
      t.indexOf('Access (1)') < t.indexOf('THIAGO (1)'));
 })();
-ok('com 1 e 1, a ordem é estável', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test(wa));
+ok('com 1 e 1, a ordem é estável',
+   /RR \/ Legacy · Lucas \(1\)/.test(wa) && /Access · Thiago \(1\)/.test(wa));
 // e DENTRO do bloco a ordem continua sendo a da tela (saiu_em crescente)
 const waOrdem = (function(){
   const antes = R('_bancadaCache');

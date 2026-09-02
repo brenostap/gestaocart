@@ -15,6 +15,46 @@ que ele começou em 11/ago e do cruzamento com `estoque`/`reparos` no Supabase.
 > (depois do fato). Aqui é como o *aparelho* é acompanhado enquanto está fora (durante o fato).
 > Um mede dinheiro, o outro mede tempo e paradeiro.
 
+
+## As duas assistências têm dois nomes cada (02/set/2026)
+
+| No sistema | Como aparece | Quem atende |
+|---|---|---|
+| `RR` | RR / Legacy | **Lucas** |
+| `ACCESS` | Access | **Thiago** |
+
+⚠️ **Os dois nomes são usados na loja.** O Vitinho fala *"está com o Thiago"* e *"mandei pro
+Lucas"*; o painel só conhecia RR e Access. Quando ele pediu "um filtro pra saber quais peças estão
+no Thiago", eu procurei `Thiago` no banco inteiro — `bancada`, `reparos`, `custos` — não achei em
+lugar nenhum, e quase abri uma **terceira assistência que não existe**.
+
+Por isso o dono do negócio não é enfeite: ele entra na **busca** (digitar "thiago" acha os
+aparelhos da Access), nos **chips do filtro**, no **modal de saída** (é lá que se escolhe pra onde
+vai) e no **texto do WhatsApp** (quem cobra, cobra de uma pessoa). Fonte única: `BNC_ASSIST` em
+`js/bancada.js`.
+
+⚠️ **Assistência nova é uma linha nesse mapa** — e só. `bncFornecedores()` descobre quem existe
+lendo o próprio livro, então ela já aparece no filtro e ganha bloco com nome no WhatsApp mesmo sem
+estar no mapa; o que o mapa acrescenta é o nome de quem atende. Até 02/set havia **5 lugares** com
+`fornecedor === 'RR' ? 'RR / Legacy' : 'Access'` escrito à mão, e uma assistência nova apareceria
+como "Access" em todos eles, calada.
+
+## Excluir uma ida (02/set/2026)
+
+O papel `bancada` passou a poder **apagar** uma linha, não só dar baixa. Era só do sócio de
+propósito — a linha é o registro de que o aparelho saiu da loja. Mudou porque quem registra errado
+é o Vitinho e é ele quem percebe na hora; esperar o dono deixa a lista de "não vender" errada no
+meio-tempo.
+
+⚠️ **Não há trava por valor**, e é bom saber por quê: `bancada.valor_cobrado` está **nulo nas 187
+linhas** — o dinheiro mora em `reparos`. "Só apaga o que não tem valor" não protegeria nada. A
+proteção real é a Conferência: apagar a ida **não** apaga a nota, e ela reaparece como *"na nota sem
+registro"*. Fica visível.
+
+⚠️ **O aviso de nota casada só aparece pro sócio.** `reparos` tem policy `reparos_socio` e o cache
+nem é carregado pro papel `bancada` — então pro Vitinho o texto de confirmação sai sem essa parte.
+Não é bug: ele não pode ver o que a assistência cobra.
+
 ## O buraco em uma frase
 
 **O painel não sabe que o aparelho saiu da loja.** Ele fica `available` até voltar.
