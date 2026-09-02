@@ -35,7 +35,48 @@ elas, **contornando o RLS das tabelas**. Nenhuma é usada pelo app (zero referê
 | `socio` | tudo | tudo | ✅ |
 | `bancada` | Estoque e Bancada | `bancada` (**sem apagar**), `estoque_correcoes`, `estoque_estado` | ✅ |
 | `comercial` | só as **próprias** vendas, pelas views sem custo | nada | ✅ (17/ago/2026) |
+| `rh` | folha congelada + cadastro dos colaboradores | **só** `funcionarios_config` (sem apagar) | ✅ (02/set/2026) |
 | `gerente` · `vendedor` · `atendente` | — | — | ❌ **só prévia do dono** |
+
+### `rh` — o RH terceirizado (Nara, 02/set/2026)
+
+Empresa terceirizada, contrato assinado. Pedido do dono: *"não quero que ela veja números da
+loja como lucro e tudo mais. Somente as partes dos funcionários"*.
+
+Duas telas — `rhfolha` (o que pagar no mês) e `rhpessoas` (o cadastro). Ela lê **três** tabelas:
+`folha_mensal`, `funcionarios_config` e `custos` **com `area='funcionario'`** (o filtro está na
+*policy*, não no JS — se ele sumir do banco o bug tem que estourar no teste de RLS, não ficar
+escondido atrás de um `and` na tela).
+
+⚠️ **Por que ela NÃO ganha a aba Equipe, que já mostra a folha.** `fechamentoEquipe()` **calcula**
+a folha no navegador, e pra isso precisa de todas as vendas e de todos os `venda_produtos` —
+inclusive `valor_estoque`, o custo do aparelho. A tela esconderia; a API não. A saída foi a
+`folha_mensal` congelada: ela **lê o resultado** em vez de recalcular, e por isso não precisa de
+acesso nenhum a venda.
+
+⚠️ **Ela ESCREVE — e só numa tabela.** Nasceu só-leitura e mudou no mesmo dia, quando o RH pediu o
+módulo cadastral (CPF, RG, admissão, endereço, contato de emergência, status): quem tem esses
+dados na mão é a Nara, não o dono. `insert` e `update` em `funcionarios_config`, **nunca `delete`**
+— desligar é mudar o `status`, e a linha fica. Apagar destruiria o histórico que é a razão de a
+tabela existir.
+
+⚠️ **`funcionarios_config` virou dado pessoal de verdade.** Só `socio` e `rh` leem. Nunca entra em
+`docs/`, em export público nem no repo — a Netlify publica a raiz (mesma razão de `RR/` e `notas/`
+estarem no `.gitignore`).
+
+⚠️ **Dois registros de desligamento, e eles podem discordar.** `funcionarios_config.status` é o
+registro do RH (muda no dia em que a pessoa sai); `saiuEm`/`(saiu)` no `FUNC` é o que tira a pessoa
+da **folha**, e só muda quando o dono commita. Escolher um calado esconderia ou folha paga a mais,
+ou pessoa sumida do histórico — então a tela de Colaboradores **acusa** enquanto os dois
+discordarem. Mesma lição da Conferência da Assistência.
+
+Prova rodada em 02/set/2026, simulando a sessão dela: lê 19 linhas de `folha_mensal`, 12 de
+`funcionarios_config` e 102 de `custos` (**0** de qualquer outra área); **0** linhas em `vendas`,
+`venda_produtos`, `estoque`, `pagamentos`, `compras` e `bancada`; 1 linha em `perfis` (a dela).
+Escrita em `custos` barrada, `update` em `folha_mensal` atinge 0 linhas, `delete` no cadastro
+atinge 0 linhas.
+
+Teste da cortina: `node test/rh.test.js`.
 
 ### Papel × chaves — dois eixos, não uma escada (17/ago/2026)
 

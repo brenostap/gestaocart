@@ -184,6 +184,7 @@ function renderContent(){
   // Foi o que aconteceu com o rhfolha em 02/set/2026: a aba aparecia na barra,
   // a tela certa era montada, e o else final apagava tudo por cima.
   if(currentTab==='rhfolha')c.innerHTML=renderRhFolha();
+  else if(currentTab==='rhpessoas')c.innerHTML=renderRhPessoas();
   else if(currentTab==='meudia')c.innerHTML=renderMeuDia();
   else if(currentTab==='vitrine')c.innerHTML=renderVitrine();
   else if(currentTab==='consulta')c.innerHTML=renderConsulta();

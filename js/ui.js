@@ -73,6 +73,24 @@ const UI = {
   // colunas: [{titulo, num, largura}]
   // linhas:  [[celula, ...]]  — celula pode ser string ou {v, num, classe}
   // onLinha: recebe o indice e devolve o codigo do onclick da <tr>
+  // ⚠️ O `data-rot` NAO E ENFEITE -- e o rotulo da coluna no CELULAR. Abaixo de
+  // 720px o CSS esconde o <thead> e transforma cada <tr> num cartao, e o nome do
+  // campo passa a vir de `td::before{ content:attr(data-rot) }`. Sem ele o
+  // cartao fica uma pilha de numeros soltos, sem dizer o que cada um e.
+  //
+  // Ate 02/set/2026 UI.tabela() nunca emitia o atributo: SO o bancada.js, que
+  // escreve o <td> na mao, tinha rotulo no celular. Todas as outras telas --
+  // Vendas, Custos, Estoque, Folha -- mostravam "R$1.500 / R$4.323 / R$5.823"
+  // um embaixo do outro, sem legenda. O dono viu na tela do RH e disse que
+  // "esses cards sao mt amadores"; o problema nunca foi o cartao, era a falta
+  // do rotulo. Quem escrever <td> na mao continua tendo que por o data-rot.
+  _rot(titulo){
+    return String(titulo == null ? '' : titulo)
+      .replace(/<[^>]*>/g, '')          // titulo pode vir com HTML (icone, badge)
+      .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+      .trim();
+  },
+
   tabela({colunas = [], linhas = [], vazio, onLinha} = {}){
     if(!linhas.length){
       return vazio || this.vazio({titulo:'Nada por aqui', texto:'Não há registros para este filtro.'});
@@ -82,7 +100,8 @@ const UI = {
     const tr = linhas.map((l, li) => `<tr${onLinha ? ` class="clicavel" onclick="${onLinha(li)}"` : ''}>${l.map((cel, i) => {
       const o = (cel && typeof cel === 'object') ? cel : {v: cel};
       const num = o.num !== undefined ? o.num : (colunas[i] && colunas[i].num);
-      return `<td class="${num ? 'num ' : ''}${o.classe || ''}">${o.v == null ? '—' : o.v}</td>`;
+      const rot = o.rot !== undefined ? o.rot : this._rot(colunas[i] && colunas[i].titulo);
+      return `<td data-rot="${this._rot(rot)}" class="${num ? 'num ' : ''}${o.classe || ''}">${o.v == null ? '—' : o.v}</td>`;
     }).join('')}</tr>`).join('');
     return `<div class="c-tabela-wrap"><table class="c-tabela">
       <thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table></div>`;

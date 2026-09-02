@@ -9,6 +9,7 @@ const ICO = {
   vitrine:   '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
   consulta:  '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-3.4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 11.5h7M8.5 8.5h4"/></svg>',
   rhfolha:   '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  rhpessoas: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16.5 5.2a3.2 3.2 0 0 1 0 5.6M18 20a6.4 6.4 0 0 0-2-4.6"/></svg>',
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
@@ -52,6 +53,10 @@ const NAV = [
     // Tela do RH terceirizado. Le folha_mensal congelada -- nunca calcula, e por
     // isso nunca precisa de venda nem de custo de aparelho. Ver js/rh.js.
     {id:'rhfolha', label:'Folha'},
+    // Cadastro do colaborador -- os campos que o RH pediu (CPF, RG, admissao,
+    // status, contato de emergencia). Aba propria porque a Nara entra aqui pra
+    // TRABALHAR o cadastro, nao pra conferir pagamento: sao duas rotinas.
+    {id:'rhpessoas', label:'Colaboradores'},
     {id:'tabela',  label:'Tabela de preços'},
   ]},
   { grupo:'Financeiro', itens:[
@@ -136,7 +141,7 @@ const MATRIZ_ACESSO = {
   // precisa de todas as vendas e do valor_estoque (custo do aparelho). Esta le
   // a folha_mensal ja congelada. O pedido do dono foi "somente as partes dos
   // funcionarios", e a fechadura disso e o RLS (eh_rh()), nao este menu.
-  rh:        ['rhfolha'],
+  rh:        ['rhfolha','rhpessoas'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],

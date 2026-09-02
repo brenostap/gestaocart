@@ -536,10 +536,13 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   .c-tabela td:not([data-rot])::before{ content:''; }
   .c-tabela .num, .c-tabela td[data-num]{ text-align:right; }
 
-  /* a primeira celula vira o titulo do cartao */
+  /* a primeira celula vira o titulo do cartao -- e titulo nao leva rotulo:
+     "PESSOA  Leo" e pior que "Leo". As outras celulas SEMPRE levam. */
   .c-tabela tbody tr td:first-child{
     background:var(--bg3); padding:8px 12px; margin-bottom:2px;
+    font-weight:650; color:var(--text);
   }
+  .c-tabela tbody tr td:first-child::before{ content:''; }
 
   /* a expansao da venda nao vira cartao empilhado: e um bloco cheio, colado
      no cartao da linha de cima (a venda que foi tocada). */
@@ -1628,7 +1631,69 @@ table.esp tbody tr:last-child td{ border-bottom:none; }
 .md-selo-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 10px; }
 
 /* Tela Folha (RH) — 02/set/2026 */
-.rh-titulo{ font-size:var(--fs-title); font-weight:800; color:var(--text); margin:0 0 10px; }
+/* -- RH (Folha + Colaboradores) ------------------------------------------
+   A LINHA de pessoa e o componente principal das duas telas -- nao o cartao
+   empilhado. Em 02/set/2026 o dono viu a folha no celular e disse que "esses
+   cards sao mt amadores": a tabela virava uma pilha de numeros sem legenda,
+   porque UI.tabela() nunca emitia `data-rot` (consertado no js/ui.js). O que
+   sobrou aqui e a licao: LISTA DE GENTE E LISTA, com foto, nome e o numero que
+   importa a direita; tabela so onde a comparacao coluna a coluna vale a pena. */
 .rh-comp{ font-size:var(--fs-caption); color:var(--text3); }
 .rh-pix{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text3); }
 .rh-rodape{ font-size:var(--fs-caption); color:var(--text4); text-align:center; margin:14px 0 4px; }
+.rh-nota{ font-size:var(--fs-caption); color:var(--text3); line-height:1.55; padding:2px 0 10px; }
+.rh-vazio{ color:var(--text4); font-style:italic; font-weight:400; }
+
+.rh-linha{
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+  padding:12px 14px; background:none; border:none; border-bottom:1px solid var(--border);
+  cursor:pointer; color:inherit; font:inherit;
+}
+.rh-linha:last-child{ border-bottom:none; }
+.rh-linha:hover{ background:var(--bg3); }
+.rh-av{
+  flex:0 0 auto; width:36px; height:36px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--bg3); color:var(--text2); font-size:12px; font-weight:700;
+  border:1px solid var(--border2);
+}
+.rh-av.grande{ width:48px; height:48px; font-size:15px; }
+.rh-corpo{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.rh-topo{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.rh-nome{ font-size:var(--fs-body); font-weight:650; color:var(--text); }
+.rh-meio{ display:block; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rh-dir{ flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-end; gap:2px; text-align:right; }
+.rh-dir b{ font-size:var(--fs-body); font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+.rh-dir i{ font-size:var(--fs-caption); font-style:normal; color:var(--text4); }
+
+/* -- Ficha -------------------------------------------------------------- */
+.rh-ficha-head{ margin:0 0 14px; display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.rh-ficha-id{ display:flex; align-items:center; gap:12px; }
+.rh-ficha-nome{ font-size:var(--fs-title); font-weight:800; color:var(--text); margin:0; line-height:1.2; }
+.rh-ficha-sub{ display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  font-size:var(--fs-caption); color:var(--text3); margin-top:3px; }
+
+/* Grade de chave/valor: duas colunas no desktop, uma no celular, sempre com o
+   rotulo VISIVEL -- e a diferenca entre uma ficha e uma pilha de numeros. */
+.rh-kv-grade{ display:grid; grid-template-columns:1fr 1fr; gap:2px 24px; }
+.rh-kv{ display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  padding:8px 0; border-bottom:1px solid var(--border); min-width:0; }
+.rh-kv span{ font-size:var(--fs-caption); color:var(--text4); flex:0 0 auto; }
+.rh-kv b{ font-size:var(--fs-body); font-weight:600; color:var(--text); text-align:right;
+  min-width:0; overflow-wrap:anywhere; }
+
+.rh-card-pagar .c-card-body{ padding:0; }
+.rh-pagar{ display:flex; flex-direction:column; gap:2px; }
+.rh-pagar > div{ display:flex; justify-content:space-between; align-items:baseline;
+  gap:12px; padding:14px 16px; }
+.rh-pagar > div:first-child{ background:var(--bg3); }
+.rh-pagar span{ font-size:var(--fs-caption); color:var(--text3); }
+.rh-pagar b{ font-size:20px; font-weight:800; color:var(--text); font-variant-numeric:tabular-nums; }
+.rh-pagar-pix b{ font-size:var(--fs-body); font-weight:600; }
+.rh-meta-topo{ font-size:var(--fs-body); color:var(--text2); margin-bottom:8px; }
+
+@media (max-width:720px){
+  .rh-kv-grade{ grid-template-columns:1fr; }
+  .rh-dir b{ font-size:var(--fs-caption); }
+  .rh-ficha-nome{ font-size:var(--fs-body); font-weight:800; }
+}

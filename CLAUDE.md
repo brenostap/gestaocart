@@ -95,6 +95,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `js/fechamento.js` — exportação do fechamento (.xlsx, uma aba por colaborador). **Não calcula
   nada**: lê `fechamentoEquipe()` (equipe.js), que lê `calc()` (render.js). Se faltar um número,
   ele nasce em `fechamentoEquipe()`, nunca ali.
+- `js/rh.js` — as duas telas do **RH terceirizado**: `rhfolha` (o que pagar no mês, pessoa a
+  pessoa) e `rhpessoas` (o cadastro do colaborador — CPF, RG, admissão, status, contato de
+  emergência). **Não calcula nada**: lê `folha_mensal` já congelada. ⚠️ Os bônus são lançados em
+  Custos como **uma linha sem pessoa** ("Bonus meta coletiva R$3.600") **e** já estão distribuídos
+  dentro de `total_variavel` (R$400 × 9) — a primeira versão da tela mostrava os dois lado a lado
+  como verbas diferentes, e somar pagaria o bônus **duas vezes** (R$6.542 a mais em ago/2026).
+  Hoje há um card de **conferência** que prova que fecham. Teste: `node test/rh.test.js`.
 - `js/consulta.js` — tela **Pós-venda** (só `comercial`): acha a venda pelo final do IMEI, nome ou
   telefone e mostra quem está esperando aparelho na assistência. Lê **só views**
   (`v_venda_consulta*`, `v_assistencia_cliente`) — sem custo, lucro ou valor de serviço.
@@ -106,6 +113,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   são ponteiro. Copiar conteúdo de `docs/` aqui cria terceira fonte de verdade e diverge.
   Teste: `node test/diario.test.js`.
 - `js/ui.js` — **kit de componentes** (`UI.card/kpi/badge/tabela/...`). Telas pedem componentes, não escrevem HTML na mão.
+  - ⚠️ **Abaixo de 720px a `<table>` vira cartão e o `<thead>` some** — o nome do campo passa a vir
+    de `td::before{content:attr(data-rot)}`. Até 02/set/2026 **`UI.tabela()` nunca emitia o
+    atributo**: só o `bancada.js`, que escreve o `<td>` na mão, tinha rótulo no celular. Todas as
+    outras telas mostravam uma pilha de números sem legenda ("R$1.500 / R$4.323 / R$5.823"), e o
+    dono achou que era estilo — *"esses cards são mt amadores"*. Hoje `UI.tabela()` deriva o
+    `data-rot` do título da coluna; **quem escrever `<td>` na mão continua tendo que pôr o
+    atributo**. A primeira célula é o título do cartão e não leva rótulo.
 - `js/auth.js` — login + `sbGet(tabela, params, limit)` (wrapper do Supabase REST).
 - `js/shell.js` — navegação, contexto (loja+período), **permissões** (`papelAtual`, `podeVerValor`, `podeVerMargem`).
   - ⚠️ **Barra do celular = 4 fixas + "Mais"**. Até 15/ago/2026 ela mostrava só os 5 slots de
@@ -127,8 +141,13 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
 - `papelReal()` (shell.js) lê a tabela **`perfis`** (`user_id` → papel), carregada por
   `carregarMeuPerfil()` **antes** do `enterApp()`. Padrão `'socio'` quando não carrega — é UX, não
   segurança.
-- **Papéis com RLS de verdade: `socio`, `bancada` e `comercial`** — os três que o `CHECK` de
-  `perfis` aceita (`PAPEIS_COM_RLS` em shell.js). `comercial` (David, Isa, Mel, Maria) lê
+- **Papéis com RLS de verdade: `socio`, `bancada`, `comercial` e `rh`** — os quatro que o `CHECK` de
+  `perfis` aceita (`PAPEIS_COM_RLS` em shell.js). `rh` (a Nara, empresa terceirizada) é o único que
+  **escreve sem ser sócio**, e numa tabela só: `funcionarios_config`, o cadastro do colaborador —
+  `insert`/`update`, **nunca `delete`**, porque desligar é mudar o `status` e a linha fica. Ela lê
+  `folha_mensal` congelada e `custos` **com `area='funcionario'`**, e não ganha a aba Equipe de
+  propósito: aquela tela CALCULA a folha e por isso arrasta todas as vendas e o `valor_estoque`
+  junto. Ver `docs/PERFIS-E-ACESSO.md` e `node test/rh.test.js`. `comercial` (David, Isa, Mel, Maria) lê
   **só views**, nunca as tabelas: `vendas`, `venda_produtos`, `estoque` e `pagamentos` têm
   policy `eh_socio()` e devolvem zero linha pra ele — é assim que tem que ser, ver
   `loadComercialData()` em data.js. `gerente`/`vendedor`/`atendente` seguem **só prévia
