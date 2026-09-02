@@ -210,23 +210,24 @@ else bad('a máscara do telefone foi pro filtro');
 if (!/cliente_tel/.test(R(`cnsFiltroGente('ana')`))) ok('termo curto não procura em telefone');
 else bad('termo de texto foi parar no filtro de telefone');
 
-// -- 5. o menu --------------------------------------------------------------
-console.log('\nquem alcança a tela\n');
-if (R(`podeVer('consulta')`)) ok('comercial alcança o Pós-venda');
-else bad('comercial não alcança o Pós-venda');
-// ⚠️ A regra NAO e "bancada nao alcanca a tela" -- e "bancada nao ve VALOR DE
-// VENDA". Ate 01/set/2026 este teste fixava a lista, e a lista estava errada: o
-// Vitinho ATENDE no balcao (86 vendas em ago/2026, mais que a Gabi) e precisa
-// achar a venda de quem esta na frente dele. Ele ganhou a tela; o que protege o
-// dinheiro e o money(), que segue mudo pra quem nao tem VE_VALOR.
-R(`meuPerfil = { papel:'bancada', nome:'Vitinho', at_key:'vitinho', ativo:true };`);
-if (R(`podeVer('consulta')`)) ok('bancada alcança o Pós-venda (ela atende no balcão)');
-else bad('bancada não alcança o Pós-venda');
-if (R(`money(2782)`) === '—') ok('...e o valor da venda continua mudo pra ela');
-else bad('a bancada ganhou acesso a valor de venda');
-R(`meuPerfil = { papel:'socio', nome:'Breno', ativo:true }; usuarioEmail='breno@phonestp.com';`);
-if (R(`podeVer('consulta')`) === false) ok('sócio não vê tela duplicada (ele tem Vendas inteira)');
-else bad('sócio ganhou uma tela duplicada');
+// -- 5. o menu: NINGUEM alcanca a tela hoje ---------------------------------
+// ⚠️ A Pos-venda saiu de TODOS os papeis em 02/set/2026, a pedido do dono:
+// "nao entendi e nao gostei, nao acho que seja necessario em nenhum perfil".
+// Ela tinha entrado no comercial em 26/ago e na bancada em 01/set.
+//
+// O codigo desta tela e as views v_venda_consulta* continuam existindo -- o que
+// saiu foi o acesso. Por isso os testes de BUSCA acima seguem valendo: eles
+// protegem a tela de voltar quebrada, e o custo de manter e quase zero.
+//
+// ⚠️ E cortina, nao fechadura: as views ainda dao SELECT pra `authenticated`.
+// Tirar do menu NAO impede quem tem login de ler pela API.
+console.log('\nninguem alcanca a tela\n');
+
+for (const papel of ['comercial','bancada','socio']) {
+  R(`meuPerfil = { papel:'${papel}', nome:'x', at_key:'vitinho', ativo:true };`);
+  if (R(`podeVer('consulta')`) === false) ok(`${papel} NÃO alcança o Pós-venda`);
+  else bad(`${papel} ainda alcança o Pós-venda`);
+}
 
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);

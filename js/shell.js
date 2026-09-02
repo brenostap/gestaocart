@@ -113,20 +113,20 @@ function navMobile(){
 const MATRIZ_ACESSO = {
   socio:     ['dash','vendas','compras','estoque','bancada','movs','equipe','tabela','contas','custos','fechamento','diario'],
   // Vitinho: so o que a bancada exige. Sem dash, sem vendas, sem preco.
-  // `consulta` entrou em 01/set/2026, mesmo motivo do comercial: ele ATENDE no
-  // balcao (86 vendas em ago/2026, mais que a Gabi) e precisa achar a venda de
-  // quem esta na frente dele. As views ja liberam SELECT pra `authenticated`,
-  // entao aqui e so cortina -- nao houve mudanca de RLS.
-  bancada:   ['estoque','bancada','tabela','consulta'],
+  bancada:   ['estoque','bancada','tabela'],
   // Vendedor, atendente e quem faz as duas coisas. O que a pessoa FAZ nao esta
   // aqui -- esta nas chaves vo_key/at_key do perfil. Ver docs/PERFIS-E-ACESSO.md.
   // `tabela` entrou em 20/ago a pedido do dono: quem atende precisa do preco
   // oficial na mao, e ele ja chega mastigado pela view `v_tabela_precos`
   // (sem custo, sem margem) -- a mesma que a Vitrine usa.
-  // `consulta` entrou em 26/ago/2026: quem atende um problema precisa achar a
-  // venda de QUEM ESTA NA FRENTE DELE, e v_minhas_vendas so traz as proprias.
-  // Decisao do dono, com o limite escrito na migration: sem custo, sem lucro.
-  comercial: ['meudia','vitrine','consulta','tabela'],
+  // ⚠️ `consulta` (Pos-venda) SAIU de todos os papeis em 02/set/2026, a pedido do
+  // dono: "nao entendi e nao gostei, nao acho que seja necessario em nenhum
+  // perfil". Ela tinha entrado no comercial em 26/ago e na bancada em 01/set.
+  // O codigo de js/consulta.js e as views v_venda_consulta* continuam existindo
+  // -- o que saiu foi o acesso. Se voltar, volta por aqui.
+  // ⚠️ E cortina, nao fechadura: as views ainda dao SELECT pra `authenticated`.
+  // Tirar do menu NAO impede quem tem login de ler pela API.
+  comercial: ['meudia','vitrine','tabela'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],
