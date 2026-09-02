@@ -178,6 +178,7 @@ function calc(){
 function renderContent(){
   const c=document.getElementById('content');
   if(!c)return;
+  if(currentTab==='rhfolha')c.innerHTML=renderRhFolha();
   if(currentTab==='meudia')c.innerHTML=renderMeuDia();
   else if(currentTab==='vitrine')c.innerHTML=renderVitrine();
   else if(currentTab==='consulta')c.innerHTML=renderConsulta();

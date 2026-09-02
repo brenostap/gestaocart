@@ -8,6 +8,7 @@ const ICO = {
   meudia:    '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
   vitrine:   '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>',
   consulta:  '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-3.4A8.4 8.4 0 1 1 21 11.5Z"/><path d="M8.5 11.5h7M8.5 8.5h4"/></svg>',
+  rhfolha:   '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
   dash:      '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
   vendas:    '<svg viewBox="0 0 24 24"><path d="M3 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>',
   compras:   '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
@@ -48,6 +49,9 @@ const NAV = [
     // dono. Tambem e o changelog que a analise de serie exige: sem data de
     // mudanca de prompt, comparar antes/depois vira arqueologia.
     {id:'diario',  label:'Diário'},
+    // Tela do RH terceirizado. Le folha_mensal congelada -- nunca calcula, e por
+    // isso nunca precisa de venda nem de custo de aparelho. Ver js/rh.js.
+    {id:'rhfolha', label:'Folha'},
     {id:'tabela',  label:'Tabela de preços'},
   ]},
   { grupo:'Financeiro', itens:[
@@ -127,6 +131,12 @@ const MATRIZ_ACESSO = {
   // ⚠️ E cortina, nao fechadura: as views ainda dao SELECT pra `authenticated`.
   // Tirar do menu NAO impede quem tem login de ler pela API.
   comercial: ['meudia','vitrine','tabela'],
+  // ⚠️ RH terceirizado (Nara, 02/set/2026): SO a folha, e so leitura.
+  // Nao ganha `equipe` de proposito -- aquela tela CALCULA a folha e por isso
+  // precisa de todas as vendas e do valor_estoque (custo do aparelho). Esta le
+  // a folha_mensal ja congelada. O pedido do dono foi "somente as partes dos
+  // funcionarios", e a fechadura disso e o RLS (eh_rh()), nao este menu.
+  rh:        ['rhfolha'],
   gerente:   ['dash','vendas','estoque','bancada','movs','equipe'],
   vendedor:  ['dash','vendas','estoque','bancada'],
   atendente: ['dash','vendas','estoque','bancada'],
@@ -150,9 +160,9 @@ function telasDoUsuario(){
 // sendo PREVIA VISUAL do dono: criar um perfil 'vendedor' hoje daria uma tela
 // de Vendas aberta lendo zero linha. Por isso o CHECK da tabela `perfis` só
 // aceita os dois. Ver docs/PERFIS-E-ACESSO.md.
-const PAPEIS_COM_RLS = ['socio','bancada','comercial'];
-const PAPEIS = ['socio','bancada','comercial','gerente','vendedor','atendente'];
-const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', comercial:'Comercial',
+const PAPEIS_COM_RLS = ['socio','bancada','comercial','rh'];
+const PAPEIS = ['socio','bancada','comercial','rh','gerente','vendedor','atendente'];
+const LABEL_PAPEL = { socio:'Sócio', bancada:'Assistência', comercial:'Comercial', rh:'RH',
                       gerente:'Gerente', vendedor:'Vendedor', atendente:'Atendente' };
 
 // Papel de verdade do usuario logado: vem da tabela `perfis` (auth.js carrega).

@@ -279,7 +279,31 @@ async function loadComercialData(){
   renderContent();
 }
 
+// Carga do papel `rh`: SO folha_mensal, custos da area Funcionarios e o PIX.
+// ⚠️ Mesma logica do `comercial`, e pelo mesmo motivo: o RLS devolve ZERO linha
+// em vendas/venda_produtos/estoque pra ela. Chamar loadFromSupabase() aqui
+// gastaria ~100 requisicoes pra montar array vazio -- e, pior, esconderia o
+// fato de que ela nao tem acesso atras de uma tela lenta e vazia.
+async function loadRhData(){
+  const ov=document.getElementById('loading-overlay');
+  if(ov) ov.style.display='flex';
+  allVendas=[];allMovs=[];estoqueItens=[];
+  try{
+    setProgress(40,'Carregando a folha...');
+    if(typeof carregarRh === 'function') await carregarRh();
+    setProgress(100,'Pronto!');
+  }catch(e){
+    console.error('[rh] carga falhou:', e);
+  }
+  if(ov) ov.style.display='none';
+  const app=document.getElementById('app');
+  if(app) app.style.display='grid';
+  updateStatusBar();
+  renderContent();
+}
+
 async function loadAllData(){
+  if(typeof papelReal === 'function' && papelReal() === 'rh') return loadRhData();
   if(typeof papelReal === 'function' && papelReal() === 'comercial') return loadComercialData();
   if(typeof perfilSoBancada === 'function' && perfilSoBancada()) return loadBancadaData();
   document.getElementById('loading-overlay').style.display='flex';

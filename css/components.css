@@ -1626,3 +1626,9 @@ table.esp tbody tr:last-child td{ border-bottom:none; }
 .md-seta:hover{ background:var(--bg3); color:var(--text); }
 .md-seta.off{ color:var(--text5); cursor:default; padding:2px 8px; font-size:var(--fs-title); line-height:1; }
 .md-selo-linha{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 10px; }
+
+/* Tela Folha (RH) — 02/set/2026 */
+.rh-titulo{ font-size:var(--fs-title); font-weight:800; color:var(--text); margin:0 0 10px; }
+.rh-comp{ font-size:var(--fs-caption); color:var(--text3); }
+.rh-pix{ font-family:var(--font-mono); font-size:var(--fs-caption); color:var(--text3); }
+.rh-rodape{ font-size:var(--fs-caption); color:var(--text4); text-align:center; margin:14px 0 4px; }
