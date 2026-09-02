@@ -1692,6 +1692,7 @@ table.esp tbody tr:last-child td{ border-bottom:none; }
 .rh-pagar-pix b{ font-size:var(--fs-body); font-weight:600; }
 .rh-meta-topo{ font-size:var(--fs-body); color:var(--text2); margin-bottom:8px; }
 .rh-toolbar-int{ padding:10px 14px; border-top:1px solid var(--border); }
+.bnc-forn-chips{ margin-top:-4px; }
 
 @media (max-width:720px){
   .rh-kv-grade{ grid-template-columns:1fr; }

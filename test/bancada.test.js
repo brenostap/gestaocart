@@ -168,11 +168,31 @@ ok('traz os 4 últimos do IMEI, sem a palavra "final"',
    wa.includes('8580') && wa.includes('3324') && !/final/i.test(wa));
 // quem cobra, cobra uma assistência de cada vez
 ok('separa por fornecedor', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test(wa));
-// Mesma ordem da tela (saiu_em crescente): o 16 Plus saiu em 11/mai, o 16 em
-// 10/ago. Conferir a lista colada no grupo contra a tela não pode dar trabalho.
-// RR primeiro, Access depois: quem cobra segue a lista de cima pra baixo
-ok('bloco da RR vem antes do da Access',
-   wa.indexOf('RR / Legacy') < wa.indexOf('Access'));
+// ⚠️ A ORDEM DOS BLOCOS É REGRA, NÃO UMA DUPLA FIXA. Até 02/set/2026 os blocos
+// eram `[['RR / Legacy','RR'], ['Access','ACCESS']]` escritos na mão, e este
+// teste fixava "RR antes de Access" — o que passava verde pelo motivo errado,
+// porque a ordem estava chumbada no código. Assistência nova caía num balde
+// "Outros" sem nome, e quem lê o grupo não sabia pra quem cobrar.
+// A regra agora: mais aparelhos fora primeiro, empate desempata pelo nome (a
+// lista vai pro grupo toda semana e precisa sair igual toda semana).
+(function(){
+  const antes = R('_bancadaCache');
+  R("_bancadaCache = [" +
+    "{id:1,imei4:'0001',modelo_txt:'iPhone A',fornecedor:'RR',origem:'estoque',servico:'x',saiu_em:'2026-08-01',voltou_em:null}," +
+    "{id:2,imei4:'0002',modelo_txt:'iPhone B',fornecedor:'RR',origem:'estoque',servico:'x',saiu_em:'2026-08-02',voltou_em:null}," +
+    "{id:3,imei4:'0003',modelo_txt:'iPhone C',fornecedor:'ACCESS',origem:'estoque',servico:'x',saiu_em:'2026-08-03',voltou_em:null}," +
+    "{id:4,imei4:'0004',modelo_txt:'iPhone D',fornecedor:'THIAGO',origem:'estoque',servico:'x',saiu_em:'2026-08-04',voltou_em:null}]");
+  const t = R('bncTextoWhatsApp()');
+  R('_bancadaCache = ' + JSON.stringify(antes));
+  ok('quem tem mais aparelho fora vem primeiro',
+     t.indexOf('RR / Legacy') < t.indexOf('Access'));
+  // ⚠️ ESTE É O PONTO: assistência que o código nunca viu ganha bloco COM NOME.
+  ok('assistência desconhecida ganha bloco próprio, com o nome dela',
+     /THIAGO \(1\)/.test(t) && !/Outros/.test(t));
+  ok('e o empate desempata pelo nome, não pela ordem do banco',
+     t.indexOf('Access (1)') < t.indexOf('THIAGO (1)'));
+})();
+ok('com 1 e 1, a ordem é estável', /RR \/ Legacy \(1\)/.test(wa) && /Access \(1\)/.test(wa));
 // e DENTRO do bloco a ordem continua sendo a da tela (saiu_em crescente)
 const waOrdem = (function(){
   const antes = R('_bancadaCache');

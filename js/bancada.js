@@ -116,6 +116,18 @@ let _bncManual     = null;    // {modelo, imei4} quando o aparelho nao e do esto
 let _bncSalvando   = false;
 let _bncErro       = '';
 let _bncFiltro     = '';      // busca da tela (achar o aparelho na lista)
+// ⚠️ Filtro POR ASSISTENCIA. '' = todas. A lista de opcoes nasce do PROPRIO
+// DADO (bncFornecedores()), nunca de um array escrito aqui: assistencia nova
+// que aparecer numa linha vira chip sozinha -- mesma escolha da tela de Contas,
+// onde conta nova cadastrada na FoneNinja aparece sem mexer no codigo.
+let _bncForFiltro  = '';
+// ⚠️ DATA DA SAIDA, escolhida. Ate 02/set/2026 era `bncHoje()` chumbado no
+// bncSalvar(): quem registrasse a saida no dia seguinte gravava a data errada,
+// e `saiu_em` e o relogio de TUDO nesta tela -- os dias fora, o alerta de
+// atrasado, a borda de baixo da Conferencia e a janela que casa a nota com a
+// ida. Registro atrasado envelhecia o aparelho menos do que ele estava.
+// Pedido do Vitinho em 02/set/2026.
+let _bncSaiuEm     = '';      // '' = hoje
 let _bncEditId     = null;    // linha aberta no editor de serviços
 let _bncEditServs  = [];
 let _bncEditExtra  = '';
@@ -709,7 +721,7 @@ function bncCandidatos(){
 }
 
 function bncAbrirSaida(){
-  _bncBusca = ''; _bncSel = new Set(); _bncManual = null;
+  _bncBusca = ''; _bncSel = new Set(); _bncManual = null; _bncSaiuEm = '';
   _bncForn = 'RR'; _bncRetornoDe = null;
   _bncServs = [BNC_SERVICOS[0]]; _bncServExtra = '';
   _bncObs = ''; _bncErro = '';
@@ -748,6 +760,11 @@ function bncToggle(id){
   }, 0);
 }
 
+function bncSetSaiuEm(v){
+  // Data futura e sempre dedo gordo -- o aparelho nao saiu ainda.
+  _bncSaiuEm = (v && v > bncHoje()) ? bncHoje() : (v || '');
+  bncRedesenharModal();
+}
 function bncSetForn(f){ _bncForn = f; bncRedesenharModal(); }
 
 // ---------------------------------------------------------------------------
@@ -840,7 +857,7 @@ function bncUsarDoEstoque(id){
 function bncBlocoRetorno(){
   const c = bncRetornoCand();
   if(!c) return '';
-  const onde = c.fornecedor === 'RR' ? 'RR / Legacy' : 'Access';
+  const onde = bncFornLabel(c.fornecedor);
   return `
     <div class="bnc-retorno${_bncRetornoDe ? ' marcado' : ''}" id="bnc-retorno">
       <label class="bnc-retorno-lbl">
@@ -938,7 +955,7 @@ function bncListaHtml(){
 
 function bncCorpoModal(){
   const chipsForn = ['RR','ACCESS']
-    .map(f => UI.chip(f === 'RR' ? 'RR / Legacy' : 'Access', _bncForn === f, `bncSetForn('${f}')`)).join('');
+    .map(f => UI.chip(bncFornLabel(f), _bncForn === f, `bncSetForn('${f}')`)).join('');
 
   const manual = _bncManual ? `
     <div class="bnc-manual">
@@ -977,7 +994,12 @@ function bncCorpoModal(){
 
     <div class="c-sep"></div>
 
-    ${UI.campo({label:'Para onde vai', corpo:`<div class="bnc-chips">${chipsForn}</div>`})}
+    ${UI.linha(
+      UI.campo({label:'Para onde vai', corpo:`<div class="bnc-chips">${chipsForn}</div>`}),
+      UI.campo({label:'Quando saiu', corpo:`<input class="c-input" type="date"
+         max="${bncHoje()}" value="${UI.esc(_bncSaiuEm || bncHoje())}"
+         onchange="bncSetSaiuEm(this.value)">`})
+    )}
     ${UI.campo({label:'Serviço — pode marcar mais de um', corpo:
       `<div class="bnc-servs" id="bnc-servs-saida">${bncChipsServico(_bncServs, 'bncToggleServico')}</div>
        <input class="c-input bnc-serv-outro" placeholder="outro serviço (opcional)"
@@ -1003,7 +1025,9 @@ async function bncSalvar(){
   // que existia aqui pedia a mesma coisa uma segunda vez — e errava.
   const base = { fornecedor:_bncForn, origem: _bncManual ? 'cliente' : 'estoque',
                  servico: bncJuntarServico(_bncServs, _bncServExtra),
-                 saiu_em: bncHoje(), obs: _bncObs || null, quem };
+                 // A data escolhida, nao a de hoje: registro atrasado grava o dia
+                 // em que o aparelho REALMENTE saiu. Vazio = hoje.
+                 saiu_em: _bncSaiuEm || bncHoje(), obs: _bncObs || null, quem };
 
   let linhas;
   if(_bncManual){
@@ -1084,18 +1108,50 @@ function limparBancadaFiltro(){
   if(currentTab === 'bancada') renderContent();
 }
 
+// O rotulo do fornecedor estava escrito na mao em 5 lugares, cada um com o seu
+// ternario `=== 'RR' ? ... : 'Access'` -- o que significa que uma assistencia
+// nova apareceria como "Access" em todos eles, calada. Aqui e o unico lugar.
+function bncFornLabel(f){
+  const k = String(f || '').toUpperCase();
+  if(k === 'RR') return 'RR / Legacy';
+  if(k === 'ACCESS') return 'Access';
+  return f || '—';
+}
+// As assistencias QUE EXISTEM no livro, na ordem de quem tem mais aparelho fora.
+function bncFornecedores(){
+  const cont = {};
+  (_bancadaCache || []).forEach(l => {
+    if(!l.fornecedor) return;
+    cont[l.fornecedor] = cont[l.fornecedor] || { f:l.fornecedor, total:0, fora:0 };
+    cont[l.fornecedor].total++;
+    if(!l.voltou_em) cont[l.fornecedor].fora++;
+  });
+  return Object.values(cont).sort((a,b) => b.fora - a.fora || b.total - a.total);
+}
+function setBancadaForn(f){
+  _bncForFiltro = (_bncForFiltro === f) ? '' : f;
+  if(currentTab === 'bancada') renderContent();
+}
+
 function bncFiltrar(linhas){
+  // O filtro de assistencia vem ANTES da busca por texto: sao perguntas
+  // diferentes ("o que esta na RR?" x "cade o aparelho da Fernanda?") e a
+  // contagem do chip tem que bater com a lista que aparece.
+  let base = _bncForFiltro
+    ? (linhas || []).filter(l => l.fornecedor === _bncForFiltro)
+    : (linhas || []);
   const q = String(_bncFiltro || '').toLowerCase().trim();
-  if(!q) return linhas;
+  if(!q) return base;
+  const linhasF = base;
   // ⚠️ Só cai no casamento por número quando a busca É um número. Digitou
   // `E1030`? Respeita o prefixo: jogá-lo fora traria o `SP1030` junto, e são
   // 138 aparelhos que colidem assim (docs/CONTROLE-MANUTENCAO.md).
   const dig = /^\d+$/.test(q) ? q : '';
-  return (linhas || []).filter(l => {
+  return linhasF.filter(l => {
     // O nome do cliente entra na busca porque e assim que a pergunta chega:
     // "cade o aparelho da Fernanda?" -- ninguem liga com o IMEI na mao.
     const txt = [l.modelo_txt, l.etiqueta, l.servico, l.obs, l.cliente_nome,
-                 l.fornecedor === 'RR' ? 'rr legacy' : 'access'].join(' ').toLowerCase();
+                 bncFornLabel(l.fornecedor)].join(' ').toLowerCase();
     return txt.includes(q)
         || (dig.length >= 2 && String(l.imei4 || '').includes(dig))
         || (dig.length >= 2 && String(l.imei_1 || '').includes(dig))
@@ -1114,7 +1170,22 @@ function bncBarraFiltro(){
                value="${UI.esc(_bncFiltro)}" oninput="setBancadaFiltro(this.value)">
       </div>
       ${_bncFiltro ? UI.btn('Limpar', {onclick:'limparBancadaFiltro()', variante:'sutil', sm:true}) : ''}
-    </div>`;
+    </div>
+    ${bncChipsForn()}`;
+}
+
+// "Quais pecas estao em cada assistencia" -- pedido do Vitinho em 02/set/2026.
+// O numero no chip e QUANTOS ESTAO FORA, nao o total do historico: a pergunta
+// que ele faz e "o que ainda esta la", e mostrar o acumulado (160 na RR) ao
+// lado de 27 abertas daria a impressao de um passivo 6x maior do que e.
+function bncChipsForn(){
+  const fs = bncFornecedores();
+  if(fs.length < 2) return '';   // uma assistencia so: o filtro nao decide nada
+  return `<div class="c-toolbar bnc-forn-chips">
+    ${UI.chip('Todas', !_bncForFiltro, "setBancadaForn('')")}
+    ${fs.map(x => UI.chip(`${bncFornLabel(x.f)} (${x.fora})`,
+        _bncForFiltro === x.f, `setBancadaForn('${x.f}')`)).join('')}
+  </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1149,15 +1220,18 @@ function bncTextoWhatsApp(){
                    + ((l.imei4 && l.imei4 !== '0000') ? ' · ' + l.imei4 : '');
 
   // Separado por assistencia: quem cobra, cobra numa de cada vez.
-  const blocos = [['RR / Legacy', 'RR'], ['Access', 'ACCESS']]
-    .map(([titulo, forn]) => {
-      const doForn = doEstoque.filter(l => l.fornecedor === forn);
-      return doForn.length ? `\n${titulo} (${doForn.length}):\n` + doForn.map(linha).join('\n') : '';
-    }).filter(Boolean);
-
-  // Fornecedor fora dos dois conhecidos nao pode sumir da lista.
-  const orfaos = doEstoque.filter(l => l.fornecedor !== 'RR' && l.fornecedor !== 'ACCESS');
-  if(orfaos.length) blocos.push('\nOutros (' + orfaos.length + '):\n' + orfaos.map(linha).join('\n'));
+  // ⚠️ Os blocos saem do PROPRIO DADO, nao de uma lista escrita aqui. Antes eram
+  // ['RR','ACCESS'] fixos com um balde "Outros" no fim -- assistencia nova caia
+  // num bloco sem nome, e quem le o grupo nao sabia pra quem cobrar.
+  const porForn = {};
+  doEstoque.forEach(l => { (porForn[l.fornecedor || '?'] = porForn[l.fornecedor || '?'] || []).push(l); });
+  // Mais aparelhos fora primeiro; empate desempata pelo nome, pra a ordem NAO
+  // depender da ordem em que as linhas chegaram do banco. Lista que vai pro
+  // grupo toda semana precisa sair igual toda semana.
+  const blocos = Object.keys(porForn)
+    .sort((a,b) => porForn[b].length - porForn[a].length
+                || bncFornLabel(a).localeCompare(bncFornLabel(b),'pt-BR'))
+    .map(f => `\n${bncFornLabel(f)} (${porForn[f].length}):\n` + porForn[f].map(linha).join('\n'));
 
   return '🔧 NA ASSISTÊNCIA — ' + hoje + '\n'
        + 'Não vender, estão fora da loja (' + doEstoque.length + '):\n'
@@ -1452,7 +1526,7 @@ function bncTabelaAbertas(abertas){
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="IMEI" data-campo="imei">${(l.imei4 && l.imei4 !== '0000') ? `<span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : ''}</td>
-      <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
+      <td data-rot="Onde" data-campo="onde">${UI.esc(bncFornLabel(l.fornecedor))}</td>
       <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
       <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
@@ -1503,7 +1577,7 @@ function bncTabelaFechadas(){
     return `<tr>
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
-      <td data-rot="Onde" data-campo="onde">${UI.esc(l.fornecedor === 'RR' ? 'RR / Legacy' : 'Access')}</td>
+      <td data-rot="Onde" data-campo="onde">${UI.esc(bncFornLabel(l.fornecedor))}</td>
       <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
       <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
