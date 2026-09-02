@@ -23,30 +23,49 @@ nº3. Medido de novo em agosto e continua: ver a seção seguinte.
 
 ## 1. O mapa: quantas vendas são rastreáveis
 
-| a venda é reivindicada por… | Cart real | Urban real | **total** | valor |
-|---|---:|---:|---:|---:|
-| **os DOIS bancos** ⚠️ | 62 | 25 | **87** | R$ 426.414 |
-| só a base Cart | 101 | **15** ⚠️ | 116 | R$ 456.651 |
-| só a base Urban | **7** ⚠️ | 25 | 32 | R$ 171.662 |
-| **nenhum lead** | 106 | 43 | **149** | R$ 534.667 |
-| | 276 | 108 | **384** | R$ 1.589.395 |
+⚠️ **Existem DOIS conjuntos de "venda atribuída", e eles dão respostas muito diferentes.** Confundi-los
+foi o meu primeiro erro nesta análise; a diferença é o defeito nº1 do `ATRIBUICAO-LEADS-VENDAS.md`
+("o write-back aceita coisa que o matcher não confirmou").
 
-**Três leituras, em ordem de gravidade:**
+| | o que é | cobertura de agosto | contagem dupla |
+|---|---|---:|---:|
+| **write-back** (`contatos*.id_venda`) | o fluxo marcando na hora | **235 vendas (61%)** | **87 (23%)** |
+| **confirmado** (`match_resultado.confirmado`) | o matcher conservador do Dudu | **133 vendas (35%)** | **5 (1,3%)** |
 
-🔴 **87 vendas (23%) estão contadas nos dois bancos.** R$426 mil aparecendo em dois ROAS ao mesmo
-tempo. Qualquer soma de "vendas atribuídas" feita hoje somando Cart + Urban infla 23%.
+**A escolha é entre cobertura e limpeza, e não dá pra ter as duas hoje.**
 
-🔴 **22 vendas estão na base da loja errada** — 15 vendas Urban reivindicadas só pela base da Cart
-e 7 Cart reivindicadas só pela Urban. Não existe trava de loja, e a Urban chega a reivindicar
-**119 vendas num mês em que teve 108**.
+Pelo **confirmado**:
 
-⚠️ **149 vendas (39%, R$534 mil) não têm lead nenhum.** Balcão, indicação, cliente que voltou. Não é
-falha de rastreio necessariamente — é uma fatia grande do faturamento que a mídia não explica.
+| | Cart real | Urban real | **total** |
+|---|---:|---:|---:|
+| confirmado nos **dois** bancos | 2 | 3 | **5** |
+| só a Cart confirmou | 110 | **6** ⚠️ | 116 |
+| só a Urban confirmou | **1** ⚠️ | 11 | 12 |
+| **sem confirmação** | 163 | 88 | **251** |
 
-**O `venda_origem` do painel (a versão curada) é mais conservador e por isso mais confiável:** 121
-confirmadas, 14 prováveis, 85 avaliadas sem lead, **164 nunca avaliadas**. Cobertura de 57%.
+Pelo **write-back**:
 
----
+| | Cart real | Urban real | **total** |
+|---|---:|---:|---:|
+| os **dois** bancos reivindicam ⚠️ | 62 | 25 | **87** |
+| só a base Cart | 101 | **15** ⚠️ | 116 |
+| só a base Urban | **7** ⚠️ | 25 | 32 |
+| nenhum lead | 106 | 43 | 149 |
+
+**O que fica de pé nos dois:**
+
+🔴 **O write-back é onde mora o problema.** 87 vendas em dois ROAS e 22 na loja errada — e a Urban
+chega a reivindicar 119 vendas num mês em que teve 108. O matcher do Dudu está certo e é
+conservador; **quem infla é o que grava por fora dele**. Somar Cart + Urban pelo write-back hoje
+infla 23%.
+
+⚠️ **A taxa de confirmação é muito desigual entre as lojas:** a Cart confirma 121 de 251
+reivindicadas (48%), a **Urban só 17 de 136 (12,5%)**. Não é a Urban rastrear pior — é que ela
+depende mais do Instagram, que casa por @ e nome. A base inteira já mostrava isso: telefone confirma
+100%, `nome_instagram` 13–22%.
+
+⚠️ **Entre 149 e 251 vendas do mês não têm lead.** Balcão, indicação, cliente que voltou — ou o
+rastro se perdeu. É a maior fatia cega, e ela vale de R$534 mil a R$1,03 milhão.
 
 ## 2. De onde vieram — as 121 vendas confirmadas
 
@@ -85,6 +104,15 @@ Urban:
 | Instagram | Meta Ads | 1.263 | 222 | 17,6% | 14 | 1,1% |
 | Instagram | Orgânico | 629 | 167 | 26,6% | 8 | 1,3% |
 | WhatsApp | Meta Ads | 531 | 186 | 35,0% | 16 | 3,0% |
+
+⚠️ **Os `% comprou` acima usam o write-back.** Refeitos só com o confirmado, o WhatsApp quase não
+se mexe (Orgânico 17/17, Meta Ads 17/18, Instagram Orgânico 24/28) e o **Instagram cai pela metade**
+(Orgânico 16→9, Meta Ads 6→3). O motivo é estrutural: WhatsApp casa por telefone, Instagram por @.
+Então **o número do Instagram está entre 0,60% e 1,06% — é piso, não medição.** Dá pra afirmar que
+ele converte pior; não dá pra afirmar quanto pior.
+
+✅ **As taxas de transferência não dependem de casamento nenhum** — 26,7%, 47,3%, 49,3% são medidas
+diretas e valem como estão.
 
 **Controlando pelo canal — que é a única comparação honesta — orgânico ganha do pago nos dois
 lados:** no Instagram da Cart, 26,7% × 20,0% de transferência e 1,0% × 0,5% de compra; no WhatsApp,
@@ -173,9 +201,10 @@ Vale entender o que ela faz e por que quem passa por ela converte mais.
 
 ## 7. O que fazer com isso
 
-**1. Fechar a contagem dupla antes de qualquer decisão de verba.** 87 vendas nos dois bancos e 22 na
-loja errada. Enquanto isso não tiver trava, ROAS por loja é ficção. É o defeito nº2/nº3 do
-`ATRIBUICAO-LEADS-VENDAS.md`, medido de novo e ainda aberto.
+**1. Fazer o write-back respeitar o matcher.** Ele marca 87 vendas em dois bancos e 22 na loja
+errada; o `match_resultado.confirmado` marca 5 e 7. O matcher já está certo — falta o que grava por
+fora dele passar pela cascata. Enquanto isso, **use o confirmado pra dinheiro e o write-back só pra
+direção**, e nunca some Cart + Urban pelo write-back.
 
 **2. Fazer a Maju avaliar troca.** É a única mudança aqui que mexe em margem, não em volume: 36% dos
 leads dão o dado e 1,2% recebem avaliação, num produto que rende 1,5× mais.
