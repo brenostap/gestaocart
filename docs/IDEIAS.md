@@ -467,7 +467,14 @@ completo pra eles** — aí vira igual à RR. São R$3.830/mês.
 Mapa de quem é quem e como conversa vira venda: **`docs/IAS-E-ESPECIALISTAS.md`** (ler primeiro).
 Como medir qualidade de lead e da IA: **`docs/PLANO-QUALIDADE-IA.md`**.
 Análise e ferramenta: `docs/CHATWOOT-ANALISE.md` · `docs/ANALISE-MAJU-AGO-2026.md` · `scripts/chatwoot.js` · `scripts/maju/` · agente `analista-conversas`.
-- 💡 ⭐⭐⭐ **O portão da transferência, pelas duas pontas (01/set/2026).** O Dudu mediu o outro lado
+- ✅ **O portão da transferência: medido e DESCARTADO (02/set/2026).** Ficou 24h de pé. Reproduzido
+  na base do n8n (`supabase-cart`), o balde de 438 vale **6**: metade era horário de funcionamento
+  da loja, o resto era ela **perguntando** o dia. Onde há compromisso de verdade o portão dispara em
+  **97–99%**. Sobrou um padrão real e pequeno: a IA **anuncia** a transferência sem executar a tool
+  (3 casos no WhatsApp). Ver `docs/RESPOSTA-DUDU-LABELS-V3.md` e o bloco derrubado no §3-bis do
+  `PLANO-QUALIDADE-IA.md`. ⚠️ **A lição vale mais que o achado:** régua larga com magnitude
+  plausível engana os dois lados ao mesmo tempo.
+- 🗑️ ~~💡 ⭐⭐⭐ **O portão da transferência, pelas duas pontas (01/set/2026).**~~ O Dudu mediu o outro lado
   da ideia abaixo: lead que diz *"bora agendar"* **sem** dar dia e hora não vira nada, porque a
   transferência só dispara com dia+hora+nome fechados (ADR 0011 dele) — **7 em 30 no WhatsApp, 9 em
   30 no Instagram**. Junto com as 438 nossas em que **o dia e a hora existem** e mesmo assim ninguém

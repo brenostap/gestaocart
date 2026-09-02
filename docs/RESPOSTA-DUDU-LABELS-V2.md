@@ -5,6 +5,11 @@
 
 ---
 
+> 🚫 **A §4 desta resposta caiu em 02/set/2026.** Os 1.201 / 438 / 734 são artefato de régua:
+> reproduzidos na base do n8n, o balde de 438 vale **6**, e o portão dispara em 97–99% quando há
+> compromisso de verdade. Ver **`docs/RESPOSTA-DUDU-LABELS-V3.md`**. O resto do documento segue
+> valendo — inclusive o contrato de leitura da §5, que o Dudu aceitou inteiro.
+
 ## 0. Em uma frase
 
 Você tem razão no que importa: **o cartão é texto que o modelo escreveu**, e passar regex nele não

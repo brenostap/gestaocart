@@ -393,8 +393,8 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   David/Mel/Isa/Maria são os especialistas), a chave que liga conversa→lead→venda, e o mapa de
   **todos** os relatórios das IAs — inclusive as views do Dudu (`dash_transfers`, `dash_vendas_ia`)
   que respondem o funil sem bater na produção. Ler antes de qualquer análise de atendimento.
-- `docs/PEDIDO-DUDU-LABELS-CHATWOOT.md` + **`docs/RESPOSTA-DUDU-LABELS-V2.md`** — etiquetar lead no
-  Chatwoot. ⚠️ **Leia o bloco ESTADO do primeiro e depois o segundo**: a proposta original caiu na
+- `docs/PEDIDO-DUDU-LABELS-CHATWOOT.md` → **`-V2.md`** → **`-V3.md`** — etiquetar lead no
+  Chatwoot (**leia o V3 primeiro**; ele derruba números dos dois anteriores). ⚠️ **Leia o bloco ESTADO do primeiro e depois o segundo**: a proposta original caiu na
   verificação do Dudu, e as três coisas que ela derrubou valem pra qualquer análise de atendimento:
   - 🚨 **O cartão de handoff é texto que o MODELO escreveu**, parseado por regex no n8n — **só nome e
     telefone são apurados** (vêm do `BuscaLead`). `Interesse`, `Cor`, `À vista`, `Upgrade`,
@@ -406,6 +406,14 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     `n8n_chat_histories_instagram` (241.688 × 141.876 linhas), `match_resultado` (1.431 × 553).
     Consultar "a tabela do Instagram" sem nomear o projeto **devolve número errado sem dar erro**.
     Mesma classe do `lead_id`, que só resolve dentro do projeto indicado.
+  - 🚨 **Régua larga com magnitude plausível é o erro mais caro daqui.** Em 02/set o balde de
+    *"a IA marcou dia e hora e ninguém foi avisado"* — **438** no `PLANO-QUALIDADE-IA.md` §3-bis —
+    virou **6** quando se tirou (a) mensagem de **horário de funcionamento** da loja e (b) mensagem
+    em **forma de pergunta**. O Dudu caiu no mesmo erro no mesmo dia, por outro caminho. **O que
+    salvou os dois foi ler seis conversas na mão.** Antes de publicar contagem por regex: leia seis.
+  - ⚠️ **Nunca some duas fontes no mesmo total.** O outro terço do erro acima: WhatsApp veio do n8n
+    e Instagram do cache do Chatwoot — e o `n8n_chat_histories_instagram` da Cart **só começa em
+    10/08/2026**, então as duas metades nem cobriam a mesma janela.
   - ⚠️ **Label do Chatwoot não aceita `:`** — o model `Label` valida
     `\A[\p{L}\p{N}]+[\p{L}\p{N}_-]+\z` e faz `downcase`. É esse model que carrega `color` e
     `show_on_sidebar`, então prefixo com `:` **não tem cor nem barra lateral**. Separador é `_`.

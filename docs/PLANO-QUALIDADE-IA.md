@@ -185,7 +185,37 @@ follow-up; (c) decidir verba por criativo.
 
 ---
 
-## 3-bis. ⭐⭐ O que a leitura achou de verdade: ela promete um humano e não chama
+## 3-bis. ~~⭐⭐ Ela promete um humano e não chama~~ — 🚫 **DERRUBADO EM 02/SET/2026**
+
+> 🚫 **Os números desta seção (1.201 · 734 · 438 · 166) são artefato de régua. Não use nenhum.**
+> Reproduzido na fonte certa (projeto `supabase-cart`, jul+ago, sessões com preço), com a régua
+> caindo degrau a degrau — detalhe em `docs/RESPOSTA-DUDU-LABELS-V3.md`:
+>
+> | régua, no WhatsApp | vazou |
+> |---|---|
+> | ingênua (dia + hora na fala dela) — **reproduz o 227 daqui** | 233 |
+> | − mensagem de **horário de funcionamento** | 110 |
+> | − mensagem em **forma de pergunta** | 66 |
+> | **verbo de compromisso + hora** | **3**, de 326 → **99,1% transfere** |
+>
+> **O balde de 438 vale 6** (3 WhatsApp + 3 Instagram). O erro 2 que esta seção já confessava
+> ("meu regex pega ela PERGUNTANDO… quanto, não medi") era **mais da metade do número**, e havia um
+> terceiro erro não visto: ⚠️ **as duas metades vinham de instrumentos diferentes** — o
+> `n8n_chat_histories_instagram` da Cart **começa em 10/08/2026**, então o "Instagram, jul+ago, 211"
+> saiu do cache do Chatwoot e foi somado a um número de n8n.
+>
+> **O que sobrou de pé:** três conversas em que a IA **anuncia a transferência e não executa a
+> tool** (*"nosso especialista já vai te chamar"*, sem `transfereHumano`). É defeito de execução do
+> modelo, **não do portão** — o portão dispara em 97–99% quando há compromisso de verdade.
+>
+> ⚠️ **A lição, que vale para qualquer medição daqui:** régua larga com magnitude plausível é o erro
+> mais caro que existe neste projeto. O Dudu caiu nele no mesmo dia, por outro caminho (237 casos que
+> eram *"abrimos de seg a sex das 9h às 20h. Qual dia fica melhor?"*). **O que salvou os dois foi ler
+> seis conversas na mão.**
+
+### O texto original, mantido como registro (números inválidos)
+
+
 
 Procurando o mecanismo do §3 eu tropecei num padrão **maior e que não é dos anúncios de troca** —
 é da IA inteira, nos dois canais. Ela **assume um compromisso em nome da loja e não aciona ninguém**.
