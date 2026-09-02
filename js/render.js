@@ -178,8 +178,13 @@ function calc(){
 function renderContent(){
   const c=document.getElementById('content');
   if(!c)return;
+  // ⚠️ ISTO E UMA CADEIA if/else if QUE TERMINA EM renderSemAcesso(). Aba nova
+  // TEM que entrar com `else if` -- um `if` solto renderiza e depois a cadeia
+  // segue do zero ate o `else` final, que SOBRESCREVE com "Atualize o app".
+  // Foi o que aconteceu com o rhfolha em 02/set/2026: a aba aparecia na barra,
+  // a tela certa era montada, e o else final apagava tudo por cima.
   if(currentTab==='rhfolha')c.innerHTML=renderRhFolha();
-  if(currentTab==='meudia')c.innerHTML=renderMeuDia();
+  else if(currentTab==='meudia')c.innerHTML=renderMeuDia();
   else if(currentTab==='vitrine')c.innerHTML=renderVitrine();
   else if(currentTab==='consulta')c.innerHTML=renderConsulta();
   else if(currentTab==='dash')c.innerHTML=renderDashV2();

@@ -107,6 +107,29 @@ else bad('lançamento sem pessoa sumiu ou foi somado em alguém');
 if (/jul\/2026/.test(html)) ok('oferece os outros meses fechados');
 else bad('não dá pra trocar de mês');
 
+// ⚠️ CHAMAR renderContent(), NAO SO renderRhFolha(). O roteamento de abas em
+// render.js e uma cadeia if/else if que termina em renderSemAcesso(); uma aba
+// nova entrando com `if` solto monta a tela certa e depois e SOBRESCRITA pelo
+// else final. Foi exatamente o que aconteceu em 02/set/2026 -- a aba aparecia
+// na barra, a tela era montada, e o dono via "Atualize o app". renderRhFolha()
+// sozinho passava verde. E a mesma licao do test/registro-venda.test.js.
+console.log('\na aba chega na tela pelo roteador de verdade\n');
+{
+  let escrito = '';
+  R(`currentTab = 'rhfolha';
+     document.getElementById = function(id){
+       return id === 'content' ? { set innerHTML(v){ globalThis.__html = v; },
+                                   get innerHTML(){ return globalThis.__html || ''; } } : null; };
+     document.querySelectorAll = function(){ return []; };
+     __html = '';`);
+  try { R('renderContent()'); } catch(e){ /* partes da tela pedem DOM que nao existe */ }
+  escrito = R('__html || ""');
+  if (/Folha —/.test(escrito)) ok('renderContent() entrega a tela da Folha');
+  else bad('renderContent() NAO entregou a Folha — veio: ' + escrito.slice(0,80));
+  if (!/Atualize o app/.test(escrito)) ok('...e não cai no "Atualize o app"');
+  else bad('a tela foi sobrescrita pelo renderSemAcesso() — o `else if` da cadeia quebrou');
+}
+
 console.log('\nnada de número da loja na tela\n');
 // A tela nunca recebe venda, então não há o que vazar — mas se alguém um dia
 // puxar `calc()` aqui dentro, estes termos aparecem. É o canário.
