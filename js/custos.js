@@ -728,7 +728,7 @@ function renderCustos(){
   const resultHTML=UI.card({
     titulo:'Resultado após custos operacionais',
     corpo:`
-      <div class="result-row"><div class="r-lbl">Lucro bruto (FoneNinja)</div><div class="r-pos">${money(m.lucro)}</div></div>
+      <div class="result-row"><div class="r-lbl">Lucro bruto (preço − custo + juros repassados)</div><div class="r-pos">${money(m.lucro)}</div></div>
       <div class="result-row"><div class="r-lbl">− Comissões online</div><div class="r-neg">− ${money(m.voTot)}</div></div>
       <div class="result-row"><div class="r-lbl">− Comissões atendentes</div><div class="r-neg">− ${money(m.atTot)}</div></div>
       <div class="result-row"><div class="r-lbl">− Custos operacionais</div><div class="r-neg">− ${money(totalGeral)}</div></div>

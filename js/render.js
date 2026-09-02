@@ -4,7 +4,9 @@ function calc(){
   // ids/mv/ac/pr already defined above
 
   const bruto=v.reduce((a,x)=>a+parseFloat(x.valor_total||0),0);
-  const lucro=v.reduce((a,x)=>a+parseFloat(x.lucro||0),0);
+  // ⚠️ formula A (core.js), nao o campo `x.lucro` da FoneNinja -- ele erra em
+  // 15% das vendas e sempre pra menos. Ver lucroDaVenda().
+  const lucro=somaLucro(v);
   // Usar _produtos (endpoint individual) quando disponivel; fallback para movimentacoes
   const ids=new Set(v.map(x=>x.id));
   const allProdutosMap={};
@@ -251,7 +253,7 @@ function renderVendas(){
   // KPIs da aba vendas -- devem bater com o dashboard
   const kpiProdutos = v.reduce((a,x) => a+(x._produtos&&x._produtos.length>0?x._produtos.filter(p=>isPrincipal(p)).length:0),0);
   const kpiBruto = v.reduce((a,x) => a+parseFloat(x.valor_total||0),0);
-  const kpiLucro = v.reduce((a,x) => a+parseFloat(x.lucro||0),0);
+  const kpiLucro = somaLucro(v);
   const kpiAcess = v.reduce((a,x) => a+(x._produtos?x._produtos.filter(p=>!isPrincipal(p)).reduce((b,p)=>b+parseFloat(p.preco||0),0):0),0);
   if(currentStore!=='ambas')v=v.filter(x=>{const {loja}=getVendaInfo(x);return loja===currentStore;});
 
@@ -310,13 +312,13 @@ function renderVendas(){
       atendente:atendente||'—',
       isSocio:vendedor?['gustavo','marcella'].includes(vendedor.toLowerCase()):false,
       valor:parseFloat(venda.valor_total||0),
-      custo:parseFloat(venda.custo_total ?? (parseFloat(venda.valor_total||0)-parseFloat(venda.lucro||0))),
+      custo:parseFloat(venda.custo_total ?? (parseFloat(venda.valor_total||0)-lucroVenda(venda))),
       qtd:principais.length+acesss.length,
       telefone:venda.cliente?.telefone||venda.cliente_tel||'',
       acessBruto,
       acessLucro,
       acessResumo,
-      lucro:parseFloat(venda.lucro||0),
+      lucro:lucroVenda(venda),
       parcelas:parseInt(venda.parcelas||1)||1,
       taxa:parseFloat(venda.taxa_venda||0),
       liquido:parseFloat(venda.liquido_venda||0),
@@ -940,7 +942,7 @@ function resumoDoDia(){
     aparelhos  += princ.length;
     totalAcess += valorAcess;
     bruto += parseFloat(v.valor_total || 0);
-    lucro += parseFloat(v.lucro || 0);
+    lucro += lucroVenda(v);
 
     if(vendedor){
       porVendedor[vendedor] = porVendedor[vendedor] || { vendas:0, aparelhos:0 };

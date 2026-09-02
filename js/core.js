@@ -422,6 +422,54 @@ function getPrecoVendaSync(item){
   return getPrecoVenda(item, _precosCache || []);
 }
 
+// LUCRO DA VENDA -- a "formula A", adotada em 02/set/2026.
+//
+//     lucro = (preco - custo dos itens NAO-CANCELADOS) + taxa_extra
+//
+// ⚠️ POR QUE NAO USAR `vendas.lucro`, O CAMPO QUE A FONENINJA MANDA PRONTO:
+// ele erra, e erra grande. Medido em ago/2026, nas 384 vendas fechadas: o campo
+// somava R$274.581 contra R$278.033 desta formula -- R$3.452 a menos (1,3%), e
+// **58 vendas (15%) divergem**.
+//
+// O caso que fecha o argumento e a venda 40619619: iPhone 17 Pro Max vendido a
+// R$7.590 que custou R$7.025, cliente pagou R$8.898 no credito e caiu R$8.076,72
+// liquido na conta. O campo da FoneNinja diz que essa venda deu **-R$143,63 de
+// prejuizo**. Esta formula diz +R$1.043,65, que e exatamente o dinheiro que
+// entrou menos o que a mercadoria custou. O painel mostrava a primeira.
+//
+// A conta erra porque tenta descontar a taxa do cartao e desconta errado. Aqui a
+// taxa_extra ENTRA SOMANDO: e juro que o cliente pagou e a loja embolsou, ou
+// seja GANHO (CLAUDE.md > Verdades nao obvias). A checagem de sanidade numa
+// venda e `liquido - valor_total = taxa_extra`.
+//
+// ⚠️ ITEM-LEVEL x VENDA-LEVEL, E A DIFERENCA IMPORTA: `venda_produtos.lucro` e
+// so `preco - valor_estoque` e esta CERTO -- e dele que sai a comissao de
+// acessorio, e nada aqui mexe nisso. Quem erra e so o total da VENDA. Trocar
+// esta funcao **nao muda o que ninguem recebe**: a folha le item, nao venda.
+//
+// ⚠️ SEM `_produtos` NAO DA PRA CALCULAR, e ai devolvemos o campo da FoneNinja
+// com `fonte:'foneninja'`. Nao e detalhe: e o unico caminho pelo qual o numero
+// velho ainda aparece, e quem quiser medir cobertura pergunta pela `fonte`.
+function lucroDaVenda(v){
+  const itens = (v && v._produtos) || [];
+  if(!itens.length)
+    return { valor: parseFloat((v && v.lucro) || 0), fonte:'foneninja' };
+  let bruto = 0;
+  itens.forEach(p => {
+    if(typeof isCancelado === 'function' && isCancelado(p)) return;
+    bruto += parseFloat(p.preco || 0) - parseFloat(p.valor_estoque || 0);
+  });
+  const tx = ((v && v._pagamentos) || [])
+    .reduce((a,p) => a + parseFloat(p.taxa_extra || 0), 0);
+  return { valor: bruto + tx, fonte:'painel' };
+}
+// Acucar: quem so quer o numero.
+function lucroVenda(v){ return lucroDaVenda(v).valor; }
+// Soma de uma lista de vendas.
+function somaLucro(vendas){
+  return (vendas || []).reduce((a,v) => a + lucroVenda(v), 0);
+}
+
 // TAXA DE CARTAO EFETIVA -- quanto a maquininha come de cada real vendido,
 // MEDIDO nos pagamentos reais em vez de chutado numa constante.
 //

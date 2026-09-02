@@ -406,7 +406,7 @@ function renderDashV2(){
     {v:UI.badge('#'+v.id,null,true)},
     UI.esc(_d2ModeloVenda(v)),
     {v:money(parseFloat(v.valor_total||0)), num:true},
-    {v: verM?`<span class="d2-ok">${brl(parseFloat(v.lucro||0))}</span>`:'—', num:true}
+    {v: verM?`<span class="d2-ok">${brl(lucroVenda(v))}</span>`:'—', num:true}
   ]);
   const salesCard=UI.card({titulo:'Vendas recentes', sub:'<span class="d2-live">● ao vivo</span>', corpo:
     UI.tabela({colunas:[{titulo:'Data'},{titulo:'Cód'},{titulo:'Aparelho'},{titulo:'Valor total',num:true},{titulo:'Lucro',num:true}], linhas,
@@ -464,7 +464,7 @@ function d2CardOrigem(v){
   oConf.forEach(x => {
     const k = x._origem.origem || 'Sem origem gravada no lead';
     const o = porOrigem[k] || (porOrigem[k] = {vendas:0, bruto:0, lucro:0});
-    o.vendas++; o.bruto += parseFloat(x.valor_total||0); o.lucro += parseFloat(x.lucro||0);
+    o.vendas++; o.bruto += parseFloat(x.valor_total||0); o.lucro += lucroVenda(x);
   });
 
   const comMargem = podeVerMargem();
@@ -503,7 +503,7 @@ function d2CardLojas(v){
   const verM = podeVerMargem();
   const resumo = (arr, nome, tom) => {
     const bruto = arr.reduce((a,x) => a + parseFloat(x.valor_total||0), 0);
-    const lucro = arr.reduce((a,x) => a + parseFloat(x.lucro||0), 0);
+    const lucro = somaLucro(arr);
     const un = arr.reduce((a,x) => a + (x._produtos ? x._produtos.filter(p => isPrincipal(p)).length : 0), 0);
     return { nome, tom, vendas:arr.length, un, bruto, lucro,
              margem: bruto > 0 ? Math.round(lucro/bruto*100) : 0,
@@ -541,7 +541,7 @@ function d2CardLojas(v){
 function d2CardMargem(v){
   if(!podeVerMargem()) return '';
   const linhas = v.map(x => {
-    const tot = parseFloat(x.valor_total||0), luc = parseFloat(x.lucro||0);
+    const tot = parseFloat(x.valor_total||0), luc = lucroVenda(x);
     const prods = x._produtos ? x._produtos.filter(p => isPrincipal(p)) : [];
     const {vendedor, loja} = getVendaInfo(x);
     return { id:x.id, tot, luc, mg: tot > 0 ? Math.round(luc/tot*1000)/10 : 0,

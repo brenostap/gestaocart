@@ -62,6 +62,10 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
   data**: abr–jul já foram pagos, e regra de comissão sem vigência reescreve mês pago em silêncio.
   Todo lugar que pergunta "esta chave é de atendente?" passa por `atKeysVigentes(ref)` — `AT_KEYS`
   cru só responde pelo regime antigo.
+- **Teste do lucro da venda**: `node test/lucro-venda.test.js`. Fixa a **fórmula A** e as três
+  regras que erram calado: `taxa_extra` **soma** (é ganho), item cancelado **não entra** (seria
+  lucro fantasma — inflou jul/2026 em R$28 mil), e brinde **pesa** no resultado da loja. A seção 4
+  é a licença pra ter trocado a fórmula: ela prova que a comissão não lê o total da venda.
 - **Teste da origem da venda**: `node test/venda-origem.test.js`. Monta o dashboard e prova que a
   seção "De onde vieram as vendas" **não soma o `provavel`** no dinheiro (o nível 5 erra 1 em 5) e
   que a **cobertura aparece na tela** — o número é piso, não total, e esconder o denominador seria
@@ -319,7 +323,18 @@ Telas: Vendas, Estoque, Tabela de preços, Equipe/Folha, Custos, Dashboard, Movi
     desconfiança. Nunca item a item; aí seria custo de produto.
 
 ## Verdades não óbvias (pra não errar)
-- O `lucro` da venda **já é líquido da taxa de cartão** (a FoneNinja calcula sobre o `líquido` do pagamento). **Não descontar taxa de novo** — seria dupla contagem.
+- ⚠️ **O lucro da venda sai de `lucroDaVenda()` (core.js), NÃO do campo `vendas.lucro`** (trocado
+  em 02/set/2026). A fórmula é `(preço − custo dos itens não-cancelados) + taxa_extra`, e a
+  `taxa_extra` **soma** porque é juro que o cliente pagou e a loja embolsou. O campo da FoneNinja
+  erra pra menos: em ago/2026 dizia R$274.581 contra R$278.033 nas mesmas 384 vendas, com **58
+  (15%) divergindo** — e na venda `40619619` chegou a mostrar **−R$143,63 de prejuízo** num iPhone
+  de R$7.590 que custou R$7.025 e onde caíram R$8.076,72 na conta.
+  - ⚠️ **Item ≠ venda.** `venda_produtos.lucro` é só `preco − valor_estoque` e está **certo** — é
+    dele que sai a comissão de acessório. Quem errava era só o total da venda, e por isso a troca
+    **não mexeu no que ninguém recebe**. Se um dia a comissão passar a ler o total da venda, mudar
+    a fórmula vira mudança em mês pago e precisa de vigência. `test/lucro-venda.test.js` guarda isso.
+  - Sem `_produtos` a função não calcula e devolve o campo antigo com `fonte:'foneninja'` — é o
+    único caminho pelo qual o número velho ainda aparece, e é assim que se mede a cobertura.
 - O `líquido`/recebimento da FoneNinja **erra em ~9%** das vendas — o lucro dessas não é confiável.
 - `taxa` = custo real da maquininha; `taxa_extra` = juros repassados ao cliente (é ganho da loja, já embutido no líquido).
 - **Trocas detalhadas JÁ são capturadas** — `venda_trocas` tem uma linha por aparelho entregue,
