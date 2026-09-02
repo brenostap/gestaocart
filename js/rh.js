@@ -153,15 +153,27 @@ function rhSaiuNoFUNC(id){
 // calado esconderia ou uma folha paga a mais, ou uma pessoa sumida do histórico.
 // Então a tela ACUSA — mesma lição da Conferência da Assistência.
 function rhDivergencias(){
-  return rhPessoas().filter(p => {
+  const out = [];
+  rhPessoas().forEach(p => {
     const noFunc = rhSaiuNoFUNC(p.id);
-    return (p.status === 'desligado') !== noFunc;
-  }).map(p => ({
-    ...p,
-    texto: p.status === 'desligado'
-      ? `${p.curto} está DESLIGADO no cadastro, mas ainda entra na folha (falta marcar no sistema).`
-      : `${p.curto} saiu segundo o sistema, mas o cadastro diz "${rhStatusInfo(p.status).t}".`,
-  }));
+    if((p.status === 'desligado') !== noFunc) out.push({ ...p,
+      texto: p.status === 'desligado'
+        ? `${p.curto} está DESLIGADO no cadastro, mas ainda entra na folha (falta marcar no sistema).`
+        : `${p.curto} saiu segundo o sistema, mas o cadastro diz "${rhStatusInfo(p.status).t}".` });
+
+    // ⚠️ MESMA ARMADILHA, OUTRO CAMPO. O cargo agora existe no cadastro (que o
+    // RH edita) E no FUNC (que a tela de Equipe e o cabecalho do fechamento
+    // exportado leem). Mudar so aqui faz a Nara ver "Gerente" e o documento que
+    // vai pro colaborador dizer "Atendente" -- e ninguem percebe, porque as
+    // duas telas estao certas cada uma na sua fonte.
+    const cargoFunc = ((typeof FUNC !== 'undefined' ? FUNC : [])
+      .find(x => x.id === p.id) || {}).cargo;
+    const limpo = String(cargoFunc || '').replace(/\s*\(saiu\)\s*/i,'').trim();
+    const doCad = String((p.cad || {}).cargo || '').trim();
+    if(limpo && doCad && limpo.toLowerCase() !== doCad.toLowerCase()) out.push({ ...p,
+      texto: `${p.curto}: cargo é "${doCad}" no cadastro e "${limpo}" no sistema — o segundo é o que sai no fechamento do colaborador.` });
+  });
+  return out;
 }
 
 // -- LANÇAMENTOS DO MÊS ------------------------------------------------------

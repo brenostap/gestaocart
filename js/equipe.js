@@ -1054,7 +1054,10 @@ function saveEquipeExtra(id){
     pix:         campo('pix')    ?? cur.pix         ?? f.pix   ?? '',
     telefone:    campo('tel')    ?? cur.telefone    ?? '',
     email:       campo('email')  ?? cur.email       ?? f.email ?? '',
-    data_inicio: campo('inicio') ?? cur.data_inicio ?? '',
+    // ⚠️ `data_inicio` virou coluna DATE em 02/set/2026 (era text, e aceitava ''
+    // e formato BR -- os dois quebravam a conta de ferias do RH em silencio).
+    // Coluna date RECUSA string vazia: limpar o campo tem que mandar null.
+    data_inicio: (campo('inicio') ?? cur.data_inicio ?? '') || null,
     obs:         campo('obs')    ?? cur.obs         ?? ''
   };
   const btn=document.getElementById('btn-salvar-'+id);

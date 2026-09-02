@@ -259,6 +259,18 @@ if (/discordam/i.test(R('renderRhPessoas()'))) ok('e o aviso aparece na tela');
 else bad('o aviso não chegou na tela');
 semear();
 
+// ⚠️ MESMA ARMADILHA, OUTRO CAMPO: o cargo vive no cadastro (que o RH edita) E
+// no FUNC (que o fechamento exportado imprime no cabeçalho do colaborador).
+// Divergir manda a Nara ver "Gerente" e o documento dizer "Atendente".
+R(`rhCad['anne'] = {...rhCad['anne'], cargo:'Gerente de Acessórios'};`);
+if (R('rhDivergencias()').some(d => /cargo/i.test(d.texto)))
+  ok('cargo diferente entre cadastro e sistema também é acusado');
+else bad('divergência de cargo passou calada');
+R(`rhCad['anne'] = {...rhCad['anne'], cargo:'Atendente'};`);
+eq('cargo igual não vira alarme falso',
+   R('rhDivergencias()').filter(d => /cargo/i.test(d.texto)).length, 0);
+semear();
+
 // -- 8. o roteador ---------------------------------------------------------
 // ⚠️ CHAMAR renderContent(), NAO SO renderRhFolha(). O roteamento de abas em
 // render.js e uma cadeia if/else if que termina em renderSemAcesso(); uma aba

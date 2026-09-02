@@ -21,7 +21,7 @@ lugares diferentes — ver o mapa abaixo.
 |---|---|---|
 | `FUNC` em `js/config.js` | Cadastro-mestre: apelido, nome completo, **cargo**, pix, tipo (online/presencial/sócio), e-mail, `voKey`/`atKey`, `bonus`, `saiuEm` | commit |
 | `SALARIOS` em `js/config.js` | Fixo mensal por pessoa | commit |
-| `funcionarios_config` (Supabase) | Pix, telefone, e-mail, data de início e **obs livre** — editáveis na tela Equipe | sócio, pela tela |
+| `funcionarios_config` (Supabase) | **O CADASTRO** (o nome da tabela é legado): nome completo, CPF, RG, nascimento, sexo, estado civil, nacionalidade, naturalidade, cargo, departamento, **admissão** (`data_inicio`), desligamento, motivo da saída, `status`, telefone, e-mail, endereço, Pix, contato de emergência, obs | **sócio** pela tela Equipe · **RH** pela tela Colaboradores |
 | `dividas` (Supabase) | Vales e adiantamentos parcelados | sócio, pela tela |
 | `perfis` (Supabase) | Login → papel (`socio`/`bancada`), `vo_key`, `at_key`. É o que o RLS lê | sócio, no banco |
 | `apelidos` (Supabase) | Apelido/typo → chave canônica (`deni`→`denilson`). Fonte única, vale pro RLS e pro sync | sócio, no banco |
@@ -31,6 +31,12 @@ lugares diferentes — ver o mapa abaixo.
 Detalhe de papel e RLS em [`../PERFIS-E-ACESSO.md`](../PERFIS-E-ACESSO.md). Quem paga comissão é o
 `core.js` (`VO_KEYS`/`AT_KEYS`), não o cargo.
 
+⚠️ **O `cargo` passou a ter dois donos em 02/set/2026** e vale saber qual manda onde: o do `FUNC`
+é o que a tela de **Equipe** mostra e o que sai no **cabeçalho do fechamento** que vai pro
+colaborador; o de `funcionarios_config` é o que o **RH** edita e vê. Mudar só um faz a Nara ver
+"Gerente" e o documento do colaborador dizer "Atendente" — as duas telas certas, cada uma na sua
+fonte. A tela de Colaboradores **acusa** enquanto discordarem; quem resolve é editar o `FUNC`.
+
 ## Regras deste diretório
 
 - **Um arquivo por função, não por pessoa.** A pessoa sai, a função fica. Quem ocupa vai na tabela
@@ -38,8 +44,10 @@ Detalhe de papel e RLS em [`../PERFIS-E-ACESSO.md`](../PERFIS-E-ACESSO.md). Quem
 - **Só markdown.** A Netlify publica a raiz do repo, então PDF/DOCX commitado vira URL pública
   (mesma razão de `RR/` e `notas/` estarem no `.gitignore`). O original fica com o dono; aqui entra
   a transcrição.
-- **Sem dado pessoal.** Pix, telefone e e-mail já têm lugar (`funcionarios_config`). Aqui é só o
-  que a função exige.
+- **Sem dado pessoal.** Pix, telefone, e-mail — e agora CPF, RG, nascimento e endereço — têm lugar
+  (`funcionarios_config`). Aqui é só o que a função exige.
+  - ⚠️ Desde 02/set/2026 `funcionarios_config` guarda **documento e endereço**. Só `socio` e `rh`
+    leem, e **nada disso pode encostar num arquivo do repo** — a Netlify publica a raiz.
 - Mudou o cargo de alguém? Mexa no `cargo` do `FUNC` — ele aparece na tela de Equipe e no cabeçalho
   do fechamento (`js/fechamento.js`). ⚠️ O único trecho de `cargo` que o código interpreta é o
   marcador `(saiu)`, lido por `saiuDaEquipe()` em `core.js`; o resto é texto livre.

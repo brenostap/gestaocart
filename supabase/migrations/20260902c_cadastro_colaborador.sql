@@ -72,3 +72,15 @@ create policy funcionarios_config_rh_criar on public.funcionarios_config
   for insert to authenticated with check (public.eh_rh());
 create policy funcionarios_config_rh_editar on public.funcionarios_config
   for update to authenticated using (public.eh_rh()) with check (public.eh_rh());
+
+-- ⚠️ `data_inicio` era TEXT (a coluna e antiga) enquanto `nascimento` e
+-- `desligamento` nasceram DATE. Texto aceitava '' -- que uma linha ja tinha --
+-- e aceitaria '10/03/2025' no formato BR. A conta de ferias valida o formato e
+-- devolve null nos dois casos, entao a tela diria "preencha a data de admissao"
+-- com o campo PREENCHIDO. Coluna date recusa na hora, que e o sintoma certo.
+-- ⚠️ Quem escreve tambem tem que mandar `null`, nao '': ver saveEquipeExtra()
+-- em js/equipe.js, que mandava string vazia ao limpar o campo.
+alter table public.funcionarios_config
+  alter column data_inicio type date using nullif(trim(data_inicio),'')::date;
+comment on column public.funcionarios_config.data_inicio is
+  'Data de ADMISSAO. Era text ate 02/set/2026.';
