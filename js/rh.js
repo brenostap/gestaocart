@@ -30,6 +30,7 @@ let rhMes = null;          // 'YYYY-MM' escolhido; null = o mais recente
 let rhFolha = [];          // linhas de folha_mensal (todos os meses)
 let rhSalarios = [];       // custos da area Funcionarios (o RLS já filtra)
 let rhCad = {};            // funcionarios_config: id -> cadastro completo
+let rhFerias = [];         // tabela `ferias`: um gozo (ou programacao) por linha
 let rhCarregado = false;
 let rhErro = '';
 let rhAberto = null;       // id da pessoa com a ficha aberta
@@ -51,22 +52,24 @@ const rhStatusInfo = s => RH_STATUS.find(x => x.v === s) || { v:'', t:'Sem statu
 async function carregarRh(){
   rhErro = '';
   try{
-    const [folha, custos, cfg] = await Promise.all([
+    const [folha, custos, cfg, fer] = await Promise.all([
       sbGet('folha_mensal', 'order=mes.desc,total_variavel.desc', 500),
       // ⚠️ Sem filtro de área aqui de propósito: quem filtra é a POLICY
       // (`custos_rh`). Se um dia o filtro sumir do banco, o bug tem que
       // aparecer no teste de RLS, não ficar escondido atrás de um `and` no JS.
       sbGet('custos', 'order=data.desc', 2000),
       sbGet('funcionarios_config', 'order=id', 200).catch(() => []),
+      sbGet('ferias', 'order=inicio.desc', 500).catch(() => []),
     ]);
     rhFolha = folha || [];
     rhSalarios = custos || [];
     rhCad = {};
     (cfg || []).forEach(c => { rhCad[c.id] = c; });
+    rhFerias = fer || [];
   }catch(e){
     console.warn('[rh] carga falhou:', e.message);
     rhErro = e.message || 'falha ao carregar';
-    rhFolha = []; rhSalarios = []; rhCad = {};
+    rhFolha = []; rhSalarios = []; rhCad = {}; rhFerias = [];
   }
   rhCarregado = true;
 }
@@ -737,20 +740,29 @@ async function rhSalvarCadastro(id){
 }
 
 // -- FÉRIAS ------------------------------------------------------------------
-// ⚠️ CONTA DE CALENDÁRIO, NÃO DE FOLHA. Período aquisitivo = 12 meses de
-// trabalho; o direito tem que ser gozado nos 12 meses seguintes (período
-// concessivo), senão vence. Deriva só da data de admissão — nada aqui é
-// lançamento, e nada aqui paga. Se a admissão estiver em branco, a tela DIZ que
-// não sabe, em vez de inventar uma data.
+// ⚠️ DUAS COISAS DIFERENTES, E CONFUNDI-LAS ERA O BUG DA PRIMEIRA VERSÃO:
 //
-// ⚠️ E ELA SÓ SABE METADE. O painel não tem registro de férias GOZADAS: o que
-// ele enxerga é o lançamento de férias no Custos do mês em que foi pago
-// ("Salário Davi (férias)"). Isso marca o mês, não o período aquisitivo — então
-// `gozadas` é um PISO, e a tela precisa dizer isso. A primeira versão deste
-// arquivo tinha um campo `vencido` que nunca podia ser true: ele comparava a
-// data de hoje com o vencimento do período MAIS RECENTE, que por construção
-// ainda está no futuro. Período vencido é o ANTIGO, não o novo.
-function rhFeriasDe(dataInicio, hoje, gozadas){
+//   PERÍODO AQUISITIVO — deriva SÓ da data de admissão. 12 meses de trabalho
+//     geram 30 dias de direito, e esse direito tem que ser gozado nos 12 meses
+//     seguintes (período concessivo), senão vence. É conta de calendário.
+//
+//   GOZO — é fato, e mora na tabela `ferias`: de quando a quando, quantos dias,
+//     a que período pertence, se houve abono. Até 02/set/2026 o painel
+//     ADIVINHAVA isso pelo lançamento de férias no Custos, que marca o MÊS em
+//     que foi pago e não o período nem a quantidade de dias — férias partidas
+//     (10+10+10, que a CLT permite) ficavam indistinguíveis de um período
+//     inteiro. Era piso, não controle. Hoje o lançamento do Custos vira só um
+//     AVISO de "pagamento sem registro", não a fonte.
+//
+// ⚠️ O ABONO CONSOME O DIREITO. Vender 10 dias não é descanso, mas abate do
+// saldo: sem somar `abono_dias`, o saldo de quem vendeu nunca fecharia em 30 e
+// a tela cobraria férias que já foram quitadas.
+
+const RH_DIAS_PERIODO = 30;
+
+// Os períodos aquisitivos de uma pessoa, do mais novo pro mais velho. Só os
+// COMPLETOS geram direito; o que está em curso aparece à parte.
+function rhPeriodosAquisitivos(dataInicio, hoje){
   const txt = String(dataInicio || '').slice(0,10);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(txt)) return null;
   const d0 = new Date(txt + 'T12:00:00');
@@ -761,65 +773,193 @@ function rhFeriasDe(dataInicio, hoje, gozadas){
   const iso  = d => d.toISOString().slice(0,10);
   const dias = (a,b) => Math.round((a - b) / 86400000);
 
-  let n = 0;                       // periodos aquisitivos ja completos
+  let n = 0;
   while(soma(n+1) <= ref) n++;
-  if(n === 0) return { completou:false, proximo: iso(soma(1)), faltam: dias(soma(1), ref) };
 
-  // O periodo k vence em soma(k+1). Com n periodos completos, os de 1 a n-1 ja
-  // passaram do prazo. Cada gozo registrado abate o mais antigo.
-  const usadas = Math.max(0, Number(gozadas || 0));
-  const vencidos = Math.max(0, (n - 1) - usadas);
+  const completos = [];
+  for(let k = n; k >= 1; k--) completos.push({
+    inicio: iso(soma(k-1)),      // primeiro dia trabalhado do período
+    nasceu: iso(soma(k)),        // direito adquirido
+    vence:  iso(soma(k+1)),      // fim do período concessivo
+    faltam: dias(soma(k+1), ref),
+    venceu: soma(k+1) < ref,
+  });
   return {
-    completou:  true,
-    periodos:   n,
-    gozadas:    usadas,
-    aquisitivo: iso(soma(n)),        // quando nasceu o direito mais recente
-    vence:      iso(soma(n+1)),      // fim do periodo concessivo dele
-    faltam:     dias(soma(n+1), ref),
-    vencidos,                        // quantos ja passaram do prazo sem registro
-    vencido:    vencidos > 0,
+    completos,
+    emCurso: { desde: iso(soma(n)), completa: iso(soma(n+1)), faltam: dias(soma(n+1), ref) },
   };
 }
 
-// Meses em que apareceu um lançamento de FÉRIAS na folha da pessoa. É tudo que
-// o painel sabe sobre gozo — e é por isso que a tela chama de "registro", não de
-// "controle": férias tiradas sem lançamento no Custos não chegam aqui.
-function rhFeriasRegistradas(id){
-  return [...new Set((rhSalarios || [])
+// O gozo registrado de uma pessoa, agrupado pelo período a que pertence.
+// `cancelada` não conta — é registro de que a programação caiu, não de descanso.
+function rhGozoDoPeriodo(id, aquisitivoInicio){
+  return (rhFerias || []).filter(f =>
+    f.funcionario_id === id &&
+    String(f.aquisitivo_inicio || '').slice(0,10) === aquisitivoInicio &&
+    f.status !== 'cancelada');
+}
+function rhDiasUsados(linhas){
+  return linhas.reduce((a,f) => a + Number(f.dias || 0) + Number(f.abono_dias || 0), 0);
+}
+
+// ⚠️ AVISO, NÃO FONTE. Meses com lançamento de férias no Custos que não têm
+// nenhuma linha em `ferias` cobrindo: alguém pagou e ninguém registrou. É o
+// unico uso que sobrou do sinal antigo, e ele agora aponta uma FALTA em vez de
+// fingir que é o dado.
+function rhFeriasPagasSemRegistro(id){
+  const registrados = (rhFerias || [])
+    .filter(f => f.funcionario_id === id && f.status !== 'cancelada')
+    .flatMap(f => rhMesesEntre(f.inicio, f.fim));
+  return (rhSalarios || [])
     .filter(c => c.funcionario === id && rhTipoLancamento(c).t === 'Férias')
-    .map(c => String(c.data || '').slice(0,7)))].sort();
+    .map(c => String(c.data || '').slice(0,7))
+    .filter(m => m && !registrados.includes(m))
+    .filter((m,i,a) => a.indexOf(m) === i)
+    .sort();
+}
+function rhMesesEntre(ini, fim){
+  const a = String(ini||'').slice(0,7), b = String(fim||'').slice(0,7);
+  if(!a || !b) return [];
+  const out = []; let [y,m] = a.split('-').map(Number);
+  for(let i = 0; i < 24; i++){
+    const cur = y + '-' + String(m).padStart(2,'0');
+    out.push(cur);
+    if(cur >= b) break;
+    m++; if(m > 12){ m = 1; y++; }
+  }
+  return out;
 }
 
 function rhCardFerias(p){
-  const meses = rhFeriasRegistradas(p.id);
-  const fr = rhFeriasDe((p.cad || {}).data_inicio, null, meses.length);
-  const rodape = `<div class="rh-nota">Contagem derivada da <b>data de admissão</b>.
-    O painel só enxerga férias que viraram lançamento no Custos${
-      meses.length ? ' — encontrei ' + meses.map(rhRotuloMes).join(', ') : ' — não encontrei nenhum'
-    }. Férias tiradas sem lançamento não chegam aqui, então trate este número como piso.</div>`;
+  const cad = p.cad || {};
+  const per = rhPeriodosAquisitivos(cad.data_inicio);
+  const semRegistro = rhFeriasPagasSemRegistro(p.id);
 
-  if(!fr) return UI.card({ titulo:'Férias', corpo:`<div class="rh-nota">
+  const avisoPago = semRegistro.length ? `<div class="rh-nota">⚠️ Há lançamento de férias no
+    Custos em <b>${semRegistro.map(rhRotuloMes).join(', ')}</b> sem período registrado aqui.
+    Alguém foi pago e o gozo não foi lançado.</div>` : '';
+
+  if(!per) return UI.card({ titulo:'Férias', corpo:`<div class="rh-nota">
     Sem <b>data de admissão</b> no cadastro, não dá para calcular o período aquisitivo.
-    Preencha a admissão e o prazo aparece aqui.</div>` });
-  if(!fr.completou) return UI.card({ titulo:'Férias', corpo:`<div class="rh-nota">
-    Ainda no primeiro período aquisitivo. Completa 12 meses em <b>${rhData(fr.proximo)}</b>
-    (faltam ${fr.faltam} dias).</div>` + rodape });
+    Preencha a admissão e o controle aparece aqui.</div>` + avisoPago });
 
-  const tom = fr.vencido ? 'critico' : fr.faltam <= 90 ? 'alerta' : 'ok';
-  return UI.card({
-    titulo: fr.vencido ? '⚠️ Férias — período vencido' : 'Férias',
-    sub: fr.periodos + ' período' + (fr.periodos>1?'s':'') + ' aquisitivo' +
-         (fr.periodos>1?'s':'') + ' completo' + (fr.periodos>1?'s':''),
-    classe: fr.vencido ? 'c-card-alerta' : '',
-    corpo: `<div class="rh-kv-grade">
-        <div class="rh-kv"><span>Direito mais recente em</span><b>${rhData(fr.aquisitivo)}</b></div>
-        <div class="rh-kv"><span>Precisa ser gozado até</span><b>${rhData(fr.vence)}</b></div>
-        <div class="rh-kv"><span>Gozos registrados</span><b>${fr.gozadas || 'nenhum'}</b></div>
-        <div class="rh-kv"><span>Situação</span><b>${UI.badge(
-          fr.vencido ? fr.vencidos + ' período' + (fr.vencidos>1?'s':'') + ' vencido' + (fr.vencidos>1?'s':'')
-                     : 'faltam ' + fr.faltam + ' dias', tom)}</b></div>
-      </div>` + rodape,
+  const linhas = per.completos.map(q => {
+    const gozos = rhGozoDoPeriodo(p.id, q.inicio);
+    const usados = rhDiasUsados(gozos);
+    const saldo = RH_DIAS_PERIODO - usados;
+    const quitado = saldo <= 0;
+    // ⚠️ Vencido é o período que passou do prazo COM SALDO. Um período vencido e
+    // já gozado não é problema nenhum -- alarmar nele treinaria a Nara a ignorar
+    // o alarme, que é como alerta bom vira ruído.
+    const tom = quitado ? 'ok' : q.venceu ? 'critico' : q.faltam <= 90 ? 'alerta' : 'processo';
+    const sit = quitado ? 'quitado'
+      : q.venceu ? 'VENCIDO com ' + saldo + ' dias'
+      : saldo + ' dias a gozar · faltam ' + q.faltam + ' dias';
+    return [
+      `<b>${rhData(q.nasceu)}</b>`,
+      { v: rhData(q.vence) },
+      { v: usados ? usados + ' de 30' : '—', num:true },
+      { v: UI.badge(sit, tom) },
+      { v: `<span class="rh-comp">${gozos.length
+            ? gozos.map(g => rhDataCurta(g.inicio)+'–'+rhDataCurta(g.fim)
+                + (g.status === 'programada' ? ' (programada)' : '')
+                + (Number(g.abono_dias) ? ' +'+g.abono_dias+'d abono' : '')).join(' · ')
+            : 'nenhum registro'}</span>` },
+    ];
   });
+
+  const alerta = per.completos.some(q =>
+    q.venceu && RH_DIAS_PERIODO - rhDiasUsados(rhGozoDoPeriodo(p.id, q.inicio)) > 0);
+
+  const corpo = linhas.length
+    ? UI.tabela({ colunas:[{titulo:'Direito nasceu em'},{titulo:'Gozar até'},
+        {titulo:'Dias usados', num:true},{titulo:'Situação'},{titulo:'Períodos registrados'}],
+        linhas })
+    : `<div class="rh-nota">Ainda no primeiro período aquisitivo — nenhum direito completo.</div>`;
+
+  return UI.card({
+    titulo: alerta ? '⚠️ Férias — período vencido com saldo' : 'Férias',
+    sub: `admitido em ${rhData(cad.data_inicio)} · próximo direito em ${rhData(per.emCurso.completa)} (${per.emCurso.faltam} dias)`,
+    classe: alerta ? 'c-card-alerta' : '',
+    flush: true,
+    corpo: corpo
+      + avisoPago
+      + `<div class="rh-toolbar-int">${UI.btn('+ Lançar férias',
+          {onclick:`rhNovaFerias('${p.id}')`, variante:'primario', sm:true})}</div>`,
+  });
+}
+
+// -- lançar férias -----------------------------------------------------------
+function rhNovaFerias(id){
+  const p = rhPessoas().find(x => x.id === id);
+  if(!p) return;
+  const per = rhPeriodosAquisitivos((p.cad || {}).data_inicio);
+  if(!per || !per.completos.length){
+    alert('Esta pessoa ainda não tem período aquisitivo completo — ou falta a data de admissão no cadastro.');
+    return;
+  }
+  const ops = per.completos.map(q => ({
+    v: q.inicio,
+    t: `direito de ${rhData(q.nasceu)} · gozar até ${rhData(q.vence)} · saldo ${
+        RH_DIAS_PERIODO - rhDiasUsados(rhGozoDoPeriodo(id, q.inicio))} dias`,
+  }));
+  UI.abrirModal({
+    titulo: 'Lançar férias — ' + UI.esc(p.nome),
+    corpo:
+        UI.campo({label:'Período aquisitivo', corpo: UI.select({id:'fer-aq', opcoes:ops})})
+      + UI.linha(
+          UI.campo({label:'Início', corpo: UI.input({id:'fer-ini', tipo:'date'})}),
+          UI.campo({label:'Fim',    corpo: UI.input({id:'fer-fim', tipo:'date'})}))
+      + UI.linha(
+          UI.campo({label:'Abono (dias vendidos, até 10)',
+            corpo: UI.input({id:'fer-abono', tipo:'number', valor:'0', extra:'min="0" max="10"'})}),
+          UI.campo({label:'Situação', corpo: UI.select({id:'fer-status',
+            opcoes:[{v:'gozada',t:'Já gozada'},{v:'programada',t:'Programada'},
+                    {v:'cancelada',t:'Cancelada'}]})}))
+      + UI.campo({label:'Observação', corpo: UI.input({id:'fer-obs'})})
+      + `<div class="rh-nota">O abono <b>consome</b> o direito: 20 dias gozados + 10 vendidos
+         fecham o período. Cancelar é uma situação, não apagar — a linha fica no histórico.</div>`,
+    foot: UI.btn('Salvar', {onclick:`rhSalvarFerias('${id}')`, variante:'primario'}),
+  });
+}
+
+async function rhSalvarFerias(id){
+  const v = k => (document.getElementById('fer-'+k) || {}).value || '';
+  const dados = {
+    funcionario_id: id,
+    aquisitivo_inicio: v('aq'),
+    inicio: v('ini'),
+    fim: v('fim'),
+    abono_dias: parseInt(v('abono') || 0) || 0,
+    status: v('status') || 'gozada',
+    obs: v('obs') || null,
+    criado_por: usuarioEmail || '',
+  };
+  if(!dados.inicio || !dados.fim){ alert('Preencha início e fim.'); return; }
+  if(dados.fim < dados.inicio){ alert('O fim não pode ser antes do início.'); return; }
+  try{
+    const token = await sbAuthToken();
+    const r = await fetch(SB_URL+'/rest/v1/ferias', {
+      method:'POST',
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+token,
+        'Content-Type':'application/json', 'Prefer':'return=representation' },
+      body: JSON.stringify(dados),
+    });
+    if(!r.ok){
+      const txt = await r.text().catch(() => '');
+      // ⚠️ O CHECK de 30 dias vem do banco, e a mensagem crua nao ajuda ninguem.
+      throw new Error(/ferias_ate_30/.test(txt)
+        ? 'Passou de 30 dias somando gozo e abono — o período não comporta.'
+        : 'HTTP '+r.status+(txt ? ' — '+txt.slice(0,180) : ''));
+    }
+    const criado = await r.json().catch(() => []);
+    if(Array.isArray(criado) && criado[0]) rhFerias = [criado[0]].concat(rhFerias);
+    UI.fecharModal();
+  }catch(e){
+    console.error('[rh] salvar ferias:', e.message);
+    alert('Não consegui salvar: '+e.message);
+  }
+  renderContent();
 }
 
 // -- ABA HISTÓRICO -----------------------------------------------------------

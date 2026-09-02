@@ -214,36 +214,75 @@ if (fh.includes('jul/2026') && fh.includes('ago/2026')) ok('histórico traz mês
 else bad('o histórico não listou os meses');
 
 // -- 6. férias -------------------------------------------------------------
-// ⚠️ Conta de calendário derivada da ADMISSÃO. Sem admissão a tela tem que
-// DIZER que não sabe -- inventar uma data de vencimento de férias é pior que
-// não ter a tela.
+// ⚠️ DUAS COISAS DIFERENTES. O período AQUISITIVO deriva só da admissão (conta
+// de calendário); o GOZO é fato e mora na tabela `ferias`. A primeira versão
+// misturava as duas: adivinhava o gozo pelo lançamento no Custos, que marca o
+// MÊS pago e não o período nem a quantidade de dias — férias partidas (10+10+10,
+// que a CLT permite) ficavam iguais a um período inteiro.
 console.log('\ncontrole de férias\n');
-eq('sem data de admissão, não inventa',            R("rhFeriasDe('', '2026-09-02')"), null);
-eq('admissão inválida também não inventa',         R("rhFeriasDe('ontem', '2026-09-02')"), null);
-const f1 = R("rhFeriasDe('2025-03-10','2026-09-02')");
-eq('1 período aquisitivo completo',                f1.periodos, 1);
-eq('direito adquirido em 10/03/2026',              f1.aquisitivo, '2026-03-10');
-eq('e vence em 10/03/2027',                        f1.vence, '2027-03-10');
-eq('ainda não venceu',                             f1.vencido, false);
-const f2 = R("rhFeriasDe('2024-01-05','2026-09-02')");
-eq('2 períodos completos',                         f2.periodos, 2);
-eq('o mais recente vence em 05/01/2027',           f2.vence, '2027-01-05');
-const f3 = R("rhFeriasDe('2026-06-01','2026-09-02')");
-eq('menos de um ano: ainda no primeiro período',   f3.completou, false);
+
+eq('sem data de admissão, não inventa',    R("rhPeriodosAquisitivos('', '2026-09-02')"), null);
+eq('admissão inválida também não inventa', R("rhPeriodosAquisitivos('ontem', '2026-09-02')"), null);
+
+const P1 = R("rhPeriodosAquisitivos('2025-03-10','2026-09-02')");
+eq('1 período completo',                   P1.completos.length, 1);
+eq('direito nasceu em 10/03/2026',         P1.completos[0].nasceu, '2026-03-10');
+eq('e precisa ser gozado até 10/03/2027',  P1.completos[0].vence,  '2027-03-10');
+eq('ainda não venceu',                     P1.completos[0].venceu, false);
+eq('o período em curso completa em 10/03/2027', P1.emCurso.completa, '2027-03-10');
+
+const P2 = R("rhPeriodosAquisitivos('2024-01-05','2026-09-02')");
+eq('2 períodos completos',                 P2.completos.length, 2);
+eq('vêm do mais novo pro mais velho',      P2.completos.map(q=>q.nasceu), ['2026-01-05','2025-01-05']);
 // ⚠️ O PERÍODO QUE VENCE É O ANTIGO, NUNCA O MAIS NOVO. A primeira versão
 // comparava hoje com o vencimento do período mais recente -- que por construção
-// está sempre no futuro, então `vencido` nunca podia ser true e o "controle de
-// vencimento" que o RH pediu não controlava nada. Com 2 períodos completos e
-// nenhum gozo registrado, o primeiro JÁ passou do prazo.
-eq('2 períodos completos e nenhum gozo: 1 já venceu', f2.vencidos, 1);
-eq('e isso é marcado como vencido',                   f2.vencido,  true);
-eq('1 gozo registrado abate o vencido',
-   R("rhFeriasDe('2024-01-05','2026-09-02',1)").vencidos, 0);
-eq('1 período só nunca está vencido',                 f1.vencidos, 0);
-// O painel só enxerga férias que viraram lançamento no Custos -- é um piso.
-eq('gozo vem do lançamento de férias na folha',
-   R("rhSalarios=rhSalarios.concat([{data:'2026-07-05',area:'funcionario',descricao:'Salário Leo (férias)',valor:2250,funcionario:'leo'}]); rhFeriasRegistradas('leo')"),
-   ['2026-07']);
+// está sempre no futuro, então nada nunca vencia e o "controle de vencimento"
+// que o RH pediu não controlava nada.
+eq('o mais velho já passou do prazo',      P2.completos[1].venceu, true);
+eq('o mais novo não',                      P2.completos[0].venceu, false);
+
+// -- o gozo, agora que ele é fato --------------------------------------------
+R(`rhFerias = [
+  { id:1, funcionario_id:'anne', aquisitivo_inicio:'2024-01-05',
+    inicio:'2025-02-01', fim:'2025-02-20', dias:20, abono_dias:10, status:'gozada' },
+  { id:2, funcionario_id:'anne', aquisitivo_inicio:'2025-01-05',
+    inicio:'2026-03-02', fim:'2026-03-11', dias:10, abono_dias:0,  status:'gozada' },
+  { id:3, funcionario_id:'anne', aquisitivo_inicio:'2025-01-05',
+    inicio:'2026-07-01', fim:'2026-07-10', dias:10, abono_dias:0,  status:'cancelada' },
+];`);
+eq('agrupa o gozo pelo período a que pertence',
+   R("rhGozoDoPeriodo('anne','2024-01-05').length"), 1);
+// ⚠️ O ABONO CONSOME O DIREITO: 20 gozados + 10 vendidos fecham os 30. Sem somar
+// o abono, o saldo de quem vendeu dias nunca fecharia e a tela cobraria férias
+// que já foram quitadas.
+eq('abono conta no saldo (20 + 10 = 30)',
+   R("rhDiasUsados(rhGozoDoPeriodo('anne','2024-01-05'))"), 30);
+// Cancelada é registro de que a programação caiu, não de descanso.
+eq('cancelada não consome direito',
+   R("rhDiasUsados(rhGozoDoPeriodo('anne','2025-01-05'))"), 10);
+
+// ⚠️ Vencido é o período que passou do prazo COM SALDO. Vencido e já quitado não
+// é problema -- alarmar nele treinaria a Nara a ignorar o alarme.
+R(`rhCad['anne'] = {...rhCad['anne'], data_inicio:'2024-01-05'};`);
+const cardAnne = R("rhCardFerias(rhPessoas().find(p=>p.id==='anne'))");
+if (/quitado/.test(cardAnne)) ok('período vencido mas quitado aparece como quitado');
+else bad('período quitado não foi reconhecido');
+if (/30 de 30|30 de 30/.test(cardAnne) || /30/.test(cardAnne)) ok('mostra os dias usados');
+else bad('não mostrou os dias usados');
+
+// ⚠️ O lançamento de férias no Custos deixou de ser FONTE e virou AVISO: mês
+// pago sem período registrado é uma FALTA, não o dado.
+R(`rhSalarios = rhSalarios.concat([{data:'2026-07-05', area:'funcionario',
+     descricao:'Salário Leo (férias)', valor:2250, funcionario:'leo'}]);
+   rhCad['leo'] = {...rhCad['leo'], data_inicio:'2024-06-01'};`);
+eq('mês pago sem registro de gozo é acusado', R("rhFeriasPagasSemRegistro('leo')"), ['2026-07']);
+R(`rhFerias = rhFerias.concat([{ id:9, funcionario_id:'leo',
+     aquisitivo_inicio:'2025-06-01', inicio:'2026-07-02', fim:'2026-07-21',
+     dias:20, abono_dias:0, status:'gozada' }]);`);
+eq('e para de acusar quando o período é lançado', R("rhFeriasPagasSemRegistro('leo')"), []);
+eq('o mês é coberto pelo intervalo, não pela data exata',
+   R("rhMesesEntre('2026-07-02','2026-08-05')"), ['2026-07','2026-08']);
+semear();
 
 // -- 7. cadastro x sistema -------------------------------------------------
 // ⚠️ DOIS registros de desligamento (status aqui, saiuEm/"(saiu)" no FUNC) e
@@ -308,8 +347,14 @@ const src = fs.readFileSync(path.join(ROOT,'js','rh.js'),'utf8');
 // ⚠️ A regra mudou em 02/set/2026: o papel deixou de ser só-leitura pra poder
 // preencher o cadastro. Mas a escrita é EM UMA TABELA SÓ -- e é isso que este
 // teste guarda. Qualquer POST/PATCH em outra tabela é bug de permissão.
+// ⚠️ ESTA LISTA SÓ CRESCE COM DECISÃO. Cada tabela aqui é uma permissão de
+// escrita que o RLS também precisa ter -- e um papel de fora da empresa
+// escrevendo numa tabela a mais é exatamente o que este teste existe pra
+// tornar visível. `ferias` entrou em 02/set/2026 junto com o controle de
+// período; `funcionarios_config` é o cadastro. Mais nada.
 const escritas = [...src.matchAll(/rest\/v1\/([a-z_]+)/g)].map(m => m[1]);
-eq('escreve só em funcionarios_config', [...new Set(escritas)], ['funcionarios_config']);
+eq('escreve só no cadastro e nas férias',
+   [...new Set(escritas)].sort(), ['ferias','funcionarios_config']);
 if (!/method:\s*'DELETE'/i.test(src))
   ok('não apaga nada — desligar é mudar o status, e a linha fica');
 else bad('js/rh.js tem DELETE: apagar destrói o histórico que a tabela existe pra guardar');
@@ -318,8 +363,8 @@ else bad('js/rh.js tem DELETE: apagar destrói o histórico que a tabela existe 
 // diz "vendas" (a comissão de vendas) e isso é texto de tela, não acesso a dado.
 // A primeira versão deste teste proibia a palavra e acusou o rótulo.
 const buscas = [...src.matchAll(/sbGet\(\s*'([^']+)'/g)].map(m => m[1]).sort();
-eq('busca SÓ folha_mensal, custos e funcionarios_config',
-   [...new Set(buscas)], ['custos','folha_mensal','funcionarios_config']);
+eq('busca SÓ folha_mensal, custos, funcionarios_config e ferias',
+   [...new Set(buscas)], ['custos','ferias','folha_mensal','funcionarios_config']);
 const proibidas = ['vendas','venda_produtos','estoque','pagamentos','compras','contas'];
 eq('não busca venda, produto, estoque, pagamento nem compra',
    buscas.filter(t => proibidas.includes(t)), []);
