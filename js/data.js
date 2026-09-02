@@ -1,3 +1,32 @@
+// ---------------------------------------------------------------------------
+// BUSCA POR LOTES, EM PARALELO.
+//
+// ⚠️ ISTO E O QUE FAZ O PAINEL ABRIR. Ate 02/set/2026 eram CINCO lacos
+// sequenciais de 100 em 100 ids (produtos, pagamentos, contas, trocas, origem).
+// Com os 6 meses que a tela carrega -- 1.992 vendas em set/2026 -- davam
+// ~100 requisicoes EM SERIE antes de qualquer coisa aparecer. A ~200ms cada,
+// 20 segundos de tela branca. O dono reclamou de "lento pra abrir" e era isto.
+//
+// ⚠️ A concorrencia e LIMITADA de proposito. Disparar as 100 de uma vez derruba
+// o rate limit do PostgREST e a carga falha inteira -- trocar 20s de espera por
+// uma tela de erro nao e conserto.
+// ---------------------------------------------------------------------------
+async function sbEmLotes(ids, buscaLote, opts = {}){
+  const tam = opts.tam || 100, paralelo = opts.paralelo || 6;
+  const lotes = [];
+  for(let i = 0; i < ids.length; i += tam) lotes.push(ids.slice(i, i + tam));
+  const saida = [];
+  let feitos = 0;
+  for(let i = 0; i < lotes.length; i += paralelo){
+    const grupo = lotes.slice(i, i + paralelo);
+    const res = await Promise.all(grupo.map(l => buscaLote(l)));
+    res.forEach(r => { if(Array.isArray(r)) saida.push(...r); });
+    feitos += grupo.length;
+    if(opts.aoAvancar) opts.aoAvancar(Math.min(feitos * tam, ids.length), ids.length);
+  }
+  return saida;
+}
+
 async function loadFromSupabase(){
   setProgress(10,'Carregando vendas...');
   // Vendas dos ultimos 6 meses (filtro de periodo feito no dashboard)
@@ -10,23 +39,16 @@ async function loadFromSupabase(){
   setProgress(25,'Carregando produtos...');
   // Buscar TODOS os produtos (iPhones + acessorios) sem filtro de is_principal
   const vendasIds = vendas.map(v=>v.id);
-  let venda_produtos = [];
-  for(let i=0;i<vendasIds.length;i+=100){
-    const lote = vendasIds.slice(i,i+100);
-    const prods = await sbGet('venda_produtos', `venda_id=in.(${lote.join(',')})&order=venda_id.asc`);
-    venda_produtos = venda_produtos.concat(prods);
-    setProgress(25+Math.round(i/vendasIds.length*35), 'Produtos: '+(i+lote.length)+'/'+vendasIds.length+'...');
-  }
+  const venda_produtos = await sbEmLotes(vendasIds,
+    lote => sbGet('venda_produtos', `venda_id=in.(${lote.join(',')})&order=venda_id.asc`),
+    { aoAvancar: (feito, total) =>
+        setProgress(25 + Math.round(feito/total*35), 'Produtos: '+feito+'/'+total+'...') });
 
   // Pagamentos por venda -- forma (badge) + agregados (taxa/liquido/parcelas)
   // para as colunas da tabela. Ignora cancelados. NAO altera o lucro.
   setProgress(62,'Carregando pagamentos...');
-  let pagamentos = [];
-  for(let i=0;i<vendasIds.length;i+=100){
-    const lote = vendasIds.slice(i,i+100);
-    const pags = await sbGet('pagamentos', `select=venda_id,forma_pagamento,conta_bancaria,valor,taxa,taxa_extra,liquido,numero_parcelas,status,data_pagamento,data_compensacao&venda_id=in.(${lote.join(',')})`);
-    pagamentos = pagamentos.concat(pags||[]);
-  }
+  const pagamentos = await sbEmLotes(vendasIds, lote => sbGet('pagamentos',
+    `select=venda_id,forma_pagamento,conta_bancaria,valor,taxa,taxa_extra,liquido,numero_parcelas,status,data_pagamento,data_compensacao&venda_id=in.(${lote.join(',')})`));
   const pagsMap={};
   (pagamentos||[]).forEach(p=>{ if(p.status!=='canceled'){ (pagsMap[p.venda_id]=pagsMap[p.venda_id]||[]).push(p); } });
   // taxa = custo real da maquininha (Σ taxa; liquido ja e valor-taxa). liquido =
@@ -60,13 +82,8 @@ async function loadFromSupabase(){
     ORIGEM_LOJA = {};
     origens.forEach(o => { if(o.loja) ORIGEM_LOJA[o.id] = o.loja; });
   } catch(e){ console.warn('[origens]', e); }
-  let contasCad = [];
-  for(let i=0;i<vendasIds.length;i+=100){
-    const lote = vendasIds.slice(i,i+100);
-    const cts = await sbGet('contas',
-      `select=venda_id,cad_id:raw->cadastrador->>id,cad_nome:raw->cadastrador->>nome&venda_id=in.(${lote.join(',')})`);
-    contasCad = contasCad.concat(cts||[]);
-  }
+  const contasCad = await sbEmLotes(vendasIds, lote => sbGet('contas',
+    `select=venda_id,cad_id:raw->cadastrador->>id,cad_nome:raw->cadastrador->>nome&venda_id=in.(${lote.join(',')})`));
   const cadMap={};
   (contasCad||[]).forEach(c=>{
     if(c.venda_id && c.cad_nome && !cadMap[c.venda_id]){
@@ -76,12 +93,8 @@ async function loadFromSupabase(){
 
   // Trocas (aparelhos de ENTRADA do upgrade) por venda -- detalhe modelo/IMEI/valor
   // que a ficha da venda mostra. So existe pras vendas ja capturadas/backfilladas.
-  let trocas = [];
-  for(let i=0;i<vendasIds.length;i+=100){
-    const lote = vendasIds.slice(i,i+100);
-    const t = await sbGet('venda_trocas', `select=venda_id,titulo,imei_1,serial,valor&venda_id=in.(${lote.join(',')})`);
-    trocas = trocas.concat(t||[]);
-  }
+  const trocas = await sbEmLotes(vendasIds, lote => sbGet('venda_trocas',
+    `select=venda_id,titulo,imei_1,serial,valor&venda_id=in.(${lote.join(',')})`));
   const trocasMap={};
   (trocas||[]).forEach(t=>{ (trocasMap[t.venda_id]=trocasMap[t.venda_id]||[]).push(t); });
 
@@ -95,13 +108,8 @@ async function loadFromSupabase(){
   // Detalhe e medicoes em docs/ATRIBUICAO-LEADS-VENDAS.md.
   const origemMap={};
   try {
-    let origensVenda = [];
-    for(let i=0;i<vendasIds.length;i+=100){
-      const lote = vendasIds.slice(i,i+100);
-      const o = await sbGet('venda_origem',
-        `select=venda_id,canal,origem,nivel,confianca&venda_id=in.(${lote.join(',')})`);
-      origensVenda = origensVenda.concat(o||[]);
-    }
+    const origensVenda = await sbEmLotes(vendasIds, lote => sbGet('venda_origem',
+      `select=venda_id,canal,origem,nivel,confianca&venda_id=in.(${lote.join(',')})`));
     (origensVenda||[]).forEach(o=>{ origemMap[o.venda_id]=o; });
   } catch(e){ console.warn('[venda_origem]', e); } // degrada: a secao some, o resto abre
 
