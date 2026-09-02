@@ -257,7 +257,7 @@ function fechAbaGeral(fech, ant){
   vazio();
 
   L.push(['RESULTADO']);
-  L.push(['Lucro das vendas no mês', fechMo(fech.base.lucro), 'já líquido da taxa de cartão']);
+  L.push(['Lucro das vendas no mês', fechMo(fech.base.lucro), 'preço − custo + juros repassados ao cliente']);
   L.push(['(-) Folha completa', fechMo(-t.folha), 'salário + extras + comissão + bônus']);
   L.push(['(-) Demais custos do mês', fechMo(-t.custosForaFolha), 'Custos, exceto a área Funcionários']);
   L.push(['= Resultado após folha e custos', fechMo(t.liquido), '']);

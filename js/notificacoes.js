@@ -94,7 +94,12 @@ function exibirNotif(venda){
 
   const lojaStr = loja==='cart'?'Phone Cart':loja==='urban'?'Urban':'—';
   const totalStr = 'R$'+Math.round(parseFloat(venda.valor_total||0)).toLocaleString('pt-BR');
-  const lucroStr = 'Lucro R$'+Math.round(parseFloat(venda.lucro||0)).toLocaleString('pt-BR');
+  // ⚠️ formula A (core.js), igual ao resto do painel. Este era o 8o ponto que
+  // somava o campo cru da FoneNinja -- e o mais visivel de todos: a
+  // notificacao de venda nova, que o dono le no celular assim que entra.
+  // Sem `_produtos` lucroDaVenda() cai no campo antigo sozinho, que e o
+  // caso comum aqui: a notificacao chega antes do produto sincronizar.
+  const lucroStr = 'Lucro R$'+Math.round(lucroVenda(venda)).toLocaleString('pt-BR');
   const acessStr = acessBruto>0 ? ' · Acess. R$'+Math.round(acessBruto).toLocaleString('pt-BR') : '';
 
   document.getElementById('notif-loja').textContent = lojaStr;

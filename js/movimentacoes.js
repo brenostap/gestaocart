@@ -57,7 +57,7 @@ function renderMovsClientes(){
     c.compras++;
     if(x._produtos) c.iphones+=x._produtos.filter(p=>isPrincipal(p)).length;
     c.bruto+=parseFloat(x.valor_total||0);
-    c.lucro+=parseFloat(x.lucro||0);
+    c.lucro+=lucroVenda(x);   // formula A (core.js), nao o campo cru da FoneNinja
     if(!c.ultimaCompra||x.data_saida>c.ultimaCompra) c.ultimaCompra=x.data_saida?.slice(0,10)||'';
     c.vendas.push({
       id:x.id,

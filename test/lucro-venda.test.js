@@ -132,5 +132,32 @@ eq('lista vazia é zero', R('somaLucro([])'), 0);
 eq('undefined não explode',  R('somaLucro(undefined)'), 0);
 eq('venda sem nada é zero',  R('lucroVenda({})'), 0);
 
+// -- 6. ninguém mais soma o campo cru --------------------------------------
+// ⚠️ ESTA SEÇÃO EXISTE PORQUE EU ACHEI O 8º PONTO NO GREP, NÃO NO TESTE. O
+// mapa original (docs/IDEIAS.md) listava 7 lugares somando `vendas.lucro`;
+// `js/notificacoes.js` não estava nele e ficou pra trás — justamente a
+// notificação de venda nova, a tela que o dono lê no celular assim que a venda
+// entra. Mapa escrito à mão envelhece; varredura não.
+console.log('\nnenhum arquivo soma o campo cru da venda\n');
+{
+  const dir = path.join(ROOT,'js');
+  // `lucroDaVenda` pode ler `v.lucro` -- ela É o fallback. O resto, não.
+  const isento = f => f === 'core.js';
+  const suspeitos = [];
+  for (const f of fs.readdirSync(dir).filter(x => x.endsWith('.js'))) {
+    if (isento(f)) continue;
+    fs.readFileSync(path.join(dir,f),'utf8').split('\n').forEach((linha, i) => {
+      if (/^\s*\/\//.test(linha)) return;                       // comentário
+      // ⚠️ Mira no PADRÃO da leitura crua (`parseFloat(x.lucro||0)`), não no
+      // nome da variável: `x.lucro` também aparece em linha AGREGADA, onde o
+      // campo já foi somado por outra conta (dash-v2.js, ranking de modelo).
+      // A primeira versão desta varredura acusou aquilo e o número certo junto.
+      if (/parseFloat\(\s*(x|v|venda|ve)\.lucro/.test(linha)) suspeitos.push(`${f}:${i+1}`);
+    });
+  }
+  eq('nenhum arquivo soma o lucro cru da venda (só core.js, como fallback)',
+     suspeitos, []);
+}
+
 console.log(falhas ? `\n### ${falhas} falha(s)` : '\n### tudo verde');
 process.exit(falhas ? 1 : 0);
