@@ -183,6 +183,34 @@ R("papelAtual = () => 'socio';");
   R("papelAtual = () => 'socio'; _bncAba='abertas';");
 }
 
+console.log('\nreabrir uma ida — a ação que parece inofensiva\n');
+// ⚠️ REABRIR NAO E INOFENSIVO. Devolve o aparelho pra lista de "não vender" do
+// grupo, ou seja: a loja PARA DE VENDER um aparelho que está na prateleira. E o
+// botão mora ao lado do ✕, dois alvos pequenos e vizinhos num cartão que se rola
+// com o polegar. Em 02/set/2026 o dono encostou num sem querer — e `voltou_em`
+// era apagado sem cópia, nem o log da API guarda o corpo do PATCH. A data ficou
+// irrecuperável, e foi preciso ele lembrar de cabeça.
+{
+  R(`_bancadaCache = _bancadaCache.concat([{ id:77, apple_id:null, imei4:'5555',
+       modelo_txt:'iPhone 13 Reaberto', fornecedor:'RR', origem:'estoque',
+       servico:'Troca de bateria', saiu_em:'2026-08-26',
+       voltou_em:null, voltou_em_anterior:'2026-09-01' }]);`);
+  const ab = R("(function(){ _bncAba='abertas'; _bncForFiltro=''; _bncFiltro=''; return renderBancada(); })()");
+  ok('linha reaberta se distingue de uma saída de verdade', /bnc-reaberto/.test(ab));
+  ok('e diz a data que constava antes', /01\/ago|01\/set/.test(ab));
+  ok('e carrega a volta atrás junto', /bncRefazerBaixa\(77\)/.test(ab));
+
+  // ⚠️ Refazer devolve a data ANTIGA, não "hoje" -- senão o tempo que o
+  // aparelho ficou fora mudaria sozinho, e é ele que alimenta o alerta.
+  const l = R("_bancadaCache.find(x => x.id === 77)");
+  eq('a data antiga fica guardada, não some', l.voltou_em_anterior, '2026-09-01');
+
+  // Linha normal não ganha o selo.
+  const semSelo = R("bncSeloReaberto({ id:1, voltou_em_anterior:null })");
+  eq('linha que nunca foi reaberta não mostra nada', semSelo, '');
+  R("_bancadaCache = _bancadaCache.filter(x => x.id !== 77);");
+}
+
 console.log('\no cartão do celular, e o número do chip\n');
 // ⚠️ `bnc-linha` NAO E DECORACAO: e a classe que troca o cartao empilhado
 // generico (um rotulo por campo, 6 linhas de altura no telefone) pelo cartao de

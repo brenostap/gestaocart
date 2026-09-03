@@ -25,3 +25,13 @@
 drop policy if exists bancada_apaga_socio on public.bancada;
 create policy bancada_apaga_opera on public.bancada
   for delete to authenticated using (public.pode_operar());
+
+-- ⚠️ O "desfazer" da aba Voltaram apagava `voltou_em` SEM GUARDAR O VALOR.
+-- Um toque errado no celular reabria a ida, e o aparelho voltava pra lista de
+-- "não vender" do grupo -- a loja para de vender um aparelho que está na
+-- prateleira. Aconteceu com o dono em 02/set/2026, e nem o log da API guarda o
+-- corpo do PATCH: a data era irrecuperável. Agora ela vem pra cá, e o desfazer
+-- pode ser desfeito pra sempre (não por 10 segundos de toast).
+alter table public.bancada add column if not exists voltou_em_anterior date;
+comment on column public.bancada.voltou_em_anterior is
+  'A data que o desfazer apagou. Ver bncDesfazerBaixa/bncRefazerBaixa em js/bancada.js.';

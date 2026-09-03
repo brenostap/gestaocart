@@ -1725,6 +1725,29 @@ table.esp tbody tr:last-child td{ border-bottom:none; }
 .rh-toolbar-int{ padding:10px 14px; border-top:1px solid var(--border); }
 .bnc-forn-chips{ margin-top:-4px; }
 
+/* Linha que foi REABERTA por engano. Ela precisa se distinguir de uma saida de
+   verdade -- senao o erro so aparece quando alguem estranhar o aparelho sumido
+   da venda -- e precisa carregar a volta atras junto, porque quem ve o aviso e
+   quem quer corrigir. Ambar: e atencao, nao erro critico. */
+.bnc-reaberto{
+  display:inline-flex; align-items:baseline; gap:6px; flex-wrap:wrap;
+  margin-left:6px; padding:1px 7px; border-radius:999px;
+  background:var(--alerta-bg, rgba(217,150,40,.12));
+  color:var(--alerta, #b8791a); font-size:11px; font-weight:600;
+}
+.bnc-reaberto button{
+  background:none; border:none; padding:0; font:inherit; cursor:pointer;
+  color:inherit; text-decoration:underline; opacity:.85;
+}
+.bnc-reaberto button:hover{ opacity:1; }
+@media (max-width:720px){
+  /* no cartao ele ganha linha propria: colado no servico, empurra o R$ pra
+     quarta linha e torce o cartao -- a mesma coisa que ja aconteceu com o
+     selo da assistencia no Estoque. */
+  .bnc-tabela tbody tr.bnc-linha td[data-campo="servico"]{ white-space:normal; }
+  .bnc-reaberto{ margin-left:0; }
+}
+
 @media (max-width:720px){
   .rh-kv-grade{ grid-template-columns:1fr; }
   .rh-dir b{ font-size:var(--fs-caption); }

@@ -550,10 +550,52 @@ async function bncBaixa(id){
   if(currentTab === 'bancada') renderContent();
 }
 
+// REABRIR UMA IDA (o "desfazer" da aba Voltaram).
+//
+// ⚠️ ISTO PARECE INOFENSIVO E NAO E. Reabrir devolve o aparelho pra lista de
+// "nao vender" que vai pro grupo do WhatsApp -- ou seja, a loja PARA DE VENDER
+// um aparelho que esta na prateleira. E o botao mora ao lado do ✕, dois alvos
+// pequenos e vizinhos num cartao que se rola com o polegar.
+//
+// Em 02/set/2026 o dono encostou num sem querer e perguntou se nao estava
+// arriscado demais. Estava: `voltou_em` era apagado sem copia, e nem o log da
+// API guarda o corpo do PATCH -- a data ficava irrecuperavel. Dois consertos:
+// a data antiga vai pra `voltou_em_anterior` (entao o desfazer pode ser
+// desfeito, pra sempre, nao por 10 segundos) e a acao pergunta antes.
 async function bncDesfazerBaixa(id){
-  try { await bncPatch(id, { voltou_em: null }); }
+  const l = (_bancadaCache || []).find(x => String(x.id) === String(id));
+  if(!l) return;
+  const oque = (l.modelo_txt || l.etiqueta || 'aparelho')
+             + (l.imei4 && l.imei4 !== '0000' ? ' · ' + l.imei4 : '');
+  const texto = `Reabrir a ida de ${oque}?\n\n`
+    + `Ele consta como devolvido em ${bncFmtData(l.voltou_em)}. Reabrindo, volta pra`
+    + ' lista de "não vender" do grupo — o balcão para de vender um aparelho que'
+    + ' pode estar na prateleira.\n\nDá pra desfazer isso depois.';
+  if(typeof confirm === 'function' && !confirm(texto)) return;
+  try { await bncPatch(id, { voltou_em: null, voltou_em_anterior: l.voltou_em }); }
   catch(e){ _bncErro = 'Não consegui desfazer: ' + e.message; }
   if(currentTab === 'bancada') renderContent();
+}
+
+// O desfazer do desfazer. So aparece em linha que foi reaberta, e devolve
+// EXATAMENTE a data que estava la -- nao "hoje", que e o que bncBaixa faria e
+// que mudaria o tempo que o aparelho ficou fora.
+async function bncRefazerBaixa(id){
+  const l = (_bancadaCache || []).find(x => String(x.id) === String(id));
+  if(!l || !l.voltou_em_anterior) return;
+  try { await bncPatch(id, { voltou_em: l.voltou_em_anterior, voltou_em_anterior: null }); }
+  catch(e){ _bncErro = 'Não consegui refazer: ' + e.message; }
+  if(currentTab === 'bancada') renderContent();
+}
+
+// O aviso na linha aberta: "isto aqui foi reaberto, e dá pra voltar atrás".
+// Sem ele a linha reaberta e indistinguivel de uma saida de verdade, e o erro
+// so apareceria quando alguem estranhasse o aparelho sumido da venda.
+function bncSeloReaberto(l){
+  if(!l || !l.voltou_em_anterior) return '';
+  return `<span class="bnc-reaberto">reaberto · constava ${bncFmtData(l.voltou_em_anterior)}`
+       + `<button type="button" onclick="event.stopPropagation();bncRefazerBaixa(${l.id})"`
+       + ` title="Voltar a marcar como devolvido em ${bncFmtData(l.voltou_em_anterior)}">desfazer isto</button></span>`;
 }
 
 // EXCLUIR A IDA -- para registro feito errado, nao para "ja resolveu".
@@ -1625,7 +1667,7 @@ function bncTabelaAbertas(abertas){
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="IMEI" data-campo="imei">${(l.imei4 && l.imei4 !== '0000') ? `<span class="bnc-imei">…${UI.esc(l.imei4)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(bncFornLabel(l.fornecedor))}</td>
-      <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
+      <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}${bncSeloReaberto(l)}</td>
       <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
       <td data-rot="Dias" data-campo="dias" class="num">${UI.badge(n + 'd', bncTomDias(n))}</td>
