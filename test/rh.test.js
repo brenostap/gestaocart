@@ -22,6 +22,7 @@ const ROOT = path.join(__dirname, '..');
 let falhas = 0;
 const ok  = m => console.log('  ok     ' + m);
 const bad = m => { falhas++; console.log('  FALHOU ' + m); };
+const ok2 = (m, c) => c ? ok(m) : bad(m);
 const eq  = (m, a, b) => JSON.stringify(a) === JSON.stringify(b)
   ? ok(m) : bad(`${m} — esperava ${JSON.stringify(b)}, veio ${JSON.stringify(a)}`);
 
@@ -309,6 +310,43 @@ R(`rhCad['anne'] = {...rhCad['anne'], cargo:'Atendente'};`);
 eq('cargo igual não vira alarme falso',
    R('rhDivergencias()').filter(d => /cargo/i.test(d.texto)).length, 0);
 semear();
+
+// -- 7b. trocar de aba fecha a ficha ---------------------------------------
+// ⚠️ O BOTAO DO MENU PARECIA QUEBRADO. As duas telas COMECAM devolvendo a ficha
+// quando `rhAberto` esta setado -- entao, depois de abrir alguem, tocar em Folha
+// ou em Colaboradores redesenhava a MESMA ficha e a tela nao mudava. A Nara
+// reportou como "as vezes nao troca de tela" em 02/set/2026; o "as vezes" era
+// "sempre que havia uma ficha aberta".
+console.log('\ntrocar de aba fecha a ficha aberta\n');
+{
+  semear();
+  // ⚠️ O marcador é `rh-ficha-head`, que SÓ a ficha tem. A primeira versão deste
+  // teste procurava o nome da pessoa ("Alauany") e acusou falso: o nome completo
+  // aparece também na LISTA de colaboradores, então "a ficha não está aberta"
+  // e "o nome não aparece" não são a mesma coisa.
+  const ehFicha = h => /rh-ficha-head/.test(h);
+
+  R("currentTab='rhpessoas'; rhAbrir('leo');");
+  ok2('a ficha abre na aba onde foi tocada', ehFicha(R('renderRhPessoas()')));
+
+  // Toca em "Folha": tem que vir a FOLHA, não a ficha do Leo de novo.
+  R("currentTab='rhfolha';");
+  const folha = R('renderRhFolha()');
+  ok2('tocar em Folha entrega a Folha, não a ficha de novo',
+      /Folha —/.test(folha) && !ehFicha(folha));
+  eq('e a ficha foi fechada de verdade', R('rhAberto'), null);
+
+  // O caminho inverso, que é o que ela realmente faz.
+  R("currentTab='rhfolha'; rhAbrir('anne'); currentTab='rhpessoas';");
+  const pess = R('renderRhPessoas()');
+  ok2('e o contrário também: Colaboradores entrega a lista',
+      /Colaboradores/.test(pess) && !ehFicha(pess));
+
+  // Ficar na MESMA aba não pode fechar a ficha — senão não dá pra usar.
+  R("currentTab='rhpessoas'; rhAbrir('leo');");
+  ok2('redesenhar a mesma aba mantém a ficha aberta', ehFicha(R('renderRhPessoas()')));
+  semear();
+}
 
 // -- 8. o roteador ---------------------------------------------------------
 // ⚠️ CHAMAR renderContent(), NAO SO renderRhFolha(). O roteamento de abas em

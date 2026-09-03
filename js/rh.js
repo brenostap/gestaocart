@@ -34,6 +34,13 @@ let rhFerias = [];         // tabela `ferias`: um gozo (ou programacao) por linh
 let rhCarregado = false;
 let rhErro = '';
 let rhAberto = null;       // id da pessoa com a ficha aberta
+// ⚠️ DE QUAL ABA a ficha foi aberta. Sem isto o botao do menu parece quebrado:
+// `renderRhFolha()` e `renderRhPessoas()` COMECAM devolvendo a ficha quando
+// `rhAberto` esta setado, entao depois de abrir alguem, tocar em Folha ou em
+// Colaboradores redesenhava a MESMA ficha -- a tela nao mudava e a Nara achava
+// que o botao nao pegava. Reportado em 02/set/2026 ("as vezes nao troca de
+// tela"): o "as vezes" era "sempre que havia uma ficha aberta".
+let rhAbertoEm = '';
 let rhFichaAba = 'pagamento';
 let rhEditando = false;
 let rhSalvando = '';
@@ -282,8 +289,17 @@ function rhLinhaPessoa({id, nome, selo, meio, direita, subDireita}){
   </button>`;
 }
 
-function rhAbrir(id){ rhAberto = id; rhFichaAba = 'pagamento'; rhEditando = false; renderContent(); }
-function rhFechar(){ rhAberto = null; rhEditando = false; renderContent(); }
+function rhAbrir(id){
+  rhAberto = id; rhAbertoEm = currentTab;
+  rhFichaAba = 'pagamento'; rhEditando = false; renderContent();
+}
+// A ficha pertence a aba que a abriu. Trocar de aba no menu fecha a ficha --
+// que e o que qualquer barra de navegacao promete ao ser tocada.
+function rhFichaAtiva(){
+  if(rhAberto && rhAbertoEm && rhAbertoEm !== currentTab){ rhAberto = null; rhAbertoEm = ''; }
+  return rhAberto;
+}
+function rhFechar(){ rhAberto = null; rhAbertoEm = ''; rhEditando = false; renderContent(); }
 function setRhFichaAba(a){ rhFichaAba = a; rhEditando = false; renderContent(); }
 
 // ============================================================================
@@ -291,7 +307,7 @@ function setRhFichaAba(a){ rhFichaAba = a; rhEditando = false; renderContent(); 
 // ============================================================================
 function renderRhFolha(){
   const base = rhEstadoBase(); if(base) return base;
-  if(rhAberto) return rhFicha(rhAberto);
+  const aberto = rhFichaAtiva(); if(aberto) return rhFicha(aberto);
 
   const mes = rhMesVisto();
   if(!mes)
@@ -382,7 +398,7 @@ function rhCardConferencia(mes){
 // ============================================================================
 function renderRhPessoas(){
   const base = rhEstadoBase(); if(base) return base;
-  if(rhAberto) return rhFicha(rhAberto);
+  const aberto = rhFichaAtiva(); if(aberto) return rhFicha(aberto);
 
   const todas = rhPessoas();
   const grupo = s => todas.filter(p => p.status === s);
