@@ -183,6 +183,43 @@ R("papelAtual = () => 'socio';");
   R("papelAtual = () => 'socio'; _bncAba='abertas';");
 }
 
+console.log('\no cartão do celular, e o número do chip\n');
+// ⚠️ `bnc-linha` NAO E DECORACAO: e a classe que troca o cartao empilhado
+// generico (um rotulo por campo, 6 linhas de altura no telefone) pelo cartao de
+// 3 linhas. A tabela "Na assistencia" sempre teve; a "Voltaram" ficou sem, e no
+// celular cada volta virava um bloco enorme de ONDE/SERVICO/SAIU/VOLTOU/FICOU/R$
+// empilhados. O dono viu em 02/set/2026.
+{
+  const ab = R("(function(){ _bncAba='abertas';  _bncForFiltro=''; _bncFiltro=''; return renderBancada(); })()");
+  const fe = R("(function(){ _bncAba='fechadas'; _bncForFiltro=''; _bncFiltro=''; return renderBancada(); })()");
+  ok('as linhas de "Na assistência" são cartão compacto', /<tr class="bnc-linha">/.test(ab));
+  ok('as de "Voltaram" também', /<tr class="bnc-linha">/.test(fe));
+  // O CSS posiciona por data-campo: campo sem ele cai no fim do flex e torce o
+  // cartao so naquela aba.
+  ['aparelho','etiqueta','onde','servico','origem','saiu','voltou','ficou','acao']
+    .forEach(c => ok(`Voltaram: a célula "${c}" tem data-campo`,
+                     new RegExp('data-campo="' + c + '"').test(fe)));
+}
+
+// ⚠️ O NUMERO DO CHIP TEM QUE SER O TAMANHO DA LISTA QUE ELE VAI ABRIR. Ate
+// 02/set/2026 era sempre "quantos estao fora", entao na aba Voltaram o chip
+// dizia "Access (1)" e a lista abria com 26. Numero que promete uma coisa e
+// entrega outra e pior que numero nenhum -- o dono teve que perguntar qual dos
+// dois estava certo.
+{
+  const f = R("bncFornecedores().find(x => x.f === 'ACCESS')");
+  eq('a fixture tem 2 Access fora e 0 voltando', [f.fora, f.voltaram], [2,0]);
+  R("_bncAba='abertas';");
+  eq('na aba "Na assistência" o chip conta quem está fora', R("bncQtdDoChip(bncFornecedores().find(x=>x.f==='ACCESS'))"), 2);
+  R("_bncAba='fechadas';");
+  eq('na aba "Voltaram" ele conta quem voltou', R("bncQtdDoChip(bncFornecedores().find(x=>x.f==='ACCESS'))"), 0);
+  const rr = R("bncFornecedores().find(x=>x.f==='RR')");
+  eq('e pra RR, que tem 1 fora e 1 voltada', [rr.fora, rr.voltaram], [1,1]);
+  R("_bncAba='fechadas';");
+  eq('o chip da RR mostra 1 na aba Voltaram', R("bncQtdDoChip(bncFornecedores().find(x=>x.f==='RR'))"), 1);
+  R("_bncAba='abertas';");
+}
+
 console.log('\nos dois nomes de cada assistência\n');
 // ⚠️ NA LOJA CADA ASSISTENCIA TEM DOIS NOMES E OS DOIS SAO USADOS. O Vitinho
 // fala "está com o Thiago" e "mandei pro Lucas"; o sistema só conhecia "Access"

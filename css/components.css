@@ -727,6 +727,37 @@ table.v-itens tbody tr:hover td{ background:var(--bg3); }
   /* o valor da nota so existe depois da volta: aqui ele e campo de espera,
      nao pode disputar tamanho com "Voltou", que e a acao da linha */
   .bnc-tabela td[data-campo="valor"] input{ width:64px; }
+
+  /* -- ABA "VOLTARAM" ----------------------------------------------------
+     Mesmo cartao de 3 linhas, com o que muda: em vez de "quantos dias esta
+     fora" (o alarme), o par SAIU → VOLTOU e quanto FICOU (o historico).
+
+       linha 1: aparelho ......................... [5d]
+       linha 2: etiqueta · onde · origem · 27/ago → 01/set
+       linha 3: servico .......................... R$  [desfazer] [✕]
+
+     ⚠️ Estas regras convivem com as da aba de cima porque as duas tabelas
+     compartilham `.bnc-tabela` e os campos tem NOMES diferentes (`ficou` e
+     `voltou` so existem aqui; `dias` e `imei` so existem la). Campo novo em
+     uma das duas precisa de `order` aqui, senao ele cai no fim do flex e o
+     cartao sai torto so naquela aba.                                       */
+  .bnc-tabela td[data-campo="ficou"] { order:2; margin-left:auto; }
+  /* saiu e voltou dividem o mesmo slot: o empate de `order` desempata pela
+     ordem do DOM, e no HTML saiu vem antes. A seta e da celula do voltou. */
+  .bnc-tabela td[data-campo="voltou"]{ order:8; font-size:12px; color:var(--text4); }
+
+  /* ⚠️ ESTES DOIS PRECISAM DO SELETOR LONGO, e nao e capricho -- e a mesma
+     armadilha anotada logo acima no Estoque. As regras genericas da linha
+     (`.bnc-tabela tbody tr.bnc-linha td` e `... td::before`) tem DUAS classes e
+     TRES elementos; um `.bnc-tabela td[data-campo=x]` perde pra elas. Escrito
+     curto, o `content:none` do rotulo mataria a seta e o `display:inline`
+     mataria o flex dos botoes -- calados, os dois. */
+  .bnc-tabela tbody tr.bnc-linha td[data-campo="voltou"]::before{
+    content:'→'; margin-right:5px; color:var(--text4); }
+  /* o botao "desfazer" e texto e o "✕" e um alvo pequeno: juntos precisam
+     caber sem empurrar o R$ pra quarta linha. */
+  .bnc-tabela tbody tr.bnc-linha td[data-campo="acao"]{
+    display:inline-flex; gap:4px; align-items:center; }
 }
 
 /* ============================================================================

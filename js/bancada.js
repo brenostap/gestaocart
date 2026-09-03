@@ -1212,11 +1212,19 @@ function bncFornecedores(){
   const cont = {};
   (_bancadaCache || []).forEach(l => {
     if(!l.fornecedor) return;
-    cont[l.fornecedor] = cont[l.fornecedor] || { f:l.fornecedor, total:0, fora:0 };
+    cont[l.fornecedor] = cont[l.fornecedor] || { f:l.fornecedor, total:0, fora:0, voltaram:0 };
     cont[l.fornecedor].total++;
-    if(!l.voltou_em) cont[l.fornecedor].fora++;
+    if(l.voltou_em) cont[l.fornecedor].voltaram++; else cont[l.fornecedor].fora++;
   });
   return Object.values(cont).sort((a,b) => b.fora - a.fora || b.total - a.total);
+}
+// ⚠️ O NUMERO DO CHIP TEM QUE SER O TAMANHO DA LISTA QUE ELE VAI MOSTRAR.
+// Ate 02/set/2026 ele era sempre "quantos estao fora" -- entao na aba Voltaram
+// o chip dizia "Access (1)" e a lista abria com 26 itens. Numero que promete uma
+// coisa e entrega outra e pior que numero nenhum: o dono viu e teve que
+// perguntar qual dos dois estava certo.
+function bncQtdDoChip(x){
+  return _bncAba === 'fechadas' ? x.voltaram : x.fora;
 }
 function setBancadaForn(f){
   _bncForFiltro = (_bncForFiltro === f) ? '' : f;
@@ -1273,7 +1281,7 @@ function bncChipsForn(){
   if(fs.length < 2) return '';   // uma assistencia so: o filtro nao decide nada
   return `<div class="c-toolbar bnc-forn-chips">
     ${UI.chip('Todas', !_bncForFiltro, "setBancadaForn('')")}
-    ${fs.map(x => UI.chip(`${bncFornCompleto(x.f)} (${x.fora})`,
+    ${fs.map(x => UI.chip(`${bncFornCompleto(x.f)} (${bncQtdDoChip(x)})`,
         _bncForFiltro === x.f, `setBancadaForn('${x.f}')`)).join('')}
   </div>`;
 }
@@ -1666,15 +1674,20 @@ function bncTabelaFechadas(){
     const dias = l.saiu_em && l.voltou_em
       ? Math.max(0, Math.round((new Date(l.voltou_em+'T12:00:00') - new Date(l.saiu_em+'T12:00:00')) / 86400000))
       : 0;
-    return `<tr>
+    // ⚠️ `bnc-linha` NAO E DECORACAO: e ela que troca o cartao empilhado generico
+    // (um rotulo por campo, 6 linhas de altura) pelo cartao de 3 linhas do
+    // celular. A tabela de cima sempre teve; esta ficou sem, entao no telefone
+    // cada volta virava um bloco enorme de ONDE/SERVICO/SAIU/VOLTOU/FICOU/R$
+    // empilhados. O dono viu em 02/set/2026: "esses cards tbm nao estao legais".
+    return `<tr class="bnc-linha">
       <td data-rot="Aparelho" data-campo="aparelho" class="forte">${bncProduto(l)}</td>
       <td data-rot="Etiqueta" data-campo="etiqueta">${l.etiqueta ? `<span class="est-tag">${UI.esc(l.etiqueta)}</span>` : ''}</td>
       <td data-rot="Onde" data-campo="onde">${UI.esc(bncFornLabel(l.fornecedor))}</td>
       <td data-rot="Serviço" data-campo="servico">${bncRetornoSelo(l)}${bncCelulaServico(l)}</td>
       <td data-rot="De onde" data-campo="origem" data-origem="${UI.esc(l.origem||"")}">${bncDonoBadge(l)}</td>
       <td data-rot="Saiu" data-campo="saiu">${bncFmtData(l.saiu_em)}</td>
-      <td data-rot="Voltou">${bncFmtData(l.voltou_em)}</td>
-      <td data-rot="Ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
+      <td data-rot="Voltou" data-campo="voltou">${bncFmtData(l.voltou_em)}</td>
+      <td data-rot="Ficou" data-campo="ficou" class="num">${UI.badge(dias + 'd', bncTomDias(dias))}</td>
       ${podeVerCustoServico() ? `<td data-rot="R$" data-campo="valor" class="num">${bncCampoValor(l)}</td>` : ''}
       <td data-rot="" data-campo="acao" class="num">${UI.btn('desfazer', {onclick:`bncDesfazerBaixa(${l.id})`, variante:'sutil', sm:true})}${
         bncPodeExcluir() ? UI.btn('✕', {onclick:`bncExcluir(${l.id})`, variante:'sutil', sm:true,
